@@ -1,0 +1,64 @@
+Dưới đây là bản thiết kế phân rã chức năng tổng thể cho Hệ thống Quản lý Internet Cafe của bạn, được ánh xạ trực tiếp từ 23 bảng cơ sở dữ liệu đã xây dựng. Hệ thống chia làm hai phần chính: **Web Admin** (chạy trên trình duyệt, xây dựng bằng ReactJS) và **App Desktop Client** (cài tại máy trạm).
+
+## 1. Hệ thống Web Admin (Dành cho Quản lý & Nhân viên thu ngân)
+
+### 1.1. Module Quản lý Phòng máy & Giao dịch (Core Operations)
+
+* **Sơ đồ phòng máy (Visual Map):** Hiển thị trạng thái realtime của tất cả các máy (Trống, Đang sử dụng, Bảo trì) dựa trên bảng `Computers` và `Usage_Sessions`.
+* **Quản lý phiên chơi (Session Management):** Cưỡng chế đóng/mở máy từ xa, theo dõi số dư (Balance) của khách đang ngồi.
+* **Quản lý Nạp tiền & Combo:** Thực hiện giao dịch nạp tiền mặt tại quầy (`TopUp`) hoặc bán các gói `Combos` khuyến mãi.
+* **Lịch sử giao dịch:** Tra cứu toàn bộ dòng tiền (`Transactions`) bao gồm tiền giờ, tiền ăn uống, và hoàn tiền.
+
+### 1.2. Module Quản lý Dịch vụ & Kho hàng (F&B / Inventory)
+
+* **Quản lý Menu:** Thêm, sửa, xóa các danh mục (`Product_Categories`) và sản phẩm (`Products`), điều chỉnh giá bán.
+* **Quản lý Tồn kho:** Ghi nhận các phiếu nhập kho hoặc xuất kho hủy (`Inventory_Transactions`). Cảnh báo khi hàng trong kho (Stock_Quantity) sắp hết.
+* **Xử lý Đơn hàng (Order Processing):** Nhận order đồ ăn/nước uống theo thời gian thực từ máy khách (biết chính xác khách ở `Computer_ID` nào). Cập nhật trạng thái bếp: Pending $\rightarrow$ Preparing $\rightarrow$ Served.
+
+### 1.3. Module Quản trị Nhân sự (HRM)
+
+* **Hồ sơ nhân viên:** Quản lý thông tin, chức vụ (`Positions`), phòng ban (`Departments`), và cấp quyền truy cập (Admin/Manager/Staff).
+* **Lịch trình & Phân ca:** Tạo ca làm việc (`Work_Shifts`) và xếp lịch trực (`Work_Schedules`) cho từng nhân viên theo tuần/tháng.
+* **Chấm công & Nghỉ phép:** Ghi nhận giờ Check-in/Check-out (`Attendance`), duyệt hoặc từ chối các đơn xin nghỉ (`Leave_Requests`).
+* **Bảng lương (Payroll):** Tự động tính toán lương thực lãnh dựa trên lương cơ bản, thưởng (Bonus), và phạt (Deduction).
+
+### 1.4. Module Quản lý Khách hàng (CRM)
+
+* **Hồ sơ Hội viên:** Quản lý thông tin người dùng (`Customers`), hạng thành viên (`Membership_Tier`) và mức chiết khấu tương ứng.
+* **Hỗ trợ & Khiếu nại:** Tiếp nhận và xử lý các báo cáo lỗi/phản hồi (`Feedback`) từ khách hàng (ví dụ: hỏng chuột, máy giật).
+* **Khảo sát ý kiến:** Tạo các biểu mẫu khảo sát (`Surveys`, `Survey_Questions`) để lấy ý kiến khách hàng về món ăn mới hoặc chất lượng dịch vụ, và xem thống kê kết quả (`Survey_Responses`).
+
+### 1.5. Module Báo cáo & Thống kê (Dashboards)
+
+* **Thống kê Doanh thu:** Phân tách rõ ràng doanh thu từ Nạp giờ, Doanh thu F&B, và bán Combo.
+* **Báo cáo Tồn kho:** Thống kê các mặt hàng bán chạy nhất và báo cáo tiêu hao nguyên liệu.
+
+---
+
+## 2. Hệ thống App Desktop Client (Cài đặt tại máy trạm)
+
+### 2.1. Màn hình khóa (Lockscreen & Authentication)
+
+* **Khóa màn hình (Kiosk Mode):** Khóa toàn bộ thao tác Windows khi máy ở trạng thái trống hoặc khách hết tiền.
+* **Đăng nhập hệ thống:** Cho phép hội viên đăng nhập bằng Username/Password hoặc tạo tài khoản mới.
+* **Hiển thị bảng giá:** Hiển thị đơn giá giờ chơi của máy (Standard/VIP) và các Combo đang khuyến mãi trực tiếp trên màn hình chờ.
+
+### 2.2. Tiện ích Khách hàng (Client Dashboard)
+
+* **Thông tin phiên chơi:** Hiển thị góc phải màn hình các thông tin realtime: Tên user, Số dư hiện tại, Đơn giá/giờ, và thời gian dự kiến còn lại.
+* **Đăng xuất/Trả máy:** Khách bấm kết thúc phiên (`End Session`), hệ thống .NET backend dừng trừ tiền và App Desktop tự động lock lại màn hình.
+
+### 2.3. Đặt dịch vụ (F&B Ordering)
+
+* **Xem Menu Điện tử:** Trực quan hóa danh sách đồ ăn, thức uống. Chỉ cho phép đặt những món có `Stock_Quantity > 0`.
+* **Giỏ hàng & Thanh toán:** Chọn món, điều chỉnh số lượng. Hệ thống tự động trừ tiền vào tài khoản đang chơi (Balance) hoặc ghi nhận nợ để thu tiền mặt.
+* **Theo dõi tiến độ:** Thông báo popup khi đơn hàng được bếp tiếp nhận và khi đồ ăn chuẩn bị được mang ra.
+
+### 2.4. Tương tác & Hỗ trợ
+
+* **Gọi nhân viên/Kỹ thuật:** Gửi nhanh `Feedback` đến màn hình của thu ngân khi cần hỗ trợ (đổi gear, lỗi game).
+* **Tham gia khảo sát:** Trả lời các pop-up khảo sát của quán để nhận điểm thưởng hoặc tiền cộng thêm vào tài khoản.
+
+Hệ thống .NET backend đóng vai trò là cầu nối trung tâm (API Gateway), xử lý logic trừ tiền ngầm mỗi phút (Background Worker) và dùng WebSockets/SignalR để đồng bộ trạng thái lập tức giữa Web Admin và App Desktop (ví dụ: duyệt order xong thì máy khách báo "Đã phục vụ", hoặc khách hết tiền thì khóa máy lập tức).
+
+Bạn muốn đi sâu vào đặc tả luồng xử lý (User Flow) của chức năng nào trước? Ví dụ như luồng "Khách gọi đồ ăn và trừ kho" hay luồng "Trừ tiền giờ realtime"?
