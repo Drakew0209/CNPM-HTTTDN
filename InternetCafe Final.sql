@@ -207,8 +207,7 @@ CREATE TABLE dbo.Usage_Sessions (
     Status VARCHAR(20) DEFAULT 'Active', -- Active, Completed, Cancelled
     CONSTRAINT PK_Usage_Sessions PRIMARY KEY (Session_ID),
     CONSTRAINT FK_Sessions_Customer FOREIGN KEY (Customer_ID)
-        REFERENCES dbo.Customers (Customer_ID)
-        ON DELETE CASCADE,
+        REFERENCES dbo.Customers (Customer_ID),
     CONSTRAINT FK_Sessions_Computer FOREIGN KEY (Computer_ID)
         REFERENCES dbo.Computers (Computer_ID),
     CONSTRAINT FK_Sessions_Employee FOREIGN KEY (Employee_ID)
@@ -227,8 +226,7 @@ CREATE TABLE dbo.Orders (
     Status VARCHAR(20) DEFAULT 'Pending', -- Pending, Preparing, Served, Cancelled
     CONSTRAINT PK_Orders PRIMARY KEY (Order_ID),
     CONSTRAINT FK_Orders_Customer FOREIGN KEY (Customer_ID)
-        REFERENCES dbo.Customers (Customer_ID)
-        ON DELETE CASCADE,
+        REFERENCES dbo.Customers (Customer_ID),
     CONSTRAINT FK_Orders_Computer FOREIGN KEY (Computer_ID) 
         REFERENCES dbo.Computers (Computer_ID),
     CONSTRAINT FK_Orders_Employee FOREIGN KEY (Employee_ID)
@@ -309,7 +307,7 @@ CREATE TABLE dbo.Transactions (
     Amount DECIMAL(12,2) NOT NULL,
     Trans_Date DATETIME DEFAULT GETDATE(),
     CONSTRAINT PK_Transactions PRIMARY KEY (Transaction_ID),
-    CONSTRAINT FK_Transactions_Customer FOREIGN KEY (Customer_ID) REFERENCES dbo.Customers (Customer_ID) ON DELETE CASCADE,
+    CONSTRAINT FK_Transactions_Customer FOREIGN KEY (Customer_ID) REFERENCES dbo.Customers (Customer_ID),
     CONSTRAINT FK_Transactions_Employee FOREIGN KEY (Processed_By) REFERENCES dbo.Employees (Employee_ID),
     CONSTRAINT FK_Transactions_Order FOREIGN KEY (Order_ID) REFERENCES dbo.Orders (Order_ID),
     CONSTRAINT FK_Transactions_Session FOREIGN KEY (Session_ID) REFERENCES dbo.Usage_Sessions (Session_ID),
@@ -412,6 +410,95 @@ CREATE TABLE dbo.Attendance (
 GO
 
 -- =============================================
+-- 2.5 Add Check Constraints
+-- =============================================
+ALTER TABLE dbo.Customers ADD CONSTRAINT CHK_Customer_Status CHECK (Status IN ('Active', 'Banned', 'Inactive'));
+ALTER TABLE dbo.Orders ADD CONSTRAINT CHK_Order_Status CHECK (Status IN ('Pending', 'Preparing', 'Served', 'Cancelled'));
+ALTER TABLE dbo.Transactions ADD CONSTRAINT CHK_Trans_Type CHECK (Trans_Type IN ('TopUp', 'FoodOrder', 'Rental', 'Refund'));
+ALTER TABLE dbo.Work_Schedules ADD CONSTRAINT CHK_Schedule_Status CHECK (Status IN ('Scheduled', 'Completed', 'Absent', 'OnLeave'));
+ALTER TABLE dbo.Employees ADD CONSTRAINT CHK_Emp_Gender CHECK (Gender IN (N'Nam', N'Nữ', N'Khác'));
+
+ALTER TABLE dbo.Products ADD CONSTRAINT CHK_Product_Price CHECK (Price >= 0);
+ALTER TABLE dbo.Products ADD CONSTRAINT CHK_Stock_Quantity CHECK (Stock_Quantity >= 0);
+ALTER TABLE dbo.Order_Details ADD CONSTRAINT CHK_Order_Quantity CHECK (Quantity > 0);
+ALTER TABLE dbo.Customers ADD CONSTRAINT CHK_Customer_Balance CHECK (Balance >= 0);
+GO
+
+-- =============================================
+-- 2.6 Create Triggers
+-- =============================================
+
+-- Trigger 1: Sync Inventory_Transactions with Products.Stock_Quantity
+CREATE TRIGGER TR_Sync_Inventory
+ON dbo.Inventory_Transactions
+AFTER INSERT
+AS
+BEGIN
+    UPDATE p
+    SET p.Stock_Quantity = p.Stock_Quantity + i.Quantity
+    FROM dbo.Products p
+    JOIN inserted i ON p.Product_ID = i.Product_ID
+    WHERE i.Trans_Type = 'Import';
+
+    UPDATE p
+    SET p.Stock_Quantity = p.Stock_Quantity - i.Quantity
+    FROM dbo.Products p
+    JOIN inserted i ON p.Product_ID = i.Product_ID
+    WHERE i.Trans_Type = 'Export';
+END;
+GO
+
+-- Trigger 2: Sync Order_Details with Products.Stock_Quantity (Selling food)
+CREATE TRIGGER TR_Sync_Order_Details_Inventory
+ON dbo.Order_Details
+AFTER INSERT
+AS
+BEGIN
+    UPDATE p
+    SET p.Stock_Quantity = p.Stock_Quantity - i.Quantity
+    FROM dbo.Products p
+    JOIN inserted i ON p.Product_ID = i.Product_ID;
+END;
+GO
+
+-- Trigger 3: Sync Customer.Balance from Transactions
+CREATE TRIGGER TR_Sync_Customer_Balance
+ON dbo.Transactions
+AFTER INSERT
+AS
+BEGIN
+    -- TopUp adds amount (plus bonus if combo used)
+    UPDATE c
+    SET c.Balance = c.Balance + (i.Amount + ISNULL(cb.Bonus_Balance, 0))
+    FROM dbo.Customers c
+    JOIN inserted i ON c.Customer_ID = i.Customer_ID
+    LEFT JOIN dbo.Combos cb ON i.Combo_ID = cb.Combo_ID
+    WHERE i.Trans_Type = 'TopUp';
+
+    -- Rental deducts amount
+    UPDATE c
+    SET c.Balance = c.Balance - i.Amount
+    FROM dbo.Customers c
+    JOIN inserted i ON c.Customer_ID = i.Customer_ID
+    WHERE i.Trans_Type = 'Rental';
+
+    -- FoodOrder deducts amount
+    UPDATE c
+    SET c.Balance = c.Balance - i.Amount
+    FROM dbo.Customers c
+    JOIN inserted i ON c.Customer_ID = i.Customer_ID
+    WHERE i.Trans_Type = 'FoodOrder';
+    
+    -- Refund adds amount back
+    UPDATE c
+    SET c.Balance = c.Balance + i.Amount
+    FROM dbo.Customers c
+    JOIN inserted i ON c.Customer_ID = i.Customer_ID
+    WHERE i.Trans_Type = 'Refund';
+END;
+GO
+
+-- =============================================
 -- 3. Seed data
 -- =============================================
 INSERT INTO dbo.Departments (Department_Name) VALUES (N'Vận hành'), (N'Kỹ thuật'), (N'Thu ngân');
@@ -421,7 +508,7 @@ VALUES (N'Quản lý ca', 1, 'Manager'), (N'Kỹ thuật viên', 2, 'Staff'), (N
 GO
 INSERT INTO dbo.Employees (Username, Password_Hash, Full_Name, Date_Of_Birth, Gender, Phone_Number, Position_ID, Base_Salary, Status)
 VALUES
-    ('emp01', 'hashE1', N'Lê Văn Quản', '1995-03-10', N'Nam', '0901111111', 1, 8000000, 'Active'),
+    ('emp01', 'hashE1', N'Lê Văn Quân', '1995-03-10', N'Nam', '0901111111', 1, 8000000, 'Active'),
     ('emp02', 'hashE2', N'Phạm Thị Ngân', '1999-07-22', N'Nữ', '0902222222', 3, 6000000, 'Active');
 GO
 INSERT INTO dbo.Computers (Computer_Code, Zone_Type, Hourly_Rate, Status)
