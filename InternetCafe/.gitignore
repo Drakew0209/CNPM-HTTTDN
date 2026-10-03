@@ -1,0 +1,13 @@
+node_modules/
+dist/
+bin/
+obj/
+TestResults/
+playwright-report/
+test-results/
+.env
+.env.local
+*.user
+*.log
+.vs/
+coverage/
