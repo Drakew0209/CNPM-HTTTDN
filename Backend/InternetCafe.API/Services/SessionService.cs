@@ -284,7 +284,9 @@ public sealed class SessionService(
                     x.ComputerId,
                     x.Computer_Code,
                     x.Status ?? "Unknown",
-                    x.Hourly_Rate))
+                    x.Hourly_Rate,
+                    null,
+                    null))
                 .ToListAsync(cancellationToken);
 
             await hubContext.Clients.Group(CafeHub.WebAdminGroup)

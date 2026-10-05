@@ -15,6 +15,113 @@ public sealed class OrderService(
     IHubContext<CafeHub> hubContext,
     ILogger<OrderService> logger) : IOrderService
 {
+    public async Task<IReadOnlyList<PendingOrderResponse>> GetPendingAsync(CancellationToken cancellationToken)
+    {
+        var orders = await (
+            from order in dbContext.Orders.AsNoTracking()
+            join customer in dbContext.Customers.AsNoTracking()
+                on order.Customer_ID equals customer.CustomerId
+            join computer in dbContext.Computers.AsNoTracking()
+                on order.Computer_ID equals (int?)computer.ComputerId into computers
+            from computer in computers.DefaultIfEmpty()
+            where order.Status == "Pending"
+            orderby order.Order_Date
+            select new
+            {
+                order.OrderId,
+                order.Customer_ID,
+                Customer_Name = customer.Full_Name,
+                order.Computer_ID,
+                Computer_Name = computer == null ? null : computer.Computer_Code,
+                Status = order.Status ?? "Pending",
+                Total_Amount = order.Total_Amount ?? 0m,
+                order.Order_Date
+            })
+            .Take(100)
+            .ToListAsync(cancellationToken);
+
+        if (orders.Count == 0)
+        {
+            return [];
+        }
+
+        var orderIds = orders.Select(x => x.OrderId).ToArray();
+        var lines = await (
+            from detail in dbContext.OrderDetails.AsNoTracking()
+            join product in dbContext.Products.AsNoTracking()
+                on detail.Product_ID equals product.ProductId
+            where orderIds.Contains(detail.Order_ID)
+            select new
+            {
+                detail.Order_ID,
+                Line = new OrderLineResponse(
+                    detail.Product_ID,
+                    product.Product_Name,
+                    detail.Quantity,
+                    detail.Unit_Price,
+                    detail.Line_Total ?? detail.Unit_Price * detail.Quantity)
+            })
+            .ToListAsync(cancellationToken);
+
+        var responseLines = lines
+            .GroupBy(x => x.Order_ID)
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<OrderLineResponse>)group.Select(x => x.Line).ToList());
+        return orders.Select(order => new PendingOrderResponse(
+            order.OrderId,
+            order.Customer_ID,
+            order.Customer_Name,
+            order.Computer_ID,
+            order.Computer_Name,
+            order.Status,
+            order.Total_Amount,
+            order.Order_Date,
+            responseLines.GetValueOrDefault(order.OrderId) ?? Array.Empty<OrderLineResponse>()))
+            .ToList();
+    }
+
+    public async Task CompleteAsync(int orderId, CancellationToken cancellationToken)
+    {
+        if (orderId <= 0)
+        {
+            throw new ArgumentException("Order ID must be positive.");
+        }
+
+        await using var dbTransaction = await dbContext.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable, cancellationToken);
+
+        var order = await dbContext.Orders
+            .SingleOrDefaultAsync(x => x.OrderId == orderId, cancellationToken);
+        if (order is null)
+        {
+            throw new KeyNotFoundException("Order was not found.");
+        }
+
+        if (order.Status == "Served")
+        {
+            await dbTransaction.CommitAsync(cancellationToken);
+            return;
+        }
+        if (order.Status is not ("Pending" or "Preparing"))
+        {
+            throw new ConflictException($"Order cannot be completed from status '{order.Status}'.");
+        }
+
+        // The existing SQL CHECK constraint uses Served as the terminal/completed state.
+        order.Status = "Served";
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbTransaction.CommitAsync(cancellationToken);
+
+        try
+        {
+            await hubContext.Clients.Group(CafeHub.WebAdminGroup)
+                .SendAsync("OrderStatusChanged", new { Order_ID = order.OrderId, Status = order.Status }, cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(exception, "Could not broadcast completion of order {OrderId}.", orderId);
+        }
+    }
+
     public async Task<OrderResponse> CreateAsync(OrderRequest request, CancellationToken cancellationToken)
     {
         if (request.Items.Count is < 1 or > 100)

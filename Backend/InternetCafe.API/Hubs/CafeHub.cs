@@ -133,7 +133,9 @@ public sealed class CafeHub(InternetCafeDbContext dbContext) : Hub
                 x.ComputerId,
                 x.Computer_Code,
                 x.Status ?? "Unknown",
-                x.Hourly_Rate))
+                x.Hourly_Rate,
+                null,
+                null))
             .ToListAsync(Context.ConnectionAborted);
 
         await Clients.Group(WebAdminGroup).SendAsync("ComputerStatusChanged", computers, Context.ConnectionAborted);

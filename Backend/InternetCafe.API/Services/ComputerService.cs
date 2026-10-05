@@ -9,14 +9,19 @@ public sealed class ComputerService(InternetCafeDbContext dbContext) : IComputer
 {
     public async Task<IReadOnlyList<ComputerResponse>> GetAllAsync(CancellationToken cancellationToken)
     {
-        return await dbContext.Computers
-            .AsNoTracking()
-            .OrderBy(x => x.Computer_Code)
-            .Select(x => new ComputerResponse(
-                x.ComputerId,
-                x.Computer_Code,
-                x.Status ?? "Unknown",
-                x.Hourly_Rate))
+        return await (
+            from computer in dbContext.Computers.AsNoTracking()
+            join session in dbContext.UsageSessions.AsNoTracking().Where(x => x.Status == "Active")
+                on computer.ComputerId equals session.Computer_ID into activeSessions
+            from session in activeSessions.DefaultIfEmpty()
+            orderby computer.Computer_Code
+            select new ComputerResponse(
+                computer.ComputerId,
+                computer.Computer_Code,
+                computer.Status ?? "Unknown",
+                computer.Hourly_Rate,
+                session == null ? null : (int?)session.SessionId,
+                session == null ? null : (int?)session.Customer_ID))
             .ToListAsync(cancellationToken);
     }
 }

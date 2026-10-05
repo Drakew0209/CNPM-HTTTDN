@@ -16,3 +16,14 @@ public sealed record OrderResponse(
     decimal Balance_After,
     DateTime? Order_Date,
     IReadOnlyList<OrderLineResponse> Items);
+
+public sealed record PendingOrderResponse(
+    int Order_ID,
+    int Customer_ID,
+    string Customer_Name,
+    int? Computer_ID,
+    string? Computer_Name,
+    string Status,
+    decimal Total_Amount,
+    DateTime? Order_Date,
+    IReadOnlyList<OrderLineResponse> Items);

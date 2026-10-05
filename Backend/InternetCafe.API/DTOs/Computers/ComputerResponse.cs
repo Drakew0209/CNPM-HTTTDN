@@ -4,4 +4,6 @@ public sealed record ComputerResponse(
     int Computer_ID,
     string Computer_Name,
     string Status,
-    decimal Hourly_Rate);
+    decimal Hourly_Rate,
+    int? Active_Session_ID = null,
+    int? Active_Customer_ID = null);
