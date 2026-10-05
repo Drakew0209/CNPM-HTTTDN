@@ -36,6 +36,7 @@ type ApiProduct = {
   image_Url: string | null;
   category_ID: number;
   category_Name: string;
+  status?: string | null;
 };
 
 type ApiOrderLine = {
@@ -58,12 +59,136 @@ type ApiPendingOrder = {
   items: ApiOrderLine[];
 };
 
+type ApiTransaction = {
+  transaction_ID: number;
+  customer_ID: number;
+  customer_Username: string;
+  customer_Name: string;
+  amount: number;
+  trans_Type: string;
+  trans_Date: string | null;
+};
+
+type ApiUsageSession = {
+  session_ID: number;
+  customer_ID: number;
+  customer_Name: string;
+  computer_ID: number;
+  computer_Name: string;
+  start_Time: string;
+  end_Time: string | null;
+  total_Hours: number | null;
+  applied_Hourly_Rate: number | null;
+  amount: number | null;
+  status: string;
+};
+
+type ApiFeedback = {
+  feedback_ID: number;
+  customer_ID: number;
+  customer_Name: string;
+  handled_By_Name: string | null;
+  subject: string;
+  content: string;
+  submitted_Date: string | null;
+  status: string | null;
+  manager_Notes: string | null;
+};
+
+type ApiEmployee = {
+  employee_ID: number;
+  username: string;
+  full_Name: string;
+  position_Name: string;
+  access_Level: string;
+  hire_Date: string | null;
+  base_Salary: number | null;
+  status: string | null;
+};
+
+type ApiWorkSchedule = {
+  schedule_ID: number;
+  employee_ID: number;
+  employee_Name: string;
+  shift_Name: string;
+  work_Date: string;
+  start_Time: string;
+  end_Time: string;
+  status: string | null;
+};
+
+type ApiAttendance = {
+  attendance_ID: number;
+  employee_ID: number;
+  employee_Name: string;
+  work_Date: string;
+  shift_Name: string;
+  check_In_Time: string | null;
+  check_Out_Time: string | null;
+  note: string | null;
+  schedule_Status: string | null;
+};
+
+type ApiPayroll = {
+  payroll_ID: number;
+  employee_ID: number;
+  employee_Name: string;
+  pay_Month: number;
+  pay_Year: number;
+  base_Salary: number;
+  bonus: number | null;
+  deduction: number | null;
+  net_Salary: number | null;
+  payment_Date: string | null;
+  status: string | null;
+};
+
+type ApiLeaveRequest = {
+  leave_ID: number;
+  employee_ID: number;
+  employee_Name: string;
+  leave_Type: string;
+  start_Date: string;
+  end_Date: string;
+  reason: string | null;
+  status: string | null;
+  approved_By_Name: string | null;
+  request_Date: string | null;
+};
+
+type ApiInventoryTransaction = {
+  inv_Trans_ID: number;
+  product_ID: number;
+  product_Name: string;
+  employee_ID: number;
+  employee_Name: string;
+  trans_Type: string;
+  quantity: number;
+  note: string | null;
+  created_Date: string | null;
+};
+
+type ApiInventoryProduct = {
+  product_ID: number;
+  product_Name: string;
+  category_ID: number;
+  category_Name: string;
+  price: number;
+  stock_Quantity: number;
+  status: string | null;
+};
+
 // Lucide icons equivalent
 const LayoutGridIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>;
 const MonitorIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>;
 const UsersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
 const ShoppingCartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>;
 const SettingsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>;
+const HistoryIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>;
+const CreditCardIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>;
+const MessageIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>;
+const BriefcaseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>;
+const BoxIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>;
 
 type ApiComputer = {
   computer_ID: number;
@@ -88,6 +213,26 @@ type PcViewModel = {
 
 const formatMoney = (amount: number) =>
   new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(amount) + 'đ';
+
+const formatDateTime = (value: string | null | undefined) =>
+  value ? new Date(value).toLocaleString('vi-VN') : '—';
+
+function useAdminRows<T>(endpoint: string): T[] {
+  const [rows, setRows] = useState<T[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    api.get<T[]>(endpoint)
+      .then(response => { if (active) setRows(response.data); })
+      .catch(error => {
+        console.error(`Could not load ${endpoint}.`, error);
+        if (active) setRows([]);
+      });
+    return () => { active = false; };
+  }, [endpoint]);
+
+  return rows;
+}
 
 const toPcViewModel = (computer: ApiComputer): PcViewModel => {
   const rawStatus = computer.status.toLowerCase();
@@ -460,6 +605,164 @@ function CafeShopView() {
   );
 }
 
+const TransactionsView = () => {
+  const rows = useAdminRows<ApiTransaction>('/api/admin-data/transactions');
+
+  return (
+    <div className="glass-panel" style={{padding: '24px', flex: 1}}>
+      <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '24px'}}>
+        <h2>Transaction Log</h2>
+        <input type="text" className="search-bar" placeholder="Search transactions..." />
+      </div>
+      <div className="table-container">
+        <table className="cyber-table">
+          <thead>
+            <tr><th>ID</th><th>Customer</th><th>Amount</th><th>Type</th><th>Date</th></tr>
+          </thead>
+          <tbody>
+            {rows.map(row => {
+              const isCredit = row.trans_Type === 'TopUp' || row.trans_Type === 'Refund';
+              return (
+                <tr key={row.transaction_ID}>
+                  <td>#{row.transaction_ID}</td>
+                  <td>{row.customer_Username} · {row.customer_Name}</td>
+                  <td style={{color: isCredit ? 'var(--status-available)' : 'var(--status-maintenance)'}}>
+                    {isCredit ? '+' : '-'} {formatMoney(row.amount)}
+                  </td>
+                  <td>{row.trans_Type}</td>
+                  <td>{formatDateTime(row.trans_Date)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+const SessionsView = () => {
+  const rows = useAdminRows<ApiUsageSession>('/api/admin-data/sessions');
+
+  return (
+    <div className="glass-panel" style={{padding: '24px', flex: 1}}>
+      <h2 style={{marginBottom: '24px'}}>Session History</h2>
+      <div className="table-container">
+        <table className="cyber-table">
+          <thead><tr><th>ID</th><th>Customer</th><th>Computer</th><th>Start</th><th>End</th><th>Hours</th><th>Rate</th><th>Amount</th><th>Status</th></tr></thead>
+          <tbody>
+            {rows.map(row => (
+              <tr key={row.session_ID}>
+                <td>#{row.session_ID}</td><td>{row.customer_Name}</td><td>{row.computer_Name}</td>
+                <td>{formatDateTime(row.start_Time)}</td><td>{formatDateTime(row.end_Time)}</td>
+                <td>{row.total_Hours?.toFixed(2) ?? '—'}</td>
+                <td>{row.applied_Hourly_Rate == null ? '—' : formatMoney(row.applied_Hourly_Rate)}</td>
+                <td>{row.amount == null ? '—' : formatMoney(row.amount)}</td><td>{row.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+const FeedbackView = () => {
+  const rows = useAdminRows<ApiFeedback>('/api/admin-data/feedback');
+
+  return (
+    <div className="glass-panel" style={{padding: '24px', flex: 1}}>
+      <h2 style={{marginBottom: '24px'}}>Feedback & Support</h2>
+      <div className="table-container">
+        <table className="cyber-table">
+          <thead><tr><th>ID</th><th>Customer</th><th>Subject</th><th>Content</th><th>Handler</th><th>Status</th><th>Submitted</th><th>Manager Notes</th></tr></thead>
+          <tbody>
+            {rows.map(row => (
+              <tr key={row.feedback_ID}>
+                <td>#{row.feedback_ID}</td><td>{row.customer_Name}</td><td>{row.subject}</td>
+                <td>{row.content}</td><td>{row.handled_By_Name ?? '—'}</td><td>{row.status ?? '—'}</td>
+                <td>{formatDateTime(row.submitted_Date)}</td><td>{row.manager_Notes ?? '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+const HRMView = () => {
+  const employees = useAdminRows<ApiEmployee>('/api/admin-data/employees');
+  const schedules = useAdminRows<ApiWorkSchedule>('/api/admin-data/work-schedules');
+  const attendance = useAdminRows<ApiAttendance>('/api/admin-data/attendance');
+  const payroll = useAdminRows<ApiPayroll>('/api/admin-data/payroll');
+  const leaveRequests = useAdminRows<ApiLeaveRequest>('/api/admin-data/leave-requests');
+
+  return (
+    <div className="glass-panel" style={{padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', gap: '28px'}}>
+      <section>
+        <h2 style={{marginBottom: '16px'}}>Employees</h2>
+        <div className="table-container"><table className="cyber-table">
+          <thead><tr><th>ID</th><th>Username</th><th>Name</th><th>Position</th><th>Access</th><th>Hire Date</th><th>Salary</th><th>Status</th></tr></thead>
+          <tbody>{employees.map(row => <tr key={row.employee_ID}><td>#{row.employee_ID}</td><td>{row.username}</td><td>{row.full_Name}</td><td>{row.position_Name}</td><td>{row.access_Level}</td><td>{formatDateTime(row.hire_Date)}</td><td>{row.base_Salary == null ? '—' : formatMoney(row.base_Salary)}</td><td>{row.status ?? '—'}</td></tr>)}</tbody>
+        </table></div>
+      </section>
+      <section>
+        <h2 style={{marginBottom: '16px'}}>Work Schedules</h2>
+        <div className="table-container"><table className="cyber-table">
+          <thead><tr><th>ID</th><th>Employee</th><th>Work Date</th><th>Shift</th><th>Hours</th><th>Status</th></tr></thead>
+          <tbody>{schedules.map(row => <tr key={row.schedule_ID}><td>#{row.schedule_ID}</td><td>{row.employee_Name}</td><td>{formatDateTime(row.work_Date)}</td><td>{row.shift_Name}</td><td>{row.start_Time} - {row.end_Time}</td><td>{row.status ?? '—'}</td></tr>)}</tbody>
+        </table></div>
+      </section>
+      <section>
+        <h2 style={{marginBottom: '16px'}}>Attendance</h2>
+        <div className="table-container"><table className="cyber-table">
+          <thead><tr><th>ID</th><th>Employee</th><th>Date</th><th>Shift</th><th>Check In</th><th>Check Out</th><th>Schedule</th><th>Note</th></tr></thead>
+          <tbody>{attendance.map(row => <tr key={row.attendance_ID}><td>#{row.attendance_ID}</td><td>{row.employee_Name}</td><td>{formatDateTime(row.work_Date)}</td><td>{row.shift_Name}</td><td>{formatDateTime(row.check_In_Time)}</td><td>{formatDateTime(row.check_Out_Time)}</td><td>{row.schedule_Status ?? '—'}</td><td>{row.note ?? '—'}</td></tr>)}</tbody>
+        </table></div>
+      </section>
+      <section>
+        <h2 style={{marginBottom: '16px'}}>Payroll</h2>
+        <div className="table-container"><table className="cyber-table">
+          <thead><tr><th>ID</th><th>Employee</th><th>Period</th><th>Base</th><th>Bonus</th><th>Deduction</th><th>Net</th><th>Paid Date</th><th>Status</th></tr></thead>
+          <tbody>{payroll.map(row => <tr key={row.payroll_ID}><td>#{row.payroll_ID}</td><td>{row.employee_Name}</td><td>{row.pay_Month}/{row.pay_Year}</td><td>{formatMoney(row.base_Salary)}</td><td>{formatMoney(row.bonus ?? 0)}</td><td>{formatMoney(row.deduction ?? 0)}</td><td>{row.net_Salary == null ? '—' : formatMoney(row.net_Salary)}</td><td>{formatDateTime(row.payment_Date)}</td><td>{row.status ?? '—'}</td></tr>)}</tbody>
+        </table></div>
+      </section>
+      <section>
+        <h2 style={{marginBottom: '16px'}}>Leave Requests</h2>
+        <div className="table-container"><table className="cyber-table">
+          <thead><tr><th>ID</th><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Reason</th><th>Status</th><th>Approved By</th></tr></thead>
+          <tbody>{leaveRequests.map(row => <tr key={row.leave_ID}><td>#{row.leave_ID}</td><td>{row.employee_Name}</td><td>{row.leave_Type}</td><td>{formatDateTime(row.start_Date)}</td><td>{formatDateTime(row.end_Date)}</td><td>{row.reason ?? '—'}</td><td>{row.status ?? '—'}</td><td>{row.approved_By_Name ?? '—'}</td></tr>)}</tbody>
+        </table></div>
+      </section>
+    </div>
+  );
+};
+
+const InventoryView = () => {
+  const products = useAdminRows<ApiInventoryProduct>('/api/admin-data/products');
+  const transactions = useAdminRows<ApiInventoryTransaction>('/api/admin-data/inventory-transactions');
+
+  return (
+    <div className="glass-panel" style={{padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', gap: '28px'}}>
+      <section>
+        <h2 style={{marginBottom: '16px'}}>Product Stock</h2>
+        <div className="table-container"><table className="cyber-table">
+          <thead><tr><th>ID</th><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Status</th></tr></thead>
+          <tbody>{products.map(row => <tr key={row.product_ID}><td>#{row.product_ID}</td><td>{row.product_Name}</td><td>{row.category_Name}</td><td>{formatMoney(row.price)}</td><td>{row.stock_Quantity}</td><td>{row.status ?? 'Active'}</td></tr>)}</tbody>
+        </table></div>
+      </section>
+      <section>
+        <h2 style={{marginBottom: '16px'}}>Inventory Transactions</h2>
+        <div className="table-container"><table className="cyber-table">
+          <thead><tr><th>ID</th><th>Product</th><th>Type</th><th>Quantity</th><th>Employee</th><th>Date</th><th>Note</th></tr></thead>
+          <tbody>{transactions.map(row => <tr key={row.inv_Trans_ID}><td>#{row.inv_Trans_ID}</td><td>{row.product_Name}</td><td>{row.trans_Type}</td><td>{row.quantity}</td><td>{row.employee_Name}</td><td>{formatDateTime(row.created_Date)}</td><td>{row.note ?? '—'}</td></tr>)}</tbody>
+        </table></div>
+      </section>
+    </div>
+  );
+};
+
 // Main App
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -561,6 +864,21 @@ function App() {
           <div className={`nav-item ${activeTab === 'shop' ? 'active' : ''}`} onClick={() => setActiveTab('shop')}>
             <ShoppingCartIcon /> Cafe Shop
           </div>
+          <div className={`nav-item ${activeTab === 'transactions' ? 'active' : ''}`} onClick={() => setActiveTab('transactions')}>
+            <CreditCardIcon /> Transactions
+          </div>
+          <div className={`nav-item ${activeTab === 'sessions' ? 'active' : ''}`} onClick={() => setActiveTab('sessions')}>
+            <HistoryIcon /> Sessions
+          </div>
+          <div className={`nav-item ${activeTab === 'feedback' ? 'active' : ''}`} onClick={() => setActiveTab('feedback')}>
+            <MessageIcon /> Feedback
+          </div>
+          <div className={`nav-item ${activeTab === 'hrm' ? 'active' : ''}`} onClick={() => setActiveTab('hrm')}>
+            <BriefcaseIcon /> HRM
+          </div>
+          <div className={`nav-item ${activeTab === 'inventory' ? 'active' : ''}`} onClick={() => setActiveTab('inventory')}>
+            <BoxIcon /> Inventory
+          </div>
           <div className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
             <SettingsIcon /> Settings
           </div>
@@ -572,14 +890,26 @@ function App() {
         <header className="header">
           <div>
             <p>
-              {activeTab === 'dashboard' ? 'Station Overview' : 
-               activeTab === 'users' ? 'Customer Database' : 
-               activeTab === 'shop' ? 'Orders & Inventory' : 'System Configuration'}
+              {activeTab === 'dashboard' ? 'Station Overview' :
+               activeTab === 'users' ? 'Customer Database' :
+               activeTab === 'shop' ? 'Orders & Shop' :
+               activeTab === 'transactions' ? 'Financials' :
+               activeTab === 'sessions' ? 'Logs' :
+               activeTab === 'feedback' ? 'Customer Support' :
+               activeTab === 'hrm' ? 'Staff Management' :
+               activeTab === 'inventory' ? 'Warehouse' :
+               'System Configuration'}
             </p>
             <h1>
-              {activeTab === 'dashboard' ? 'Dashboard' : 
-               activeTab === 'users' ? 'Users Management' : 
-               activeTab === 'shop' ? 'Cafe Shop' : 'Settings'}
+              {activeTab === 'dashboard' ? 'Dashboard' :
+               activeTab === 'users' ? 'Users Management' :
+               activeTab === 'shop' ? 'Cafe Shop' :
+               activeTab === 'transactions' ? 'Transactions' :
+               activeTab === 'sessions' ? 'Sessions History' :
+               activeTab === 'feedback' ? 'Feedback' :
+               activeTab === 'hrm' ? 'HR & Payroll' :
+               activeTab === 'inventory' ? 'Inventory' :
+               'Settings'}
             </h1>
           </div>
           <div className="user-profile">
@@ -596,6 +926,11 @@ function App() {
         {activeTab === 'dashboard' && <DashboardView />}
         {activeTab === 'users' && <UsersView />}
         {activeTab === 'shop' && <CafeShopView />}
+        {activeTab === 'transactions' && <TransactionsView />}
+        {activeTab === 'sessions' && <SessionsView />}
+        {activeTab === 'feedback' && <FeedbackView />}
+        {activeTab === 'hrm' && <HRMView />}
+        {activeTab === 'inventory' && <InventoryView />}
         {activeTab === 'settings' && (
           <div className="glass-panel" style={{padding: '32px', textAlign: 'center', flex: 1}}>
             <h2>Settings Module Placeholder</h2>
