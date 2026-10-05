@@ -805,8 +805,9 @@ GO
 INSERT INTO dbo.Order_Details (Order_ID, Product_ID, Quantity, Unit_Price)
 VALUES (1, 2, 1, 45000);
 GO
-INSERT INTO dbo.Payroll (Employee_ID, Pay_Month, Pay_Year, Base_Salary, Bonus, Deduction, Status)
-VALUES (1, 8, 2026, 8000000, 500000, 0, 'Paid'), (2, 8, 2026, 6000000, 0, 100000, 'Paid');
+INSERT INTO dbo.Payroll (Employee_ID, Pay_Month, Pay_Year, Base_Salary, Bonus, Deduction, Payment_Date, Status)
+VALUES (1, 8, 2026, 8000000, 500000, 0, '2026-08-31', 'Paid'),
+       (2, 8, 2026, 6000000, 0, 100000, '2026-08-31', 'Paid');
 GO
 INSERT INTO dbo.Leave_Requests (Employee_ID, Leave_Type, Start_Date, End_Date, Reason, Status, Approved_By)
 VALUES (2, 'Sick', '2026-09-20', '2026-09-21', N'Bị cảm', 'Approved', 1);
