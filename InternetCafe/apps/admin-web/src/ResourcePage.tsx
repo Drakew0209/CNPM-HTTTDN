@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, App, Button, Card, Checkbox, Descriptions, Divider, Form, Input, InputNumber, Modal, Select, Space, Switch, Table, Tag } from 'antd';
 import { DeleteOutlined, DownloadOutlined, EditOutlined, EyeOutlined, PlusOutlined, SearchOutlined, SendOutlined } from '@ant-design/icons';
 import { api, ApiError } from './api';
@@ -19,11 +19,13 @@ export function ResourcePage({ module, readonly = false }: { module: Module; rea
     setBusy(true);try {await api(path,method,body);await refresh();message.success(success);}catch(e){message.error((e as Error).message);throw e;}finally{setBusy(false);}
   }
   function confirm(title:string,path:string,body:unknown,method='POST') { modal.confirm({title,content:'Thao tác sẽ được kiểm tra quyền và trạng thái tại service.',okText:'Xác nhận',cancelText:'Quay lại',onOk:()=>act(path,body,'Đã cập nhật thành công.',method)}); }
-  function openEditor(row:Row|'new') {
-    setEditor(row);setSaveError('');form.resetFields();
-    const defaults:Record<string,unknown>={active:true,tier:'Silver',status:module.key==='payroll'?'Draft':module.key==='schedules'?'Scheduled':'Active',type:'Import',quantity:1,bonus:0,deduction:0};
-    form.setFieldsValue(row==='new'?{...defaults,questions:[{text:'Bạn hài lòng với dịch vụ như thế nào?',optionsText:'Rất hài lòng\nHài lòng\nCần cải thiện'}]}:{...row,questions:Array.isArray(row.questions)?row.questions.map(q=>({...q,optionsText:q.options.join('\n')})):undefined});
-  }
+  function openEditor(row:Row|'new') { setEditor(row); setSaveError(''); }
+  useEffect(() => {
+    if (editor === null) return;
+    form.resetFields();
+    const defaults: Record<string, unknown> = { active:true, tier:'Silver', status:module.key==='payroll'?'Draft':module.key==='schedules'?'Scheduled':'Active', type:'Import', quantity:1, bonus:0, deduction:0 };
+    form.setFieldsValue(editor === 'new' ? {...defaults, questions:[{text:'Bạn hài lòng với dịch vụ như thế nào?', optionsText:'Rất hài lòng\nHài lòng\nCần cải thiện'}]} : {...editor, questions:Array.isArray(editor.questions) ? editor.questions.map(q => ({...q, optionsText:q.options.join('\n')})) : undefined});
+  }, [editor, form, module.key]);
   async function save(values:Record<string,unknown>) {
     const payload:Record<string,unknown>={}; for(const field of module.fields) {if(field.createOnly&&editor!=='new')continue;if(values[field.key]!==undefined)payload[field.key]=values[field.key];}
     if(module.key==='surveys')payload.questions=(values.questions as {id?:string;text:string;optionsText:string}[]).map((q,i)=>({id:q.id||`q-${i+1}`,text:q.text.trim(),options:q.optionsText.split('\n').map(s=>s.trim()).filter(Boolean)}));
