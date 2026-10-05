@@ -179,16 +179,16 @@ type ApiInventoryProduct = {
 };
 
 // Lucide icons equivalent
-const LayoutGridIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>;
-const MonitorIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>;
-const UsersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
-const ShoppingCartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>;
-const SettingsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>;
-const HistoryIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>;
-const CreditCardIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>;
-const MessageIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>;
-const BriefcaseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>;
-const BoxIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>;
+const LayoutGridIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" /></svg>;
+const MonitorIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="3" rx="2" /><line x1="8" x2="16" y1="21" y2="21" /><line x1="12" x2="12" y1="17" y2="21" /></svg>;
+const UsersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
+const ShoppingCartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1" /><circle cx="19" cy="21" r="1" /><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" /></svg>;
+const SettingsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>;
+const HistoryIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M12 7v5l4 2" /></svg>;
+const CreditCardIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="5" rx="2" /><line x1="2" x2="22" y1="10" y2="10" /></svg>;
+const MessageIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" /></svg>;
+const BriefcaseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="7" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>;
+const BoxIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M12 22V12" /></svg>;
 
 type ApiComputer = {
   computer_ID: number;
@@ -378,16 +378,16 @@ const DashboardView = () => {
   return (
     <>
       <div className="stats-container">
-        <div className="stat-box glass-panel" style={{border: '1px solid var(--status-inuse)', boxShadow: '0 4px 15px var(--status-inuse-glow)'}}>
-          <span className="stat-title" style={{color: 'var(--status-inuse)'}}>Active PCs</span>
+        <div className="stat-box glass-panel" style={{ border: '1px solid var(--status-inuse)', boxShadow: '0 4px 15px var(--status-inuse-glow)' }}>
+          <span className="stat-title" style={{ color: 'var(--status-inuse)' }}>Active PCs</span>
           <span className="stat-value">{stats.inuse}/{stats.total}</span>
         </div>
-        <div className="stat-box glass-panel" style={{border: '1px solid var(--status-available)'}}>
-          <span className="stat-title" style={{color: 'var(--status-available)'}}>Available PCs</span>
+        <div className="stat-box glass-panel" style={{ border: '1px solid var(--status-available)' }}>
+          <span className="stat-title" style={{ color: 'var(--status-available)' }}>Available PCs</span>
           <span className="stat-value">{stats.available}</span>
         </div>
-        <div className="stat-box glass-panel" style={{border: '1px solid var(--status-maintenance)'}}>
-          <span className="stat-title" style={{color: 'var(--status-maintenance)'}}>Maintenance</span>
+        <div className="stat-box glass-panel" style={{ border: '1px solid var(--status-maintenance)' }}>
+          <span className="stat-title" style={{ color: 'var(--status-maintenance)' }}>Maintenance</span>
           <span className="stat-value">{stats.maintenance}</span>
         </div>
       </div>
@@ -458,8 +458,8 @@ function UsersView() {
   };
 
   return (
-    <div className="glass-panel" style={{padding: '24px', flex: 1}}>
-      <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '24px'}}>
+    <div className="glass-panel" style={{ padding: '24px', flex: 1 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
         <h2>Customer Management</h2>
         <input type="text" className="search-bar" placeholder="Search username, phone..." />
       </div>
@@ -474,12 +474,12 @@ function UsersView() {
             {users.map(user => (
               <tr key={user.customer_ID}>
                 <td>#{user.customer_ID}</td>
-                <td style={{fontWeight: 600, color: 'var(--primary)'}}>{user.username}</td>
+                <td style={{ fontWeight: 600, color: 'var(--primary)' }}>{user.username}</td>
                 <td>{user.full_Name}</td>
-                <td style={{color: 'var(--status-available)'}}>{formatMoney(user.balance)}</td>
+                <td style={{ color: 'var(--status-available)' }}>{formatMoney(user.balance)}</td>
                 <td>{user.tier_Name}</td>
                 <td><span className={`badge ${user.status === 'Active' ? 'active' : ''}`}>{user.status}</span></td>
-                <td><button className="cyber-btn" style={{padding: '4px 12px', fontSize: '12px'}} onClick={() => void topUpCustomer(user)}>Top Up</button></td>
+                <td><button className="cyber-btn" style={{ padding: '4px 12px', fontSize: '12px' }} onClick={() => void topUpCustomer(user)}>Top Up</button></td>
               </tr>
             ))}
           </tbody>
@@ -558,22 +558,22 @@ function CafeShopView() {
   return (
     <div className="shop-layout">
       {/* Kitchen Queue */}
-      <div className="glass-panel" style={{padding: '20px', display: 'flex', flexDirection: 'column'}}>
-        <h2 style={{marginBottom: '16px', color: 'var(--secondary)'}}>Pending Orders</h2>
+      <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column' }}>
+        <h2 style={{ marginBottom: '16px', color: 'var(--secondary)' }}>Pending Orders</h2>
         <div className="order-list">
           {orders.map(order => (
             <div key={order.order_ID} className="order-card glass-panel">
-              <div style={{display: 'flex', justifyContent: 'space-between'}}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <h3>Order #{order.order_ID}</h3>
                 <span className="badge pending">{order.status}</span>
               </div>
-              <div style={{color: 'var(--primary)', fontWeight: 600, marginBottom: '8px'}}>
+              <div style={{ color: 'var(--primary)', fontWeight: 600, marginBottom: '8px' }}>
                 {order.computer_Name ?? `Computer #${order.computer_ID ?? '—'}`}
               </div>
               <div className="order-items">
                 {order.items.map(item => `${item.quantity}x ${item.product_Name}`).join(', ')}
               </div>
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px'}}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
                 <strong>{formatMoney(order.total_Amount)}</strong>
                 <button className="cyber-btn" onClick={() => void completeOrder(order.order_ID)}>Complete</button>
               </div>
@@ -583,18 +583,18 @@ function CafeShopView() {
       </div>
 
       {/* Inventory/Menu Grid */}
-      <div className="glass-panel" style={{padding: '20px'}}>
-        <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '24px'}}>
+      <div className="glass-panel" style={{ padding: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
           <h2>Menu & Inventory</h2>
           <button className="cyber-btn">Add Product</button>
         </div>
-        <div className="grid-container" style={{gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))'}}>
+        <div className="grid-container" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>
           {products.map(product => (
-            <div key={product.product_ID} className="pc-card glass-panel" style={{alignItems: 'center', textAlign: 'center'}}>
-              <div style={{width: '80px', height: '80px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%', marginBottom: '12px'}}></div>
-              <h4 style={{marginBottom: '4px'}}>{product.product_Name}</h4>
-              <p style={{color: 'var(--status-available)'}}>{formatMoney(product.price)}</p>
-              <p style={{fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px'}}>
+            <div key={product.product_ID} className="pc-card glass-panel" style={{ alignItems: 'center', textAlign: 'center' }}>
+              <div style={{ width: '80px', height: '80px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%', marginBottom: '12px' }}></div>
+              <h4 style={{ marginBottom: '4px' }}>{product.product_Name}</h4>
+              <p style={{ color: 'var(--status-available)' }}>{formatMoney(product.price)}</p>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
                 Stock: {product.stock_Quantity} · {product.category_Name}
               </p>
             </div>
@@ -609,8 +609,8 @@ const TransactionsView = () => {
   const rows = useAdminRows<ApiTransaction>('/api/admin-data/transactions');
 
   return (
-    <div className="glass-panel" style={{padding: '24px', flex: 1}}>
-      <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '24px'}}>
+    <div className="glass-panel" style={{ padding: '24px', flex: 1 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
         <h2>Transaction Log</h2>
         <input type="text" className="search-bar" placeholder="Search transactions..." />
       </div>
@@ -626,7 +626,7 @@ const TransactionsView = () => {
                 <tr key={row.transaction_ID}>
                   <td>#{row.transaction_ID}</td>
                   <td>{row.customer_Username} · {row.customer_Name}</td>
-                  <td style={{color: isCredit ? 'var(--status-available)' : 'var(--status-maintenance)'}}>
+                  <td style={{ color: isCredit ? 'var(--status-available)' : 'var(--status-maintenance)' }}>
                     {isCredit ? '+' : '-'} {formatMoney(row.amount)}
                   </td>
                   <td>{row.trans_Type}</td>
@@ -645,8 +645,8 @@ const SessionsView = () => {
   const rows = useAdminRows<ApiUsageSession>('/api/admin-data/sessions');
 
   return (
-    <div className="glass-panel" style={{padding: '24px', flex: 1}}>
-      <h2 style={{marginBottom: '24px'}}>Session History</h2>
+    <div className="glass-panel" style={{ padding: '24px', flex: 1 }}>
+      <h2 style={{ marginBottom: '24px' }}>Session History</h2>
       <div className="table-container">
         <table className="cyber-table">
           <thead><tr><th>ID</th><th>Customer</th><th>Computer</th><th>Start</th><th>End</th><th>Hours</th><th>Rate</th><th>Amount</th><th>Status</th></tr></thead>
@@ -671,8 +671,8 @@ const FeedbackView = () => {
   const rows = useAdminRows<ApiFeedback>('/api/admin-data/feedback');
 
   return (
-    <div className="glass-panel" style={{padding: '24px', flex: 1}}>
-      <h2 style={{marginBottom: '24px'}}>Feedback & Support</h2>
+    <div className="glass-panel" style={{ padding: '24px', flex: 1 }}>
+      <h2 style={{ marginBottom: '24px' }}>Feedback & Support</h2>
       <div className="table-container">
         <table className="cyber-table">
           <thead><tr><th>ID</th><th>Customer</th><th>Subject</th><th>Content</th><th>Handler</th><th>Status</th><th>Submitted</th><th>Manager Notes</th></tr></thead>
@@ -699,37 +699,37 @@ const HRMView = () => {
   const leaveRequests = useAdminRows<ApiLeaveRequest>('/api/admin-data/leave-requests');
 
   return (
-    <div className="glass-panel" style={{padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', gap: '28px'}}>
+    <div className="glass-panel" style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', gap: '28px' }}>
       <section>
-        <h2 style={{marginBottom: '16px'}}>Employees</h2>
+        <h2 style={{ marginBottom: '16px' }}>Employees</h2>
         <div className="table-container"><table className="cyber-table">
           <thead><tr><th>ID</th><th>Username</th><th>Name</th><th>Position</th><th>Access</th><th>Hire Date</th><th>Salary</th><th>Status</th></tr></thead>
           <tbody>{employees.map(row => <tr key={row.employee_ID}><td>#{row.employee_ID}</td><td>{row.username}</td><td>{row.full_Name}</td><td>{row.position_Name}</td><td>{row.access_Level}</td><td>{formatDateTime(row.hire_Date)}</td><td>{row.base_Salary == null ? '—' : formatMoney(row.base_Salary)}</td><td>{row.status ?? '—'}</td></tr>)}</tbody>
         </table></div>
       </section>
       <section>
-        <h2 style={{marginBottom: '16px'}}>Work Schedules</h2>
+        <h2 style={{ marginBottom: '16px' }}>Work Schedules</h2>
         <div className="table-container"><table className="cyber-table">
           <thead><tr><th>ID</th><th>Employee</th><th>Work Date</th><th>Shift</th><th>Hours</th><th>Status</th></tr></thead>
           <tbody>{schedules.map(row => <tr key={row.schedule_ID}><td>#{row.schedule_ID}</td><td>{row.employee_Name}</td><td>{formatDateTime(row.work_Date)}</td><td>{row.shift_Name}</td><td>{row.start_Time} - {row.end_Time}</td><td>{row.status ?? '—'}</td></tr>)}</tbody>
         </table></div>
       </section>
       <section>
-        <h2 style={{marginBottom: '16px'}}>Attendance</h2>
+        <h2 style={{ marginBottom: '16px' }}>Attendance</h2>
         <div className="table-container"><table className="cyber-table">
           <thead><tr><th>ID</th><th>Employee</th><th>Date</th><th>Shift</th><th>Check In</th><th>Check Out</th><th>Schedule</th><th>Note</th></tr></thead>
           <tbody>{attendance.map(row => <tr key={row.attendance_ID}><td>#{row.attendance_ID}</td><td>{row.employee_Name}</td><td>{formatDateTime(row.work_Date)}</td><td>{row.shift_Name}</td><td>{formatDateTime(row.check_In_Time)}</td><td>{formatDateTime(row.check_Out_Time)}</td><td>{row.schedule_Status ?? '—'}</td><td>{row.note ?? '—'}</td></tr>)}</tbody>
         </table></div>
       </section>
       <section>
-        <h2 style={{marginBottom: '16px'}}>Payroll</h2>
+        <h2 style={{ marginBottom: '16px' }}>Payroll</h2>
         <div className="table-container"><table className="cyber-table">
           <thead><tr><th>ID</th><th>Employee</th><th>Period</th><th>Base</th><th>Bonus</th><th>Deduction</th><th>Net</th><th>Paid Date</th><th>Status</th></tr></thead>
           <tbody>{payroll.map(row => <tr key={row.payroll_ID}><td>#{row.payroll_ID}</td><td>{row.employee_Name}</td><td>{row.pay_Month}/{row.pay_Year}</td><td>{formatMoney(row.base_Salary)}</td><td>{formatMoney(row.bonus ?? 0)}</td><td>{formatMoney(row.deduction ?? 0)}</td><td>{row.net_Salary == null ? '—' : formatMoney(row.net_Salary)}</td><td>{formatDateTime(row.payment_Date)}</td><td>{row.status ?? '—'}</td></tr>)}</tbody>
         </table></div>
       </section>
       <section>
-        <h2 style={{marginBottom: '16px'}}>Leave Requests</h2>
+        <h2 style={{ marginBottom: '16px' }}>Leave Requests</h2>
         <div className="table-container"><table className="cyber-table">
           <thead><tr><th>ID</th><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Reason</th><th>Status</th><th>Approved By</th></tr></thead>
           <tbody>{leaveRequests.map(row => <tr key={row.leave_ID}><td>#{row.leave_ID}</td><td>{row.employee_Name}</td><td>{row.leave_Type}</td><td>{formatDateTime(row.start_Date)}</td><td>{formatDateTime(row.end_Date)}</td><td>{row.reason ?? '—'}</td><td>{row.status ?? '—'}</td><td>{row.approved_By_Name ?? '—'}</td></tr>)}</tbody>
@@ -744,16 +744,16 @@ const InventoryView = () => {
   const transactions = useAdminRows<ApiInventoryTransaction>('/api/admin-data/inventory-transactions');
 
   return (
-    <div className="glass-panel" style={{padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', gap: '28px'}}>
+    <div className="glass-panel" style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', gap: '28px' }}>
       <section>
-        <h2 style={{marginBottom: '16px'}}>Product Stock</h2>
+        <h2 style={{ marginBottom: '16px' }}>Product Stock</h2>
         <div className="table-container"><table className="cyber-table">
           <thead><tr><th>ID</th><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Status</th></tr></thead>
           <tbody>{products.map(row => <tr key={row.product_ID}><td>#{row.product_ID}</td><td>{row.product_Name}</td><td>{row.category_Name}</td><td>{formatMoney(row.price)}</td><td>{row.stock_Quantity}</td><td>{row.status ?? 'Active'}</td></tr>)}</tbody>
         </table></div>
       </section>
       <section>
-        <h2 style={{marginBottom: '16px'}}>Inventory Transactions</h2>
+        <h2 style={{ marginBottom: '16px' }}>Inventory Transactions</h2>
         <div className="table-container"><table className="cyber-table">
           <thead><tr><th>ID</th><th>Product</th><th>Type</th><th>Quantity</th><th>Employee</th><th>Date</th><th>Note</th></tr></thead>
           <tbody>{transactions.map(row => <tr key={row.inv_Trans_ID}><td>#{row.inv_Trans_ID}</td><td>{row.product_Name}</td><td>{row.trans_Type}</td><td>{row.quantity}</td><td>{row.employee_Name}</td><td>{formatDateTime(row.created_Date)}</td><td>{row.note ?? '—'}</td></tr>)}</tbody>
@@ -808,29 +808,29 @@ function App() {
 
   if (!token) {
     return (
-      <div style={{minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'var(--bg-main)', backgroundImage: 'radial-gradient(circle at 20% 35%, rgba(0, 240, 255, 0.12), transparent 35%), radial-gradient(circle at 80% 70%, rgba(123, 97, 255, 0.12), transparent 35%)'}}>
-        <form onSubmit={handleLogin} className="glass-panel" style={{width: '100%', maxWidth: '420px', padding: '36px', display: 'flex', flexDirection: 'column', gap: '18px', boxShadow: '0 20px 70px rgba(0,0,0,0.45)'}}>
-          <div style={{textAlign: 'center', marginBottom: '8px'}}>
-            <div className="brand-icon" style={{marginBottom: '12px'}}><MonitorIcon /></div>
-            <h1 className="text-gradient" style={{fontSize: '28px'}}>NetZone Admin</h1>
-            <p style={{color: 'var(--text-muted)', marginTop: '8px'}}>Sign in to manage your Internet Cafe</p>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'var(--bg-main)', backgroundImage: 'radial-gradient(circle at 20% 35%, rgba(0, 240, 255, 0.12), transparent 35%), radial-gradient(circle at 80% 70%, rgba(123, 97, 255, 0.12), transparent 35%)' }}>
+        <form onSubmit={handleLogin} className="glass-panel" style={{ width: '100%', maxWidth: '420px', padding: '36px', display: 'flex', flexDirection: 'column', gap: '18px', boxShadow: '0 20px 70px rgba(0,0,0,0.45)' }}>
+          <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+            <div className="brand-icon" style={{ marginBottom: '12px' }}><MonitorIcon /></div>
+            <h1 className="text-gradient" style={{ fontSize: '28px' }}>NetZone Admin</h1>
+            <p style={{ color: 'var(--text-muted)', marginTop: '8px' }}>Sign in to manage your Internet Cafe</p>
           </div>
-          <label style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <span>Username / Email</span>
             <input
               className="search-bar"
-              style={{width: '100%'}}
+              style={{ width: '100%' }}
               autoComplete="username"
               value={identifier}
               onChange={event => setIdentifier(event.target.value)}
               required
             />
           </label>
-          <label style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <span>Password</span>
             <input
               className="search-bar"
-              style={{width: '100%'}}
+              style={{ width: '100%' }}
               type="password"
               autoComplete="current-password"
               value={password}
@@ -838,7 +838,7 @@ function App() {
               required
             />
           </label>
-          <button className="cyber-btn" type="submit" disabled={loginBusy} style={{marginTop: '8px'}}>
+          <button className="cyber-btn" type="submit" disabled={loginBusy} style={{ marginTop: '8px' }}>
             {loginBusy ? 'Signing in…' : 'Login'}
           </button>
         </form>
@@ -891,33 +891,33 @@ function App() {
           <div>
             <p>
               {activeTab === 'dashboard' ? 'Station Overview' :
-               activeTab === 'users' ? 'Customer Database' :
-               activeTab === 'shop' ? 'Orders & Shop' :
-               activeTab === 'transactions' ? 'Financials' :
-               activeTab === 'sessions' ? 'Logs' :
-               activeTab === 'feedback' ? 'Customer Support' :
-               activeTab === 'hrm' ? 'Staff Management' :
-               activeTab === 'inventory' ? 'Warehouse' :
-               'System Configuration'}
+                activeTab === 'users' ? 'Customer Database' :
+                  activeTab === 'shop' ? 'Orders & Shop' :
+                    activeTab === 'transactions' ? 'Financials' :
+                      activeTab === 'sessions' ? 'Logs' :
+                        activeTab === 'feedback' ? 'Customer Support' :
+                          activeTab === 'hrm' ? 'Staff Management' :
+                            activeTab === 'inventory' ? 'Warehouse' :
+                              'System Configuration'}
             </p>
             <h1>
               {activeTab === 'dashboard' ? 'Dashboard' :
-               activeTab === 'users' ? 'Users Management' :
-               activeTab === 'shop' ? 'Cafe Shop' :
-               activeTab === 'transactions' ? 'Transactions' :
-               activeTab === 'sessions' ? 'Sessions History' :
-               activeTab === 'feedback' ? 'Feedback' :
-               activeTab === 'hrm' ? 'HR & Payroll' :
-               activeTab === 'inventory' ? 'Inventory' :
-               'Settings'}
+                activeTab === 'users' ? 'Users Management' :
+                  activeTab === 'shop' ? 'Cafe Shop' :
+                    activeTab === 'transactions' ? 'Transactions' :
+                      activeTab === 'sessions' ? 'Sessions History' :
+                        activeTab === 'feedback' ? 'Feedback' :
+                          activeTab === 'hrm' ? 'HR & Payroll' :
+                            activeTab === 'inventory' ? 'Inventory' :
+                              'Settings'}
             </h1>
           </div>
           <div className="user-profile">
-            <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end'}}>
-              <span style={{fontSize: '14px', fontWeight: 600}}>Admin | John D.</span>
-              <span style={{fontSize: '12px', color: 'var(--text-muted)'}}>System Manager</span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+              <span style={{ fontSize: '14px', fontWeight: 600 }}>Admin | John D.</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>System Manager</span>
             </div>
-            <div style={{width: '36px', height: '36px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontWeight: 'bold'}}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontWeight: 'bold' }}>
               A
             </div>
           </div>
@@ -932,9 +932,9 @@ function App() {
         {activeTab === 'hrm' && <HRMView />}
         {activeTab === 'inventory' && <InventoryView />}
         {activeTab === 'settings' && (
-          <div className="glass-panel" style={{padding: '32px', textAlign: 'center', flex: 1}}>
+          <div className="glass-panel" style={{ padding: '32px', textAlign: 'center', flex: 1 }}>
             <h2>Settings Module Placeholder</h2>
-            <p style={{color: 'var(--text-muted)'}}>Config IP, Prices, Employee roles...</p>
+            <p style={{ color: 'var(--text-muted)' }}>Config IP, Prices, Employee roles...</p>
           </div>
         )}
       </main>
