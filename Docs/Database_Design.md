@@ -1,8 +1,8 @@
 # Tài liệu Thiết kế Cơ sở Dữ liệu
 ## Internet Cafe Management System — Database Design
 
-> **Phiên bản:** 1.0 | **Ngày:** 29/09/2026 | **RDBMS:** Microsoft SQL Server
-> **Database:** `InternetCafeDB` | **Số bảng:** 21
+> **Phiên bản:** 1.2 | **Ngày:** 05/10/2026 | **RDBMS:** Microsoft SQL Server
+> **Database:** `InternetCafeDB` | **Số bảng:** 24
 
 ---
 
@@ -143,6 +143,7 @@ erDiagram
         datetime Start_Time
         datetime End_Time
         decimal Start_Balance
+        decimal Applied_Hourly_Rate
         decimal Total_Hours
         decimal Amount
         varchar Status
@@ -186,6 +187,23 @@ erDiagram
         int Combo_ID FK
         varchar Trans_Type
         decimal Amount
+        decimal Balance_Before
+        datetime Trans_Date
+    }
+
+    TopUp_Receipts {
+        int Receipt_ID PK
+        int Transaction_ID FK
+        varchar Receipt_Code
+        varchar Trans_Type_Snapshot
+        int Customer_ID FK
+        int Processed_By FK
+        int Combo_ID FK
+        decimal Paid_Amount
+        decimal Bonus_Amount
+        decimal Total_Credited
+        decimal Balance_Before
+        decimal Balance_After
         datetime Trans_Date
     }
 
@@ -257,6 +275,10 @@ erDiagram
     Orders ||--o| Transactions : "tao ra"
     Usage_Sessions ||--o| Transactions : "tao ra"
     Combos ||--o{ Transactions : "duoc ap dung"
+    Transactions ||--o| TopUp_Receipts : "phat sinh bien nhan"
+    Customers ||--o{ TopUp_Receipts : "co bien nhan"
+    Employees ||--o{ TopUp_Receipts : "thu ngan xu ly"
+    Combos ||--o{ TopUp_Receipts : "ap dung combo"
     Employees ||--o{ Work_Schedules : "co lich"
     Work_Shifts ||--o{ Work_Schedules : "theo ca"
     Work_Schedules ||--|| Attendance : "tuong ung"
@@ -579,9 +601,12 @@ erDiagram
 | `Start_Time` | `DATETIME` | — | NOT NULL | Thời điểm bắt đầu phiên |
 | `End_Time` | `DATETIME` | — | NULL | Thời điểm kết thúc (NULL nếu đang chơi) |
 | `Start_Balance` | `DECIMAL(12,2)` | — | NULL | Số dư tài khoản lúc bắt đầu phiên |
+| `Applied_Hourly_Rate` | `DECIMAL(10,2)` | — | NULL | Snapshot giá/giờ áp dụng cho phiên; trigger tự lấy giá máy khi tạo phiên |
 | `Total_Hours` | `DECIMAL(10,2)` | — | **COMPUTED** | Tổng số giờ chơi (tính từ phút, chia 60) |
-| `Amount` | `DECIMAL(12,2)` | — | NULL | Tổng tiền phiên chơi (VNĐ) |
+| `Amount` | `DECIMAL(12,2)` | — | NULL | Số tiền thực thu phiên chơi; API giới hạn theo số dư hiện có và trả phần phí được miễn riêng trong response |
 | `Status` | `VARCHAR(20)` | — | NOT NULL | Trạng thái: `Active`, `Completed`, `Cancelled` |
+
+> **Ràng buộc nghiệp vụ:** UNIQUE filtered index chỉ cho phép một phiên `Active` trên mỗi máy. Trigger đồng bộ trạng thái máy dựa trên các phiên đang hoạt động, giữ nguyên trạng thái `Maintenance` và từ chối mở phiên trên máy bảo trì.
 
 ---
 
@@ -596,8 +621,32 @@ erDiagram
 | `Session_ID` | `INT` | FK → Usage_Sessions (UNIQUE) | NULL | Liên kết phiên chơi (nếu loại Rental) |
 | `Combo_ID` | `INT` | FK → Combos | NULL | Combo nạp tiền áp dụng |
 | `Trans_Type` | `VARCHAR(20)` | — | NOT NULL | Loại GD: `TopUp`, `FoodOrder`, `Rental`, `Refund` |
-| `Amount` | `DECIMAL(12,2)` | — | NOT NULL | Số tiền giao dịch (VNĐ) |
+| `Amount` | `DECIMAL(12,2)` | — | NOT NULL | Số tiền giao dịch (VNĐ, > 0) |
+| `Balance_Before` | `DECIMAL(12,2)` | — | NULL | Snapshot số dư KH trước giao dịch — trigger tự điền khi NULL (chỉ có ý nghĩa với TopUp) |
 | `Trans_Date` | `DATETIME` | — | NOT NULL | Thời điểm thực hiện |
+
+---
+
+#### Bảng `TopUp_Receipts` — Biên nhận nạp tiền
+
+| Tên Cột | Kiểu Dữ liệu | Khóa | Null/Not Null | Mô tả |
+|---|---|---|---|---|
+| `Receipt_ID` | `INT IDENTITY(1,1)` | PK | NOT NULL | Mã biên nhận, tự tăng |
+| `Transaction_ID` | `INT` | FK → Transactions (UNIQUE) | NOT NULL | Giao dịch TopUp tương ứng (quan hệ 1-1) |
+| `Receipt_Code` | `VARCHAR` | — | **COMPUTED** | Mã tra cứu định dạng `RCP-YYYYMMDD-{Transaction_ID}`, PERSISTED |
+| `Trans_Type_Snapshot` | `VARCHAR(10)` | CHECK = 'TopUp' | NOT NULL | Bản sao loại GD để CHECK hoạt động không cần cross-table join |
+| `Customer_ID` | `INT` | FK → Customers | NOT NULL | Khách hàng nạp tiền |
+| `Processed_By` | `INT` | FK → Employees | NULL | Nhân viên thu ngân thực hiện |
+| `Combo_ID` | `INT` | FK → Combos | NULL | Combo áp dụng khi nạp (nếu có) |
+| `Paid_Amount` | `DECIMAL(12,2)` | — | NOT NULL | Số tiền khách thực trả (VNĐ) |
+| `Bonus_Amount` | `DECIMAL(12,2)` | — | NOT NULL | Tiền thưởng từ Combo (VNĐ, mặc định 0) |
+| `Total_Credited` | `DECIMAL(12,2)` | — | **COMPUTED** | Tổng số dư được cộng = Paid + Bonus, PERSISTED |
+| `Balance_Before` | `DECIMAL(12,2)` | — | NOT NULL | Số dư tài khoản trước khi nạp |
+| `Balance_After` | `DECIMAL(12,2)` | — | **COMPUTED** | Số dư sau nạp = Before + Paid + Bonus, PERSISTED |
+| `Trans_Date` | `DATETIME` | — | NOT NULL | Thời điểm giao dịch (sao chép từ Transactions) |
+
+> ⚠️ **Ràng buộc:** UNIQUE `(Transaction_ID)` — 1 giao dịch TopUp → tối đa 1 biên nhận (chống tạo trùng khi retry).
+> ⚠️ **Giới hạn CHECK cross-table:** SQL Server không cho phép CHECK tham chiếu bảng khác, vì vậy `Trans_Type_Snapshot` lưu bản sao `'TopUp'` để ràng buộc `CHK_Receipt_TopUpOnly` hoạt động nội trong bảng. Trigger `TR_Create_TopUp_Receipt` đảm bảo logic lọc đúng.
 
 ---
 
@@ -631,6 +680,10 @@ erDiagram
 | `Orders` | `Transactions` | 1 — 0/1 | `Order_ID` | UNIQUE Index |
 | `Usage_Sessions` | `Transactions` | 1 — 0/1 | `Session_ID` | UNIQUE Index |
 | `Combos` | `Transactions` | 1 — N | `Combo_ID` | — |
+| `Transactions` | `TopUp_Receipts` | 1 — 0/1 | `Transaction_ID` | UNIQUE — chỉ TopUp |
+| `Customers` | `TopUp_Receipts` | 1 — N | `Customer_ID` | — |
+| `Employees` | `TopUp_Receipts` | 1 — N | `Processed_By` | — |
+| `Combos` | `TopUp_Receipts` | 1 — N | `Combo_ID` | — |
 | `Employees` | `Work_Schedules` | 1 — N | `Employee_ID` | Cascade Delete |
 | `Work_Shifts` | `Work_Schedules` | 1 — N | `Shift_ID` | — |
 | `Work_Schedules` | `Attendance` | 1 — 1 | `Schedule_ID` | UNIQUE, Cascade Delete |
@@ -640,4 +693,4 @@ erDiagram
 
 ---
 
-*Tài liệu được tạo dựa trên schema `InternetCafe Final.sql` — InternetCafeDB*
+*Tài liệu được cập nhật phiên bản 1.2 (05/10/2026): bổ sung biên nhận nạp tiền, snapshot đơn giá phiên và các ràng buộc/trigger đồng bộ nghiệp vụ — InternetCafeDB*
