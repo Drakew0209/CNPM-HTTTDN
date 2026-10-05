@@ -187,6 +187,7 @@ public sealed partial class MainViewModel : ObservableObject
     private async Task LoadSnapshotAsync()
     {
         if (!IsAuthenticated) return;
+        await api.SendAsync<JsonElement>(HttpMethod.Post, $"machines/{Uri.EscapeDataString(MachineId)}/heartbeat", new { });
         var data = await api.GetAsync<Workspace>("workspace");
         var profile = data.Customers.FirstOrDefault(x => x.Id == userId) ?? throw new ApiException("UNAUTHENTICATED", "Không tìm thấy hồ sơ. Vui lòng đăng nhập lại.", HttpStatusCode.Unauthorized);
         if (profile.Status != "Active") throw new ApiException("ACCOUNT_BANNED", "Tài khoản đã bị khóa. Liên hệ nhân viên.", HttpStatusCode.Forbidden);

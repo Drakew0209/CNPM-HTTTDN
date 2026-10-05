@@ -16,6 +16,13 @@ GO
 USE InternetCafeDB;
 GO
 
+-- Required before creating persisted computed columns and filtered indexes.
+-- Without these settings, SQL Server stops at Usage_Sessions and leaves a
+-- partially created, unseeded schema.
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+GO
+
 -- =============================================
 -- 1. Drop existing tables (strict child-before-parent order)
 -- =============================================
@@ -74,7 +81,7 @@ CREATE TABLE dbo.Employees (
     Password_Hash NVARCHAR(255) NOT NULL,
     Full_Name NVARCHAR(100) NOT NULL,
     Date_Of_Birth DATE NULL,
-    Gender VARCHAR(10) NULL,
+    Gender NVARCHAR(10) NULL,
     Phone_Number VARCHAR(15) NULL,
     Email VARCHAR(100) NULL,
     Address NVARCHAR(255) NULL,

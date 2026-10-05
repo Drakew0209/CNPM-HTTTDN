@@ -11,3 +11,29 @@ test-results/
 *.log
 .vs/
 coverage/
+docs/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors/IDEs
+.vscode/
+.idea/
+*.iml
+
+# Logs (npm/yarn/pnpm)
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Databases
+*.sqlite
+*.db
+*.db-journal
+
+# NuGet / .NET packages
+*.nupkg
+packages/

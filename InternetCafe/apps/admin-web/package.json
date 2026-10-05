@@ -8,6 +8,8 @@
     "dev:shared": "vite --mode http --host 127.0.0.1 --port 5173 --strictPort",
     "demo": "concurrently -k -n api,web \"npm:mock:server\" \"npm:dev:shared\"",
     "mock:server": "tsx ../../mock/server.ts",
+    "backend:server": "dotnet run --project ../backend/InternetCafe.Backend/InternetCafe.Backend.csproj --urls http://127.0.0.1:5055",
+    "demo:real": "concurrently -k -n api,web \"npm:backend:server\" \"npm:dev:shared\"",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4173",
     "test": "vitest run",

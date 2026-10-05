@@ -18,7 +18,7 @@ public sealed class SignalRUpdates(string url) : IRealtimeUpdates
     {
         await StopAsync();
         connection = new HubConnectionBuilder().WithUrl(url, options => options.AccessTokenProvider = token).WithAutomaticReconnect().Build();
-        foreach (var name in new[] { "machine.updated", "session.updated", "customer.balance.updated", "topup.updated", "order.updated", "notification.created", "survey.published" })
+        foreach (var name in new[] { "ComputerChanged", "SessionStarted", "SessionEnded", "BalanceChanged", "TopupRequested", "TopupDecided", "OrderCreated", "OrderChanged" })
             connection.On<object>(name, _ => Changed?.Invoke());
         connection.Reconnecting += _ => { ConnectionChanged?.Invoke("SignalR mất kết nối — đang kết nối lại."); return Task.CompletedTask; };
         connection.Reconnected += _ => { ConnectionChanged?.Invoke("SignalR đã kết nối lại; đang tải snapshot."); Changed?.Invoke(); return Task.CompletedTask; };
