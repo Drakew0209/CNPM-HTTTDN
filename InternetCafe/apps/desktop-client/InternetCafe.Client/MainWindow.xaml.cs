@@ -20,6 +20,8 @@ public partial class MainWindow : Window
     private CompactWindow? compact;
     private bool closing;
     private bool smokeMode;
+    private string? lastPopupMessage;
+    private DateTimeOffset lastPopupAt;
     public MainWindow(MainViewModel viewModel, IRealtimeUpdates realtime, IConfiguration config)
     {
         InitializeComponent();
@@ -45,6 +47,19 @@ public partial class MainWindow : Window
         }
         if (e.PropertyName == nameof(MainViewModel.IsAppLocked) && viewModel.IsAppLocked) { compact?.Hide(); Show(); WindowState = WindowState.Normal; Activate(); }
         if (e.PropertyName is nameof(MainViewModel.Password) or nameof(MainViewModel.PasswordConfirmation) or nameof(MainViewModel.CurrentPassword) or nameof(MainViewModel.NewPassword) or nameof(MainViewModel.NewPasswordConfirmation)) ClearEmptyPasswords(this, e.PropertyName);
+        if (e.PropertyName == nameof(MainViewModel.Notice)) ShowOperationPopup(viewModel.Notice, "Hoàn tất", MessageBoxImage.Information);
+        if (e.PropertyName == nameof(MainViewModel.Error)) ShowOperationPopup(viewModel.Error, "Không thể thao tác", MessageBoxImage.Warning);
+    }
+    private void ShowOperationPopup(string message, string title, MessageBoxImage icon)
+    {
+        if (closing || smokeMode || string.IsNullOrWhiteSpace(message)) return;
+        var now = DateTimeOffset.UtcNow;
+        if (message == lastPopupMessage && now - lastPopupAt < TimeSpan.FromSeconds(10)) return;
+        lastPopupMessage = message; lastPopupAt = now;
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (!closing) MessageBox.Show(this, message, title, MessageBoxButton.OK, icon);
+        }, DispatcherPriority.Background);
     }
     private void ClearEmptyPasswords(DependencyObject parent, string property)
     {
