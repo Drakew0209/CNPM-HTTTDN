@@ -52,44 +52,44 @@ GO
 -- =============================================
 
 -- Phien 2: KH user01 (ID=1), PC02 VIP, 3 gio, 15000/h = 45000
-INSERT INTO dbo.Usage_Sessions (Customer_ID, Computer_ID, Employee_ID, Start_Time, End_Time, Start_Balance, Amount, Status)
-VALUES (1, 2, 2, '2026-09-20 09:00', '2026-09-20 12:00', 100000, 45000, 'Completed');
+INSERT INTO dbo.Usage_Sessions (Customer_ID, Computer_ID, Employee_ID, Start_Time, End_Time, Start_Balance, Applied_Hourly_Rate, Amount, Status)
+VALUES (1, 2, 2, '2026-09-20 09:00', '2026-09-20 12:00', 100000, 15000, 45000, 'Completed');
 
 -- Phien 3: KH user02 (ID=2), PC01 Standard, 2.5 gio, 8000/h = 20000
-INSERT INTO dbo.Usage_Sessions (Customer_ID, Computer_ID, Employee_ID, Start_Time, End_Time, Start_Balance, Amount, Status)
-VALUES (2, 1, 2, '2026-09-20 14:00', '2026-09-20 16:30', 50000, 20000, 'Completed');
+INSERT INTO dbo.Usage_Sessions (Customer_ID, Computer_ID, Employee_ID, Start_Time, End_Time, Start_Balance, Applied_Hourly_Rate, Amount, Status)
+VALUES (2, 1, 2, '2026-09-20 14:00', '2026-09-20 16:30', 50000, 8000, 20000, 'Completed');
 
 -- Phien 4: KH user03 (ID=3), PC03 Standard, 4 gio, 8000/h = 32000
-INSERT INTO dbo.Usage_Sessions (Customer_ID, Computer_ID, Employee_ID, Start_Time, End_Time, Start_Balance, Amount, Status)
-VALUES (3, 3, 2, '2026-09-21 08:00', '2026-09-21 12:00', 250000, 32000, 'Completed');
+INSERT INTO dbo.Usage_Sessions (Customer_ID, Computer_ID, Employee_ID, Start_Time, End_Time, Start_Balance, Applied_Hourly_Rate, Amount, Status)
+VALUES (3, 3, 2, '2026-09-21 08:00', '2026-09-21 12:00', 250000, 8000, 32000, 'Completed');
 
 -- Phien 5: KH user04 (ID=4), PC05 VIP, 5 gio, 15000/h = 75000
-INSERT INTO dbo.Usage_Sessions (Customer_ID, Computer_ID, Employee_ID, Start_Time, End_Time, Start_Balance, Amount, Status)
-VALUES (4, 5, 2, '2026-09-21 10:00', '2026-09-21 15:00', 500000, 75000, 'Completed');
+INSERT INTO dbo.Usage_Sessions (Customer_ID, Computer_ID, Employee_ID, Start_Time, End_Time, Start_Balance, Applied_Hourly_Rate, Amount, Status)
+VALUES (4, 5, 2, '2026-09-21 10:00', '2026-09-21 15:00', 500000, 15000, 75000, 'Completed');
 
 -- Phien 6: KH user05 (ID=5), PC04 Standard, 1.5 gio, 8000/h = 12000
-INSERT INTO dbo.Usage_Sessions (Customer_ID, Computer_ID, Employee_ID, Start_Time, End_Time, Start_Balance, Amount, Status)
-VALUES (5, 4, 2, '2026-09-22 13:00', '2026-09-22 14:30', 150000, 12000, 'Completed');
+INSERT INTO dbo.Usage_Sessions (Customer_ID, Computer_ID, Employee_ID, Start_Time, End_Time, Start_Balance, Applied_Hourly_Rate, Amount, Status)
+VALUES (5, 4, 2, '2026-09-22 13:00', '2026-09-22 14:30', 150000, 8000, 12000, 'Completed');
 
 -- Phien 7: KH user06 (ID=6), PC06 VIP, 6 gio, 15000/h = 90000
-INSERT INTO dbo.Usage_Sessions (Customer_ID, Computer_ID, Employee_ID, Start_Time, End_Time, Start_Balance, Amount, Status)
-VALUES (6, 6, 2, '2026-09-22 18:00', '2026-09-23 00:00', 750000, 90000, 'Completed');
+INSERT INTO dbo.Usage_Sessions (Customer_ID, Computer_ID, Employee_ID, Start_Time, End_Time, Start_Balance, Applied_Hourly_Rate, Amount, Status)
+VALUES (6, 6, 2, '2026-09-22 18:00', '2026-09-23 00:00', 750000, 15000, 90000, 'Completed');
 
 -- Phien 8: KH user07 (ID=7), PC07 Standard, 3 gio, 8000/h = 24000
-INSERT INTO dbo.Usage_Sessions (Customer_ID, Computer_ID, Employee_ID, Start_Time, End_Time, Start_Balance, Amount, Status)
-VALUES (7, 7, 2, '2026-09-23 09:00', '2026-09-23 12:00', 1200000, 24000, 'Completed');
+INSERT INTO dbo.Usage_Sessions (Customer_ID, Computer_ID, Employee_ID, Start_Time, End_Time, Start_Balance, Applied_Hourly_Rate, Amount, Status)
+VALUES (7, 7, 2, '2026-09-23 09:00', '2026-09-23 12:00', 1200000, 8000, 24000, 'Completed');
 
 -- Phien 9: KH user03 (ID=3), PC05 VIP, 2 gio, 15000/h = 30000
-INSERT INTO dbo.Usage_Sessions (Customer_ID, Computer_ID, Employee_ID, Start_Time, End_Time, Start_Balance, Amount, Status)
-VALUES (3, 5, 2, '2026-09-24 20:00', '2026-09-24 22:00', 218000, 30000, 'Completed');
+INSERT INTO dbo.Usage_Sessions (Customer_ID, Computer_ID, Employee_ID, Start_Time, End_Time, Start_Balance, Applied_Hourly_Rate, Amount, Status)
+VALUES (3, 5, 2, '2026-09-24 20:00', '2026-09-24 22:00', 218000, 15000, 30000, 'Completed');
 
 -- Phien 10: KH user01 (ID=1), PC01 Standard, 5 gio, 8000/h = 40000
-INSERT INTO dbo.Usage_Sessions (Customer_ID, Computer_ID, Employee_ID, Start_Time, End_Time, Start_Balance, Amount, Status)
-VALUES (1, 1, 2, '2026-09-25 08:00', '2026-09-25 13:00', 150000, 40000, 'Completed');
+INSERT INTO dbo.Usage_Sessions (Customer_ID, Computer_ID, Employee_ID, Start_Time, End_Time, Start_Balance, Applied_Hourly_Rate, Amount, Status)
+VALUES (1, 1, 2, '2026-09-25 08:00', '2026-09-25 13:00', 150000, 8000, 40000, 'Completed');
 
 -- Phien 11: KH user07 (ID=7), PC06 VIP, dang choi (Active, End_Time = NULL)
-INSERT INTO dbo.Usage_Sessions (Customer_ID, Computer_ID, Employee_ID, Start_Time, End_Time, Start_Balance, Amount, Status)
-VALUES (7, 6, 2, '2026-09-29 19:00', NULL, 1176000, NULL, 'Active');
+INSERT INTO dbo.Usage_Sessions (Customer_ID, Computer_ID, Employee_ID, Start_Time, End_Time, Start_Balance, Applied_Hourly_Rate, Amount, Status)
+VALUES (7, 6, 2, '2026-09-29 19:00', NULL, 1176000, 15000, NULL, 'Active');
 GO
 
 -- =============================================
@@ -97,12 +97,23 @@ GO
 -- =============================================
 INSERT INTO dbo.Products (Category_ID, Product_Name, Price, Stock_Quantity)
 VALUES
-    (1, N'Cà phê sữa đá',     20000, 100),
-    (1, N'Trà đào cam sả',    30000, 80),
-    (1, N'Nước ngọt Pepsi',   15000, 150),
-    (2, N'Gà rán (3 miếng)',  45000, 40),
-    (2, N'Cơm rang dưa bò',   40000, 35),
-    (2, N'Bánh mì thịt nguội',25000, 60);
+    (1, N'Cà phê sữa đá',     20000, 0),
+    (1, N'Trà đào cam sả',    30000, 0),
+    (1, N'Nước ngọt Pepsi',   15000, 0),
+    (2, N'Gà rán (3 miếng)',  45000, 0),
+    (2, N'Cơm rang dưa bò',   40000, 0),
+    (2, N'Bánh mì thịt nguội',25000, 0);
+GO
+
+-- Nhập tồn trước khi tạo đơn hàng; trigger bán hàng sẽ trừ từ tồn kho đã nhập.
+INSERT INTO dbo.Inventory_Transactions (Product_ID, Employee_ID, Trans_Type, Quantity, Note)
+VALUES
+    (3, 1, 'Import', 100, N'Nhập cà phê sữa đá - NCC Highlands'),
+    (4, 1, 'Import',  80, N'Nhập trà đào cam sả - NCC Gong Cha'),
+    (5, 1, 'Import', 150, N'Nhập Pepsi - NCC Coca-Cola VN'),
+    (6, 1, 'Import',  40, N'Nhập gà rán - NCC KFC Supply'),
+    (7, 1, 'Import',  35, N'Nhập nguyên liệu cơm rang'),
+    (8, 1, 'Import',  60, N'Nhập bánh mì thịt nguội');
 GO
 
 -- =============================================
@@ -216,13 +227,13 @@ VALUES (5, 2, 6, 'Rental', 12000);
 INSERT INTO dbo.Transactions (Customer_ID, Processed_By, Order_ID, Trans_Type, Amount)
 VALUES (3, 2, 2, 'FoodOrder', 65000);
 
--- Order 3 - KH user04, Amount = 90000
+-- Order 3 - KH user04, Amount = 100000 (khớp Order_Details)
 INSERT INTO dbo.Transactions (Customer_ID, Processed_By, Order_ID, Trans_Type, Amount)
-VALUES (4, 2, 3, 'FoodOrder', 90000);
+VALUES (4, 2, 3, 'FoodOrder', 100000);
 
--- Order 4 - KH user01, Amount = 55000
+-- Order 4 - KH user01, Amount = 60000 (khớp Order_Details)
 INSERT INTO dbo.Transactions (Customer_ID, Processed_By, Order_ID, Trans_Type, Amount)
-VALUES (1, 2, 4, 'FoodOrder', 55000);
+VALUES (1, 2, 4, 'FoodOrder', 60000);
 
 -- Order 6 - KH user07, Amount = 80000
 INSERT INTO dbo.Transactions (Customer_ID, Processed_By, Order_ID, Trans_Type, Amount)
@@ -400,19 +411,6 @@ VALUES
 GO
 
 -- =============================================
--- SECTION 15: Nhap kho them hang hoa
--- =============================================
-INSERT INTO dbo.Inventory_Transactions (Product_ID, Employee_ID, Trans_Type, Quantity, Note)
-VALUES
-    (3, 1, 'Import', 100, N'Nhập cà phê sữa đá - NCC Highlands'),
-    (4, 1, 'Import',  80, N'Nhập trà đào cam sả - NCC Gong Cha'),
-    (5, 1, 'Import', 150, N'Nhập Pepsi - NCC Coca-Cola VN'),
-    (6, 1, 'Import',  40, N'Nhập gà rán - NCC KFC Supply'),
-    (7, 1, 'Import',  35, N'Nhập nguyên liệu cơm rang'),
-    (8, 1, 'Import',  60, N'Nhập bánh mì thịt nguội');
-GO
-
--- =============================================
 -- KIEM TRA DU LIEU SAU KHI THEM
 -- =============================================
 /*
@@ -449,4 +447,43 @@ JOIN dbo.Customers c ON o.Customer_ID = c.Customer_ID
 JOIN dbo.Order_Details od ON o.Order_ID = od.Order_ID
 JOIN dbo.Products p ON od.Product_ID = p.Product_ID
 ORDER BY o.Order_ID;
+*/
+-- =============================================
+-- SECTION 16: Kiem tra bien nhan TopUp (TopUp_Receipts)
+-- Bien nhan duoc tu dong tao boi trigger TR_Create_TopUp_Receipt
+-- khi co INSERT vao Transactions voi Trans_Type = 'TopUp'.
+-- Cac giao dich TopUp trong Section 8 se tu sinh bien nhan tuong ung.
+-- =============================================
+/*
+-- Xem toan bo bien nhan nap tien kem thong tin KH, thu ngan, combo
+SELECT
+    r.Receipt_ID,
+    r.Receipt_Code,
+    c.Username              AS Customer_Username,
+    c.Full_Name             AS Customer_Name,
+    e.Full_Name             AS Cashier_Name,
+    cb.Combo_Name,
+    r.Paid_Amount,
+    r.Bonus_Amount,
+    r.Total_Credited,
+    r.Balance_Before,
+    r.Balance_After,
+    r.Trans_Date
+FROM dbo.TopUp_Receipts r
+JOIN dbo.Customers  c ON r.Customer_ID  = c.Customer_ID
+LEFT JOIN dbo.Employees  e ON r.Processed_By = e.Employee_ID
+LEFT JOIN dbo.Combos    cb ON r.Combo_ID     = cb.Combo_ID
+ORDER BY r.Trans_Date DESC;
+
+-- Tra cuu bien nhan theo ma Receipt_Code
+-- Vi du: bien nhan giao dich TopUp dau tien (Transaction_ID = 4 trong Additional data)
+-- SELECT * FROM dbo.TopUp_Receipts WHERE Receipt_Code = 'RCP-20261005-4';
+
+-- Xem so bien nhan da tao theo tung khach hang
+SELECT c.Username, c.Full_Name, COUNT(r.Receipt_ID) AS Total_TopUps,
+       SUM(r.Paid_Amount) AS Total_Paid, SUM(r.Total_Credited) AS Total_Credited
+FROM dbo.TopUp_Receipts r
+JOIN dbo.Customers c ON r.Customer_ID = c.Customer_ID
+GROUP BY c.Username, c.Full_Name
+ORDER BY Total_Paid DESC;
 */
