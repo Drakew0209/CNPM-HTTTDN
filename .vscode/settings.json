@@ -1,0 +1,37 @@
+{
+    "sqltools.connections": [
+        {
+            "connectionTimeout": 15,
+            "mssqlOptions": {
+                "appName": "SQLTools",
+                "useUTC": true,
+                "encrypt": true,
+                "trustServerCertificate": false
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": ".\\SQLEXPRESS",
+            "port": 1433,
+            "driver": "MSSQL",
+            "name": "InternetCafe",
+            "database": "InternetCafeDB",
+            "username": "Drakew"
+        },
+        {
+            "connectionTimeout": 15,
+            "mssqlOptions": {
+                "appName": "SQLTools",
+                "useUTC": true,
+                "encrypt": true,
+                "trustServerCertificate": false
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 1433,
+            "driver": "MSSQL",
+            "name": "InternetCafe",
+            "username": "khanh"
+        }
+    ]
+}

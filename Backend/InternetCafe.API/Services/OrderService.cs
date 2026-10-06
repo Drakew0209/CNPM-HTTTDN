@@ -24,7 +24,7 @@ public sealed class OrderService(
             join computer in dbContext.Computers.AsNoTracking()
                 on order.Computer_ID equals (int?)computer.ComputerId into computers
             from computer in computers.DefaultIfEmpty()
-            where order.Status == "Pending"
+            where order.Status == "Pending" || order.Status == "Preparing"
             orderby order.Order_Date
             select new
             {
@@ -79,11 +79,22 @@ public sealed class OrderService(
             .ToList();
     }
 
-    public async Task CompleteAsync(int orderId, CancellationToken cancellationToken)
+    public Task CompleteAsync(int orderId, int employeeId, CancellationToken cancellationToken) =>
+        UpdateStatusAsync(orderId, "Served", employeeId, cancellationToken);
+
+    public async Task UpdateStatusAsync(
+        int orderId,
+        string status,
+        int employeeId,
+        CancellationToken cancellationToken)
     {
         if (orderId <= 0)
         {
             throw new ArgumentException("Order ID must be positive.");
+        }
+        if (employeeId <= 0)
+        {
+            throw new ArgumentException("Employee ID must be positive.");
         }
 
         await using var dbTransaction = await dbContext.Database.BeginTransactionAsync(
@@ -96,29 +107,88 @@ public sealed class OrderService(
             throw new KeyNotFoundException("Order was not found.");
         }
 
-        if (order.Status == "Served")
+        var currentStatus = order.Status ?? string.Empty;
+        if (currentStatus == status)
         {
             await dbTransaction.CommitAsync(cancellationToken);
             return;
         }
-        if (order.Status is not ("Pending" or "Preparing"))
+
+        var validTransition = (currentStatus, status) switch
         {
-            throw new ConflictException($"Order cannot be completed from status '{order.Status}'.");
+            ("Pending", "Preparing") => true,
+            ("Pending", "Cancelled") => true,
+            ("Preparing", "Served") => true,
+            _ => false
+        };
+        if (!validTransition)
+        {
+            throw new ConflictException($"Order status cannot transition from '{currentStatus}' to '{status}'.");
         }
 
-        // The existing SQL CHECK constraint uses Served as the terminal/completed state.
-        order.Status = "Served";
+        if (status == "Cancelled")
+        {
+            var orderLines = await dbContext.OrderDetails
+                .AsNoTracking()
+                .Where(x => x.Order_ID == orderId)
+                .Select(x => new { x.Product_ID, x.Quantity, x.Unit_Price, x.Line_Total })
+                .ToListAsync(cancellationToken);
+
+            var restockItems = orderLines
+                .GroupBy(x => x.Product_ID)
+                .Select(group => new
+                {
+                    ProductId = group.Key,
+                    Quantity = group.Sum(x => x.Quantity)
+                })
+                .ToList();
+
+            foreach (var item in restockItems)
+            {
+                dbContext.InventoryTransactions.Add(new InventoryTransaction
+                {
+                    Product_ID = item.ProductId,
+                    Employee_ID = employeeId,
+                    Trans_Type = "Import",
+                    Quantity = item.Quantity,
+                    Note = $"Restock cancelled order #{orderId}"
+                });
+            }
+
+            var refundAmount = orderLines.Sum(x => x.Line_Total ?? x.Unit_Price * x.Quantity);
+            if (refundAmount > 0m)
+            {
+                dbContext.Transactions.Add(new FinancialTransaction
+                {
+                    Customer_ID = order.Customer_ID,
+                    Processed_By = employeeId,
+                    Trans_Type = "Refund",
+                    Amount = refundAmount
+                });
+            }
+        }
+
+        // Existing SQL CHECK allows Pending, Preparing, Served and Cancelled.
+        order.Status = status;
         await dbContext.SaveChangesAsync(cancellationToken);
         await dbTransaction.CommitAsync(cancellationToken);
 
+        await NotifyOrderStatusChangedAsync(order, cancellationToken);
+    }
+
+    private async Task NotifyOrderStatusChangedAsync(Order order, CancellationToken cancellationToken)
+    {
+        var update = new { Order_ID = order.OrderId, Status = order.Status };
         try
         {
             await hubContext.Clients.Group(CafeHub.WebAdminGroup)
-                .SendAsync("OrderStatusChanged", new { Order_ID = order.OrderId, Status = order.Status }, cancellationToken);
+                .SendAsync("OrderStatusChanged", update, cancellationToken);
+            await hubContext.Clients.Group(CafeHub.CustomerGroup(order.Customer_ID))
+                .SendAsync("OrderStatusChanged", update, cancellationToken);
         }
         catch (Exception exception)
         {
-            logger.LogWarning(exception, "Could not broadcast completion of order {OrderId}.", orderId);
+            logger.LogWarning(exception, "Could not broadcast status change for order {OrderId}.", order.OrderId);
         }
     }
 

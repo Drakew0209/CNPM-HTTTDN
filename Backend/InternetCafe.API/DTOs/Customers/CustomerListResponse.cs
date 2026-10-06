@@ -2,6 +2,7 @@ namespace InternetCafe.API.DTOs.Customers;
 
 public sealed record CustomerListResponse(
     int Customer_ID,
+    int Tier_ID,
     string Username,
     string Full_Name,
     decimal Balance,

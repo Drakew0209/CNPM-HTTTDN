@@ -16,6 +16,10 @@ GO
 USE InternetCafeDB;
 GO
 
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+GO
+
 -- =============================================
 -- 1. Drop existing tables (strict child-before-parent order)
 -- =============================================
@@ -74,7 +78,7 @@ CREATE TABLE dbo.Employees (
     Password_Hash NVARCHAR(255) NOT NULL,
     Full_Name NVARCHAR(100) NOT NULL,
     Date_Of_Birth DATE NULL,
-    Gender VARCHAR(10) NULL,
+    Gender NVARCHAR(10) NULL,
     Phone_Number VARCHAR(15) NULL,
     Email VARCHAR(100) NULL,
     Address NVARCHAR(255) NULL,
@@ -805,8 +809,8 @@ GO
 INSERT INTO dbo.Order_Details (Order_ID, Product_ID, Quantity, Unit_Price)
 VALUES (1, 2, 1, 45000);
 GO
-INSERT INTO dbo.Payroll (Employee_ID, Pay_Month, Pay_Year, Base_Salary, Bonus, Deduction, Status)
-VALUES (1, 8, 2026, 8000000, 500000, 0, 'Paid'), (2, 8, 2026, 6000000, 0, 100000, 'Paid');
+INSERT INTO dbo.Payroll (Employee_ID, Pay_Month, Pay_Year, Base_Salary, Bonus, Deduction, Status, Payment_Date)
+VALUES (1, 8, 2026, 8000000, 500000, 0, 'Paid', GETDATE()), (2, 8, 2026, 6000000, 0, 100000, 'Paid', GETDATE());
 GO
 INSERT INTO dbo.Leave_Requests (Employee_ID, Leave_Type, Start_Date, End_Date, Reason, Status, Approved_By)
 VALUES (2, 'Sick', '2026-09-20', '2026-09-21', N'Bị cảm', 'Approved', 1);

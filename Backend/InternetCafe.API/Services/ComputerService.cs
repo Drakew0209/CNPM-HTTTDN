@@ -19,6 +19,7 @@ public sealed class ComputerService(InternetCafeDbContext dbContext) : IComputer
                 computer.ComputerId,
                 computer.Computer_Code,
                 computer.Status ?? "Unknown",
+                computer.Zone_Type ?? "Standard",
                 computer.Hourly_Rate,
                 session == null ? null : (int?)session.SessionId,
                 session == null ? null : (int?)session.Customer_ID))

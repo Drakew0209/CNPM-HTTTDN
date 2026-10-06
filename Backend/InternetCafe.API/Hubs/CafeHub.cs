@@ -133,6 +133,7 @@ public sealed class CafeHub(InternetCafeDbContext dbContext) : Hub
                 x.ComputerId,
                 x.Computer_Code,
                 x.Status ?? "Unknown",
+                x.Zone_Type ?? "Standard",
                 x.Hourly_Rate,
                 null,
                 null))

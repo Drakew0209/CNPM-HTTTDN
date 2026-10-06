@@ -65,6 +65,11 @@ public sealed class InternetCafeDbContext(DbContextOptions<InternetCafeDbContext
             {
                 table.HasTrigger("TR_Sync_Order_Details_Inventory");
             });
+        modelBuilder.Entity<InventoryTransaction>()
+            .ToTable("Inventory_Transactions", "dbo", table =>
+            {
+                table.HasTrigger("TR_Sync_Inventory");
+            });
         modelBuilder.Entity<FinancialTransaction>().Property(x => x.Trans_Date)
             .HasDefaultValueSql("(GETDATE())");
 

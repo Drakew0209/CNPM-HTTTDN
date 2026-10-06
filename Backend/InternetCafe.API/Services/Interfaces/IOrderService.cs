@@ -6,5 +6,6 @@ public interface IOrderService
 {
     Task<OrderResponse> CreateAsync(OrderRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyList<PendingOrderResponse>> GetPendingAsync(CancellationToken cancellationToken);
-    Task CompleteAsync(int orderId, CancellationToken cancellationToken);
+    Task UpdateStatusAsync(int orderId, string status, int employeeId, CancellationToken cancellationToken);
+    Task CompleteAsync(int orderId, int employeeId, CancellationToken cancellationToken);
 }
