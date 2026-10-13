@@ -45,6 +45,34 @@ VALUES
 GO
 
 -- =============================================
+-- SECTION 3.1: Danh muc Game quan tri (Games catalog)
+-- =============================================
+IF NOT EXISTS (SELECT 1 FROM dbo.Games WHERE Code = 'valorant')
+BEGIN
+    INSERT INTO dbo.Games (Code, Name, Category, Executable_Path, Banner_Url, Description)
+    VALUES (N'valorant', N'VALORANT', N'Bắn súng (FPS)', N'D:\Riot Games\VALORANT\live\VALORANT.exe',
+        N'https://images.contentstack.io/v3/assets/blt370612131b6e0756/blt02fae44364e4a199/62a93444f6da4a123bc807be/Valorant_Hero.jpg',
+        N'Game bắn súng chiến thuật 5v5 của Riot Games.');
+END;
+
+IF NOT EXISTS (SELECT 1 FROM dbo.Games WHERE Code = 'lol')
+BEGIN
+    INSERT INTO dbo.Games (Code, Name, Category, Executable_Path, Banner_Url, Description)
+    VALUES (N'lol', N'Liên Minh Huyền Thoại', N'Chiến thuật (MOBA)', N'C:\Riot Games\League of Legends\LeagueClient.exe',
+        N'https://images.contentstack.io/v3/assets/blt731acb42bb3d1659/blt7695a4f107f9c968/6269e8b15d9cc00ee123ec09/LOL_Hero.jpg',
+        N'Đấu trường trực tuyến nhiều người chơi hàng đầu thế giới.');
+END;
+
+IF NOT EXISTS (SELECT 1 FROM dbo.Games WHERE Code = 'cs2')
+BEGIN
+    INSERT INTO dbo.Games (Code, Name, Category, Executable_Path, Banner_Url, Description)
+    VALUES (N'cs2', N'Counter-Strike 2', N'Bắn súng (FPS)', N'C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\game\bin\win64\cs2.exe',
+        N'https://cdn.cloudflare.steamstatic.com/apps/csgo/images/csgo_react/social/cs2.jpg',
+        N'Tựa game bắn súng góc nhìn thứ nhất kinh điển của Valve.');
+END;
+GO
+
+-- =============================================
 -- SECTION 4: 10 Phien choi (Usage_Sessions) day du gio bat dau/ket thuc va tien
 -- Customer IDs: 1,2 (cu), 3,4,5,6,7 (moi sau IDENTITY)
 -- Computer IDs: 1,2 (cu), 3,4,5,6,7 (moi)

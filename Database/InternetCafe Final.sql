@@ -26,6 +26,7 @@ GO
 -- =============================================
 -- 1. Drop existing tables (strict child-before-parent order)
 -- =============================================
+IF OBJECT_ID('dbo.Games', 'U') IS NOT NULL DROP TABLE dbo.Games;
 IF OBJECT_ID('dbo.Attendance', 'U') IS NOT NULL DROP TABLE dbo.Attendance;
 IF OBJECT_ID('dbo.Leave_Requests', 'U') IS NOT NULL DROP TABLE dbo.Leave_Requests;
 IF OBJECT_ID('dbo.Payroll', 'U') IS NOT NULL DROP TABLE dbo.Payroll;
@@ -106,6 +107,22 @@ CREATE TABLE dbo.Computers (
     Status VARCHAR(20) DEFAULT 'Available', -- Available, InUse, Maintenance
     CONSTRAINT PK_Computers PRIMARY KEY (Computer_ID),
     CONSTRAINT UQ_Computers_Code UNIQUE (Computer_Code)
+);
+GO
+
+-- Games catalog (admin-managed, synced to desktop client)
+CREATE TABLE dbo.Games (
+    Game_ID INT IDENTITY(1,1) NOT NULL,
+    Code NVARCHAR(50) NOT NULL,
+    Name NVARCHAR(150) NOT NULL,
+    Category NVARCHAR(50) NOT NULL,
+    Executable_Path NVARCHAR(500) NOT NULL,
+    Banner_Url NVARCHAR(500) NOT NULL,
+    Description NVARCHAR(500) NULL,
+    Is_Active BIT NOT NULL DEFAULT 1,
+    Created_At DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+    CONSTRAINT PK_Games PRIMARY KEY (Game_ID),
+    CONSTRAINT UQ_Games_Code UNIQUE (Code)
 );
 GO
 
@@ -756,6 +773,11 @@ VALUES
 GO
 INSERT INTO dbo.Computers (Computer_Code, Zone_Type, Hourly_Rate, Status)
 VALUES ('PC01', 'Standard', 8000, 'Available'), ('PC02', 'VIP', 15000, 'Available');
+GO
+INSERT INTO dbo.Games (Code, Name, Category, Executable_Path, Banner_Url, Description)
+VALUES (N'valorant', N'VALORANT', N'Bắn súng (FPS)', N'D:\Riot Games\VALORANT\live\VALORANT.exe',
+    N'https://images.contentstack.io/v3/assets/blt370612131b6e0756/blt02fae44364e4a199/62a93444f6da4a123bc807be/Valorant_Hero.jpg',
+    N'Game bắn súng chiến thuật 5v5 của Riot Games.');
 GO
 INSERT INTO dbo.Membership_Tier (Tier_Name) VALUES ('Member'), ('VIP');
 GO

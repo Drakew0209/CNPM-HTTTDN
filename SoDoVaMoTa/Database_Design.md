@@ -1,8 +1,8 @@
 # Tài liệu Thiết kế Cơ sở Dữ liệu
 ## Internet Cafe Management System — Database Design
 
-> **Phiên bản:** 1.0 | **Ngày:** 29/09/2026 | **RDBMS:** Microsoft SQL Server
-> **Database:** `InternetCafeDB` | **Số bảng:** 21
+> **Phiên bản:** 1.1 | **Ngày:** 13/10/2026 | **RDBMS:** Microsoft SQL Server
+> **Database:** `InternetCafeDB` | **Số bảng:** 22
 
 ---
 
@@ -10,6 +10,18 @@
 
 ```mermaid
 erDiagram
+    Games {
+        int Game_ID PK
+        nvarchar Code
+        nvarchar Name
+        nvarchar Category
+        nvarchar Executable_Path
+        nvarchar Banner_Url
+        nvarchar Description
+        bit Is_Active
+        datetimeoffset Created_At
+    }
+
     Departments {
         int Department_ID PK
         nvarchar Department_Name
@@ -565,6 +577,22 @@ erDiagram
 | `Zone_Type` | `VARCHAR(20)` | — | NOT NULL | Khu vực: `Standard`, `VIP` |
 | `Hourly_Rate` | `DECIMAL(10,2)` | — | NOT NULL | Giá thuê theo giờ (VNĐ) |
 | `Status` | `VARCHAR(20)` | — | NOT NULL | Trạng thái: `Available`, `InUse`, `Maintenance` |
+
+---
+
+#### Bảng `Games` — Danh mục Trò chơi máy trạm
+
+| Tên Cột | Kiểu Dữ liệu | Khóa | Null/Not Null | Mô tả |
+|---|---|---|---|---|
+| `Game_ID` | `INT IDENTITY(1,1)` | PK | NOT NULL | Mã trò chơi, tự tăng |
+| `Code` | `NVARCHAR(50)` | UNIQUE | NOT NULL | Mã định danh game (VD: `valorant`, `lol`) |
+| `Name` | `NVARCHAR(150)` | — | NOT NULL | Tên hiển thị của game (VD: `VALORANT`) |
+| `Category` | `NVARCHAR(50)` | — | NOT NULL | Thể loại (VD: `Bắn súng (FPS)`, `MOBA`) |
+| `Executable_Path` | `NVARCHAR(500)` | — | NOT NULL | Đường dẫn file khởi chạy (`.exe`) trên máy trạm |
+| `Banner_Url` | `NVARCHAR(500)` | — | NOT NULL | URL ảnh bìa/poster game hiển thị trên client |
+| `Description` | `NVARCHAR(500)` | — | NULL | Tóm tắt giới thiệu trò chơi |
+| `Is_Active` | `BIT` | — | NOT NULL | Trạng thái hiển thị (1: Hoạt động, 0: Tạm ẩn) |
+| `Created_At` | `DATETIMEOFFSET` | — | NOT NULL | Thời điểm khởi tạo bản ghi |
 
 ---
 
