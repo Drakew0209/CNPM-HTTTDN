@@ -17,10 +17,12 @@ public sealed class CafeRepository(SqlConnectionFactory connections, ManagementR
         var topups = await TopupsAsync(identity, ct);
         var sessions = await SessionsAsync(identity, ct);
         var transactions = await TransactionsAsync(identity, ct);
+        var games = await GamesAsync(ct);
+        var combos = await CombosAsync(ct);
         var managementWorkspace = await management.WorkspaceAsync(identity, ct);
         return new
         {
-            computers, customers, products, categories, orders, topups, transactions,
+            computers, customers, products, categories, orders, topups, transactions, games, combos,
             suppliers = managementWorkspace.Suppliers, inventory = managementWorkspace.Inventory, feedback = managementWorkspace.Feedback, surveys = managementWorkspace.Surveys,
             employees = managementWorkspace.Employees, shifts = managementWorkspace.Shifts, schedules = managementWorkspace.Schedules, leaves = managementWorkspace.Leaves,
             attendance = managementWorkspace.Attendance, payroll = managementWorkspace.Payroll, accounts = managementWorkspace.Accounts, sessions
@@ -64,7 +66,8 @@ public sealed class CafeRepository(SqlConnectionFactory connections, ManagementR
         }
         await using var command = new SqlCommand("""
             UPDATE dbo.Customers SET Full_Name = COALESCE(@fullName, Full_Name), Phone_Number = COALESCE(@phone, Phone_Number),
-                Email = COALESCE(@email, Email), Date_Of_Birth = COALESCE(@dateOfBirth, Date_Of_Birth), Hobbies = COALESCE(@hobbies, Hobbies)
+                Email = COALESCE(@email, Email), Date_Of_Birth = COALESCE(@dateOfBirth, Date_Of_Birth), Hobbies = COALESCE(@hobbies, Hobbies),
+                Citizen_ID = COALESCE(@citizenId, Citizen_ID)
             WHERE Customer_ID = @id
             """, connection);
         command.Parameters.AddWithValue("@id", identity.CustomerId!.Value);
@@ -72,6 +75,7 @@ public sealed class CafeRepository(SqlConnectionFactory connections, ManagementR
         command.Parameters.AddWithValue("@phone", ReadString(body, "phone") ?? (object)DBNull.Value);
         command.Parameters.AddWithValue("@email", ReadString(body, "email") ?? (object)DBNull.Value);
         command.Parameters.AddWithValue("@hobbies", ReadString(body, "hobbies") ?? (object)DBNull.Value);
+        command.Parameters.AddWithValue("@citizenId", ReadString(body, "citizenId") ?? (object)DBNull.Value);
         command.Parameters.AddWithValue("@dateOfBirth", DateOnly.TryParse(ReadString(body, "dateOfBirth"), out var date) ? date : (object)DBNull.Value);
         await command.ExecuteNonQueryAsync(ct);
         return OperationResult<object>.Ok(await MeAsync(identity, ct));
@@ -89,6 +93,11 @@ public sealed class CafeRepository(SqlConnectionFactory connections, ManagementR
 
     public Task<IReadOnlyList<CategoryDto>> CategoriesAsync(IdentityContext identity, CancellationToken ct) => QueryAsync("SELECT Category_ID, Category_Name FROM dbo.Product_Categories ORDER BY Category_Name", reader => new CategoryDto(Id("cat", reader.GetInt32(0)), reader.GetString(1)), ct);
 
+    public Task<IReadOnlyList<GameDto>> GamesAsync(CancellationToken ct) => QueryAsync("""
+        SELECT Game_ID, Code, Name, Category, Executable_Path, Banner_Url, Description, Is_Active
+        FROM dbo.Games ORDER BY Name, Game_ID
+        """, reader => new GameDto(Id("g", reader.GetInt32(0)), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetString(4), reader.GetString(5), StringValue(reader, 6), reader.GetBoolean(7)), ct);
+
     public Task<IReadOnlyList<ProductDto>> ProductsAsync(IdentityContext identity, CancellationToken ct) => QueryAsync("""
         SELECT Product_ID, Product_Name, Category_ID, Price, Stock_Quantity, Status, Image_Url FROM dbo.Products
         WHERE (@customer = 0 OR Status = 'Active') ORDER BY Product_Name
@@ -98,10 +107,10 @@ public sealed class CafeRepository(SqlConnectionFactory connections, ManagementR
     {
         var ownOnly = identity.Role is Roles.Customer or Roles.Staff;
         return QueryAsync("""
-            SELECT c.Customer_ID, c.Username, c.Full_Name, c.Phone_Number, c.Email, c.Date_Of_Birth, c.Hobbies, t.Tier_Name, c.Balance, c.Status
+            SELECT c.Customer_ID, c.Username, c.Full_Name, c.Phone_Number, c.Email, c.Date_Of_Birth, c.Hobbies, t.Tier_Name, c.Balance, c.Status, c.Citizen_ID
             FROM dbo.Customers c JOIN dbo.Membership_Tier t ON t.Tier_ID = c.Tier_ID
             WHERE (@ownOnly = 0 OR c.Customer_ID = @customerId) ORDER BY c.Full_Name
-            """, reader => new CustomerDto(Id("c", reader.GetInt32(0)), reader.GetString(1), reader.GetString(2), StringValue(reader, 3), StringValue(reader, 4), DateValue(reader, 5), StringValue(reader, 6), reader.GetString(7), reader.GetDecimal(8), reader.GetString(9)), ct,
+            """, reader => new CustomerDto(Id("c", reader.GetInt32(0)), reader.GetString(1), reader.GetString(2), StringValue(reader, 3), StringValue(reader, 4), DateValue(reader, 5), StringValue(reader, 6), reader.GetString(7), reader.GetDecimal(8), reader.GetString(9), StringValue(reader, 10)), ct,
             ("@ownOnly", ownOnly ? 1 : 0), ("@customerId", (object?)identity.CustomerId ?? DBNull.Value));
     }
 
@@ -165,6 +174,146 @@ public sealed class CafeRepository(SqlConnectionFactory connections, ManagementR
         return new { from = from?.ToString("yyyy-MM-dd"), to = to?.ToString("yyyy-MM-dd"), rentalRevenue = rental, foodRevenue = food, refunds, netRevenue = rental + food - refunds, topups, source = "sql-server" };
     }
 
+    public Task<IReadOnlyList<ComboDto>> CombosAsync(CancellationToken ct) =>
+        QueryAsync("""
+            SELECT Combo_ID, Combo_Name, Price, Bonus_Balance, Total_Value, Description, Is_Active
+            FROM dbo.Combos
+            WHERE Is_Active = 1
+            ORDER BY Price, Combo_ID
+            """, r => new ComboDto(
+                Id("combo", r.GetInt32(0)),
+                r.GetString(1),
+                DecimalValue(r, 2),
+                DecimalValue(r, 3),
+                DecimalValue(r, 4),
+                StringValue(r, 5),
+                !r.IsDBNull(6) && r.GetBoolean(6)), ct);
+
+    public async Task<object> AnalyticsReportAsync(DateOnly? from, DateOnly? to, CancellationToken ct)
+    {
+        await using var connection = await connections.OpenAsync(ct);
+
+        await using var dailyCommand = new SqlCommand("""
+            SELECT 
+                CAST(Trans_Date AS DATE) AS DayDate,
+                COALESCE(SUM(CASE WHEN Trans_Type = 'Rental' THEN Amount ELSE 0 END), 0) AS Rental,
+                COALESCE(SUM(CASE WHEN Trans_Type = 'FoodOrder' THEN Amount ELSE 0 END), 0) AS Food,
+                COALESCE(SUM(CASE WHEN Trans_Type = 'Refund' THEN Amount ELSE 0 END), 0) AS Refunds,
+                COALESCE(SUM(CASE WHEN Trans_Type = 'TopUp' THEN Amount ELSE 0 END), 0) AS Topup,
+                COALESCE(SUM(CASE WHEN Trans_Type = 'Withdraw' THEN Amount ELSE 0 END), 0) AS Withdraws
+            FROM dbo.Transactions
+            WHERE (@from IS NULL OR Trans_Date >= @from) AND (@to IS NULL OR Trans_Date < DATEADD(day, 1, @to))
+            GROUP BY CAST(Trans_Date AS DATE)
+            ORDER BY DayDate ASC
+            """, connection);
+        dailyCommand.Parameters.AddWithValue("@from", (object?)from ?? DBNull.Value);
+        dailyCommand.Parameters.AddWithValue("@to", (object?)to ?? DBNull.Value);
+        await using var dailyReader = await dailyCommand.ExecuteReaderAsync(ct);
+        var dailyList = new List<object>();
+        decimal sumRental = 0, sumFood = 0, sumRefund = 0, sumTopup = 0, sumWithdraw = 0;
+        while (await dailyReader.ReadAsync(ct))
+        {
+            var day = dailyReader.GetDateTime(0).ToString("yyyy-MM-dd");
+            var rental = dailyReader.GetDecimal(1);
+            var food = dailyReader.GetDecimal(2);
+            var refunds = dailyReader.GetDecimal(3);
+            var topup = dailyReader.GetDecimal(4);
+            var withdraw = dailyReader.GetDecimal(5);
+            sumRental += rental; sumFood += food; sumRefund += refunds; sumTopup += topup; sumWithdraw += withdraw;
+            dailyList.Add(new
+            {
+                date = day,
+                rentalRevenue = rental,
+                foodRevenue = food,
+                refunds,
+                topup,
+                withdraw,
+                netRevenue = rental + food - refunds
+            });
+        }
+        await dailyReader.CloseAsync();
+
+        await using var topProdCommand = new SqlCommand("""
+            SELECT TOP 5 
+                p.Product_ID,
+                p.Product_Name,
+                SUM(d.Quantity) AS QuantitySold,
+                SUM(d.Quantity * d.Unit_Price) AS TotalRevenue
+            FROM dbo.Order_Details d
+            JOIN dbo.Orders o ON o.Order_ID = d.Order_ID
+            JOIN dbo.Products p ON p.Product_ID = d.Product_ID
+            WHERE o.Status <> 'Cancelled'
+              AND (@from IS NULL OR o.Order_Date >= @from)
+              AND (@to IS NULL OR o.Order_Date < DATEADD(day, 1, @to))
+            GROUP BY p.Product_ID, p.Product_Name
+            ORDER BY QuantitySold DESC, TotalRevenue DESC
+            """, connection);
+        topProdCommand.Parameters.AddWithValue("@from", (object?)from ?? DBNull.Value);
+        topProdCommand.Parameters.AddWithValue("@to", (object?)to ?? DBNull.Value);
+        await using var topReader = await topProdCommand.ExecuteReaderAsync(ct);
+        var topProducts = new List<object>();
+        while (await topReader.ReadAsync(ct))
+        {
+            topProducts.Add(new
+            {
+                productId = Id("p", topReader.GetInt32(0)),
+                name = topReader.GetString(1),
+                quantitySold = topReader.GetInt32(2),
+                totalRevenue = topReader.GetDecimal(3)
+            });
+        }
+        await topReader.CloseAsync();
+
+        await using var compCountCommand = new SqlCommand("SELECT COUNT(*) FROM dbo.Computers WHERE Status <> 'Maintenance'", connection);
+        var computerCount = Math.Max(1, Convert.ToInt32(await compCountCommand.ExecuteScalarAsync(ct)));
+        var effectiveFrom = from ?? DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
+        var effectiveTo = to ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var totalDays = Math.Max(1, (effectiveTo.ToDateTime(TimeOnly.MinValue) - effectiveFrom.ToDateTime(TimeOnly.MinValue)).Days + 1);
+
+        await using var sessionHoursCommand = new SqlCommand("""
+            SELECT COALESCE(SUM(DATEDIFF(second, Start_Time, COALESCE(End_Time, SYSUTCDATETIME()))), 0)
+            FROM dbo.Usage_Sessions
+            WHERE (@from IS NULL OR Start_Time >= @from)
+              AND (@to IS NULL OR Start_Time < DATEADD(day, 1, @to))
+            """, connection);
+        sessionHoursCommand.Parameters.AddWithValue("@from", (object?)from ?? DBNull.Value);
+        sessionHoursCommand.Parameters.AddWithValue("@to", (object?)to ?? DBNull.Value);
+        var totalSessionSeconds = Convert.ToDouble(await sessionHoursCommand.ExecuteScalarAsync(ct));
+        var totalCapacitySeconds = (double)computerCount * totalDays * 86400.0;
+        var occupancyRate = Math.Round(Math.Clamp((totalSessionSeconds / totalCapacitySeconds) * 100.0, 0.0, 100.0), 1);
+
+        await using var payrollCommand = new SqlCommand("""
+            SELECT COALESCE(SUM(Net_Salary), 0)
+            FROM dbo.Payroll
+            WHERE Workflow_Status IN ('Approved', 'Paid')
+              AND (@from IS NULL OR DATEFROMPARTS(Pay_Year, Pay_Month, 1) >= DATEFROMPARTS(YEAR(@from), MONTH(@from), 1))
+              AND (@to IS NULL OR DATEFROMPARTS(Pay_Year, Pay_Month, 1) <= DATEFROMPARTS(YEAR(@to), MONTH(@to), 1))
+            """, connection);
+        payrollCommand.Parameters.AddWithValue("@from", (object?)from ?? DBNull.Value);
+        payrollCommand.Parameters.AddWithValue("@to", (object?)to ?? DBNull.Value);
+        var payrollExpense = Convert.ToDecimal(await payrollCommand.ExecuteScalarAsync(ct));
+
+        var totalNetRevenue = sumRental + sumFood - sumRefund;
+
+        return new
+        {
+            from = from?.ToString("yyyy-MM-dd"),
+            to = to?.ToString("yyyy-MM-dd"),
+            daily = dailyList,
+            topProducts,
+            occupancyRate,
+            payrollExpense,
+            totalRentalRevenue = sumRental,
+            totalFoodRevenue = sumFood,
+            totalRefunds = sumRefund,
+            totalTopup = sumTopup,
+            totalWithdraw = sumWithdraw,
+            totalNetRevenue,
+            estimatedProfit = totalNetRevenue - payrollExpense,
+            activeComputers = computerCount
+        };
+    }
+
     private async Task<IReadOnlyList<T>> QueryAsync<T>(string sql, Func<SqlDataReader, T> map, CancellationToken ct, params (string Name, object Value)[] parameters)
     {
         await using var connection = await connections.OpenAsync(ct);
@@ -187,11 +336,12 @@ public sealed class CafeRepository(SqlConnectionFactory connections, ManagementR
 }
 
 public sealed record ComputerDto(string Id, string Name, string Zone, string Status, bool Online, decimal HourlyRate, string? CustomerId, string? SessionId);
-public sealed record CustomerDto(string Id, string Username, string FullName, string Phone, string Email, string DateOfBirth, string Hobbies, string Tier, decimal Balance, string Status);
+public sealed record CustomerDto(string Id, string Username, string FullName, string Phone, string Email, string DateOfBirth, string Hobbies, string Tier, decimal Balance, string Status, string? CitizenId);
 public sealed record CategoryDto(string Id, string Name);
 public sealed record ProductDto(string Id, string Name, string CategoryId, decimal Price, int Stock, bool Active, string? ImageUrl);
 public sealed record OrderItemDto(string ProductId, string Name, int Quantity, decimal UnitPrice);
 public sealed record OrderDto(string Id, string CustomerId, string? ComputerId, IReadOnlyList<OrderItemDto> Items, decimal Total, string Status, string Note, DateTime CreatedAt);
 public sealed record TopupDto(string Id, string CustomerId, decimal Amount, string Status, string Note, DateTime CreatedAt);
+public sealed record ComboDto(string Id, string Name, decimal Price, decimal BonusBalance, decimal TotalValue, string Description, bool IsActive);
 public sealed record SessionDto(string Id, string CustomerId, string ComputerId, DateTime StartTime, DateTime? EndTime, decimal StartBalance, decimal Amount, string Status, decimal AppliedHourlyRate);
 public sealed record TransactionDto(string Id, string CustomerId, string Type, decimal Amount, string ReferenceId, DateTime CreatedAt);

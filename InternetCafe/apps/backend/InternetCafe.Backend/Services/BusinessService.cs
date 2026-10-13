@@ -103,6 +103,68 @@ public sealed class BusinessService(SqlConnectionFactory connections, IHubContex
         return OperationResult<object>.Ok(result);
     }
 
+    public async Task<OperationResult<object>> TransferSessionAsync(IdentityContext identity, string id, TransferSessionRequest request, CancellationToken ct)
+    {
+        if (!identity.IsOperator) return OperationResult<object>.Fail("FORBIDDEN", "Chỉ nhân viên vận hành có thể chuyển máy.", StatusCodes.Status403Forbidden);
+        var sessionId = TryId(id, "session");
+        if (sessionId is null) return OperationResult<object>.Fail("NOT_FOUND", "Không tìm thấy phiên.", StatusCodes.Status404NotFound);
+        var targetComputerId = TryId(request.TargetComputerId, "pc");
+        if (targetComputerId is null) return OperationResult<object>.Fail("VALIDATION_ERROR", "Mã máy đích không hợp lệ.");
+
+        await using var connection = await connections.OpenAsync(ct);
+        await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        try
+        {
+            await using var findSession = new SqlCommand("""
+                SELECT s.Customer_ID, s.Computer_ID, s.Start_Time, s.Start_Balance, s.Amount, s.Status, s.Applied_Hourly_Rate, c.Balance
+                FROM dbo.Usage_Sessions s WITH (UPDLOCK, HOLDLOCK)
+                JOIN dbo.Customers c WITH (UPDLOCK, HOLDLOCK) ON c.Customer_ID = s.Customer_ID
+                WHERE s.Session_ID = @id
+                """, connection, (SqlTransaction)transaction);
+            findSession.Parameters.AddWithValue("@id", sessionId.Value);
+            await using var sReader = await findSession.ExecuteReaderAsync(ct);
+            if (!await sReader.ReadAsync(ct)) return await Rollback(transaction, OperationResult<object>.Fail("NOT_FOUND", "Không tìm thấy phiên.", StatusCodes.Status404NotFound), ct);
+            var customerId = sReader.GetInt32(0);
+            var currentComputerId = sReader.GetInt32(1);
+            var start = sReader.GetDateTime(2);
+            var startBalance = sReader.IsDBNull(3) ? 0m : sReader.GetDecimal(3);
+            var currentAmount = sReader.IsDBNull(4) ? 0m : sReader.GetDecimal(4);
+            var status = sReader.GetString(5);
+            var currentRate = sReader.IsDBNull(6) ? 0m : sReader.GetDecimal(6);
+            await sReader.CloseAsync();
+
+            if (status != "Active") return await Rollback(transaction, OperationResult<object>.Fail("SESSION_NOT_ACTIVE", "Chỉ có thể chuyển máy đối với phiên đang hoạt động.", StatusCodes.Status409Conflict), ct);
+            if (currentComputerId == targetComputerId.Value) return await Rollback(transaction, OperationResult<object>.Fail("VALIDATION_ERROR", "Máy đích phải khác máy hiện tại của phiên."), ct);
+
+            await using var findTarget = new SqlCommand("SELECT Status, Hourly_Rate FROM dbo.Computers WITH (UPDLOCK, HOLDLOCK) WHERE Computer_ID = @id", connection, (SqlTransaction)transaction);
+            findTarget.Parameters.AddWithValue("@id", targetComputerId.Value);
+            await using var tReader = await findTarget.ExecuteReaderAsync(ct);
+            if (!await tReader.ReadAsync(ct)) return await Rollback(transaction, OperationResult<object>.Fail("NOT_FOUND", "Không tìm thấy máy đích.", StatusCodes.Status404NotFound), ct);
+            var targetStatus = tReader.GetString(0);
+            var targetRate = tReader.GetDecimal(1);
+            await tReader.CloseAsync();
+
+            if (targetStatus != "Available") return await Rollback(transaction, OperationResult<object>.Fail("COMPUTER_UNAVAILABLE", "Máy đích hiện không sẵn sàng để nhận chuyển máy.", StatusCodes.Status409Conflict), ct);
+
+            await using var update = new SqlCommand("UPDATE dbo.Usage_Sessions SET Computer_ID = @targetId, Applied_Hourly_Rate = @targetRate WHERE Session_ID = @id", connection, (SqlTransaction)transaction);
+            update.Parameters.AddWithValue("@targetId", targetComputerId.Value);
+            update.Parameters.AddWithValue("@targetRate", targetRate);
+            update.Parameters.AddWithValue("@id", sessionId.Value);
+            await update.ExecuteNonQueryAsync(ct);
+
+            await transaction.CommitAsync(ct);
+
+            var oldCode = CafeRepository.Id("pc", currentComputerId);
+            var newCode = CafeRepository.Id("pc", targetComputerId.Value);
+            await NotifyAsync("ComputerChanged", oldCode, new { computerId = oldCode, status = "Available" }, ct);
+            await NotifyAsync("ComputerChanged", newCode, new { computerId = newCode, status = "InUse" }, ct);
+            await NotifyAsync("SessionChanged", id, new { sessionId = id, computerId = newCode, previousComputerId = oldCode }, ct);
+
+            return OperationResult<object>.Ok(new SessionDto(id, CafeRepository.Id("c", customerId), newCode, start, null, startBalance, currentAmount, "Active", targetRate));
+        }
+        catch { await transaction.RollbackAsync(ct); throw; }
+    }
+
     public async Task<OperationResult<object>> CreateTopupAsync(IdentityContext identity, CreateTopupRequest request, CancellationToken ct)
     {
         if (identity.CustomerId is null) return OperationResult<object>.Fail("FORBIDDEN", "Chỉ khách hàng có thể tạo yêu cầu nạp.", StatusCodes.Status403Forbidden);
@@ -156,6 +218,112 @@ public sealed class BusinessService(SqlConnectionFactory connections, IHubContex
         return OperationResult<object>.Ok(result);
     }
 
+    public async Task<OperationResult<object>> AdminTopupAsync(IdentityContext identity, string id, AdminTopupRequest request, CancellationToken ct)
+    {
+        if (!identity.IsOperator) return OperationResult<object>.Fail("FORBIDDEN", "Chỉ vận hành quán có thể nạp tiền trực tiếp.", StatusCodes.Status403Forbidden);
+        if (request.Amount is < 1000 or > 10000000) return OperationResult<object>.Fail("VALIDATION_ERROR", "Số tiền nạp từ 1.000 đến 10.000.000 đồng.");
+        var customerId = TryId(id, "c");
+        if (customerId is null) return OperationResult<object>.Fail("NOT_FOUND", "Không tìm thấy khách hàng.", StatusCodes.Status404NotFound);
+        int? comboId = null;
+        if (!string.IsNullOrWhiteSpace(request.ComboId))
+        {
+            comboId = TryId(request.ComboId, "combo") ?? (int.TryParse(request.ComboId, out var cid) ? cid : null);
+            if (comboId is null) return OperationResult<object>.Fail("VALIDATION_ERROR", "Mã gói combo không hợp lệ.");
+        }
+
+        await using var connection = await connections.OpenAsync(ct);
+        await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        try
+        {
+            await using var find = new SqlCommand("SELECT Balance FROM dbo.Customers WITH (UPDLOCK, HOLDLOCK) WHERE Customer_ID = @id", connection, (SqlTransaction)transaction);
+            find.Parameters.AddWithValue("@id", customerId.Value);
+            var exists = await find.ExecuteScalarAsync(ct);
+            if (exists is null) return await Rollback(transaction, OperationResult<object>.Fail("NOT_FOUND", "Không tìm thấy khách hàng.", StatusCodes.Status404NotFound), ct);
+
+            if (comboId is not null)
+            {
+                await using var comboCmd = new SqlCommand("SELECT Combo_Name, Price, Bonus_Balance, Is_Active FROM dbo.Combos WITH (UPDLOCK, HOLDLOCK) WHERE Combo_ID = @comboId", connection, (SqlTransaction)transaction);
+                comboCmd.Parameters.AddWithValue("@comboId", comboId.Value);
+                await using var cReader = await comboCmd.ExecuteReaderAsync(ct);
+                if (!await cReader.ReadAsync(ct) || (cReader.IsDBNull(3) ? false : !cReader.GetBoolean(3)))
+                {
+                    await cReader.CloseAsync();
+                    return await Rollback(transaction, OperationResult<object>.Fail("COMBO_INVALID", "Gói khuyến mãi combo không tồn tại hoặc đã ngưng áp dụng.", StatusCodes.Status409Conflict), ct);
+                }
+                await cReader.CloseAsync();
+            }
+
+            await using var ledger = new SqlCommand("INSERT INTO dbo.Transactions (Customer_ID, Processed_By, Trans_Type, Amount, Combo_ID, Trans_Date) VALUES (@customerId, @employeeId, 'TopUp', @amount, @comboId, SYSUTCDATETIME()); SELECT CAST(SCOPE_IDENTITY() AS int);", connection, (SqlTransaction)transaction);
+            ledger.Parameters.AddWithValue("@customerId", customerId.Value);
+            ledger.Parameters.AddWithValue("@employeeId", (object?)identity.EmployeeId ?? DBNull.Value);
+            ledger.Parameters.AddWithValue("@amount", request.Amount);
+            ledger.Parameters.AddWithValue("@comboId", (object?)comboId ?? DBNull.Value);
+            var transactionId = Convert.ToInt32(await ledger.ExecuteScalarAsync(ct));
+
+            await using var stamped = new SqlCommand("SELECT Trans_Date FROM dbo.Transactions WHERE Transaction_ID = @id", connection, (SqlTransaction)transaction);
+            stamped.Parameters.AddWithValue("@id", transactionId);
+            var createdAt = (DateTime)(await stamped.ExecuteScalarAsync(ct) ?? DateTime.UtcNow);
+            await transaction.CommitAsync(ct);
+
+            var customerCode = CafeRepository.Id("c", customerId.Value);
+            var dto = new TransactionDto(CafeRepository.Id("tx", transactionId), customerCode, "TopUp", request.Amount, transactionId.ToString(), createdAt);
+            await NotifyAsync("BalanceChanged", customerCode, new { customerId = customerCode }, ct);
+            return OperationResult<object>.Ok(dto);
+        }
+        catch { await transaction.RollbackAsync(ct); throw; }
+    }
+
+    public async Task<OperationResult<object>> RefundCustomerBalanceAsync(IdentityContext identity, string id, RefundRequest request, CancellationToken ct)
+    {
+        if (!identity.IsOperator) return OperationResult<object>.Fail("FORBIDDEN", "Chỉ nhân viên vận hành mới có thể hoàn tiền / rút số dư cho khách.", StatusCodes.Status403Forbidden);
+        if (request.Amount is < 1000 or > 10000000) return OperationResult<object>.Fail("VALIDATION_ERROR", "Số tiền rút/hoàn trả từ 1.000 đến 10.000.000 đồng.");
+        var customerId = TryId(id, "c");
+        if (customerId is null) return OperationResult<object>.Fail("NOT_FOUND", "Không tìm thấy khách hàng.", StatusCodes.Status404NotFound);
+
+        await using var connection = await connections.OpenAsync(ct);
+        await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        try
+        {
+            await using var find = new SqlCommand("SELECT Balance FROM dbo.Customers WITH (UPDLOCK, HOLDLOCK) WHERE Customer_ID = @id", connection, (SqlTransaction)transaction);
+            find.Parameters.AddWithValue("@id", customerId.Value);
+            var balanceObj = await find.ExecuteScalarAsync(ct);
+            if (balanceObj is null) return await Rollback(transaction, OperationResult<object>.Fail("NOT_FOUND", "Không tìm thấy khách hàng.", StatusCodes.Status404NotFound), ct);
+            var balance = Convert.ToDecimal(balanceObj);
+
+            await using var sessionCmd = new SqlCommand("SELECT TOP 1 Start_Time, Applied_Hourly_Rate FROM dbo.Usage_Sessions WITH (UPDLOCK, HOLDLOCK) WHERE Customer_ID = @id AND Status = 'Active'", connection, (SqlTransaction)transaction);
+            sessionCmd.Parameters.AddWithValue("@id", customerId.Value);
+            await using var sReader = await sessionCmd.ExecuteReaderAsync(ct);
+            var incurredRental = 0m;
+            if (await sReader.ReadAsync(ct))
+            {
+                var (start, rate) = (sReader.GetDateTime(0), sReader.IsDBNull(1) ? 0m : sReader.GetDecimal(1));
+                incurredRental = Math.Min(balance, decimal.Ceiling((decimal)Math.Max(0, (DateTime.UtcNow - DateTime.SpecifyKind(start, DateTimeKind.Utc)).TotalSeconds) * rate / 3600m));
+            }
+            await sReader.CloseAsync();
+
+            var availableBalance = balance - incurredRental;
+            if (request.Amount > availableBalance)
+                return await Rollback(transaction, OperationResult<object>.Fail("INSUFFICIENT_BALANCE", $"Số dư khả dụng ({availableBalance:N0} đ, đã trừ tạm tính tiền giờ {incurredRental:N0} đ) không đủ để rút {request.Amount:N0} đ.", StatusCodes.Status409Conflict), ct);
+
+            await using var ledger = new SqlCommand("INSERT INTO dbo.Transactions (Customer_ID, Processed_By, Trans_Type, Amount, Trans_Date) VALUES (@customerId, @employeeId, 'Withdraw', @amount, SYSUTCDATETIME()); SELECT CAST(SCOPE_IDENTITY() AS int);", connection, (SqlTransaction)transaction);
+            ledger.Parameters.AddWithValue("@customerId", customerId.Value);
+            ledger.Parameters.AddWithValue("@employeeId", (object?)identity.EmployeeId ?? DBNull.Value);
+            ledger.Parameters.AddWithValue("@amount", request.Amount);
+            var transactionId = Convert.ToInt32(await ledger.ExecuteScalarAsync(ct));
+
+            await using var stamped = new SqlCommand("SELECT Trans_Date FROM dbo.Transactions WHERE Transaction_ID = @id", connection, (SqlTransaction)transaction);
+            stamped.Parameters.AddWithValue("@id", transactionId);
+            var createdAt = (DateTime)(await stamped.ExecuteScalarAsync(ct) ?? DateTime.UtcNow);
+            await transaction.CommitAsync(ct);
+
+            var customerCode = CafeRepository.Id("c", customerId.Value);
+            var dto = new TransactionDto(CafeRepository.Id("tx", transactionId), customerCode, "Withdraw", request.Amount, transactionId.ToString(), createdAt);
+            await NotifyAsync("BalanceChanged", customerCode, new { customerId = customerCode }, ct);
+            return OperationResult<object>.Ok(dto);
+        }
+        catch { await transaction.RollbackAsync(ct); throw; }
+    }
+
     public async Task<OperationResult<object>> CreateOrderAsync(IdentityContext identity, CreateOrderRequest request, CancellationToken ct)
     {
         if (identity.CustomerId is null) return OperationResult<object>.Fail("FORBIDDEN", "Chỉ khách hàng có thể đặt món.", StatusCodes.Status403Forbidden);
@@ -196,7 +364,17 @@ public sealed class BusinessService(SqlConnectionFactory connections, IHubContex
         }
         var total = lines.Sum(x => x.Quantity * x.Price);
         await using var balanceCommand = new SqlCommand("SELECT Balance FROM dbo.Customers WITH (UPDLOCK, HOLDLOCK) WHERE Customer_ID = @id", connection, (SqlTransaction)transaction); balanceCommand.Parameters.AddWithValue("@id", identity.CustomerId.Value);
-        if (Convert.ToDecimal(await balanceCommand.ExecuteScalarAsync(ct)) < total) return await Rollback(transaction, OperationResult<object>.Fail("INSUFFICIENT_BALANCE", "Số dư không đủ để đặt món.", StatusCodes.Status409Conflict), ct);
+        var balance = Convert.ToDecimal(await balanceCommand.ExecuteScalarAsync(ct));
+        await using var rentalCommand = new SqlCommand("SELECT TOP 1 Start_Time, Applied_Hourly_Rate FROM dbo.Usage_Sessions WITH (UPDLOCK, HOLDLOCK) WHERE Customer_ID = @id AND Status = 'Active'", connection, (SqlTransaction)transaction); rentalCommand.Parameters.AddWithValue("@id", identity.CustomerId.Value);
+        await using var rentalReader = await rentalCommand.ExecuteReaderAsync(ct);
+        var incurredRental = 0m;
+        if (await rentalReader.ReadAsync(ct))
+        {
+            var (start, rate) = (rentalReader.GetDateTime(0), rentalReader.IsDBNull(1) ? 0m : rentalReader.GetDecimal(1));
+            incurredRental = Math.Min(balance, decimal.Ceiling((decimal)Math.Max(0, (DateTime.UtcNow - DateTime.SpecifyKind(start, DateTimeKind.Utc)).TotalSeconds) * rate / 3600m));
+        }
+        await rentalReader.CloseAsync();
+        if (balance - incurredRental < total) return await Rollback(transaction, OperationResult<object>.Fail("INSUFFICIENT_BALANCE", "Số dư khả dụng không đủ để đặt món (đã trừ tạm tính tiền giờ đang sử dụng).", StatusCodes.Status409Conflict), ct);
         await using var order = new SqlCommand("INSERT INTO dbo.Orders (Customer_ID, Computer_ID, Total_Amount, Status, Notes, Order_Date) OUTPUT inserted.Order_ID, inserted.Order_Date VALUES (@customerId, @computerId, @total, 'Pending', @note, SYSUTCDATETIME())", connection, (SqlTransaction)transaction);
         order.Parameters.AddWithValue("@customerId", identity.CustomerId.Value); order.Parameters.AddWithValue("@computerId", computerId.Value); order.Parameters.AddWithValue("@total", total); order.Parameters.AddWithValue("@note", (object?)request.Note?.Trim() ?? DBNull.Value);
         await using var created = await order.ExecuteReaderAsync(ct); await created.ReadAsync(ct); var orderId = created.GetInt32(0); var createdAt = created.GetDateTime(1); await created.CloseAsync();

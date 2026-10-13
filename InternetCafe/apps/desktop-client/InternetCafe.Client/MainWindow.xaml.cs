@@ -27,12 +27,14 @@ public partial class MainWindow : Window
         InitializeComponent();
         this.viewModel = viewModel; this.realtime = realtime; DataContext = viewModel;
         viewModel.ConfirmAsync = message => Task.FromResult(MessageBox.Show(this, message, "Xác nhận thao tác", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes);
+        viewModel.OnGameLaunched = () => Dispatcher.BeginInvoke(() => OpenCompact(this, new RoutedEventArgs()));
         syncTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(Math.Clamp(config.GetValue<int?>("Api:ResyncSeconds") ?? 5, 3, 60)) };
         clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         syncTimer.Tick += OnPoll; clockTimer.Tick += OnTick;
         viewModel.PropertyChanged += OnViewModelChanged;
         realtime.Changed += OnRealtimeChanged; realtime.ConnectionChanged += OnRealtimeConnectionChanged;
-        Loaded += (_, _) => LoginPassword.Focus();
+        PreviewKeyDown += OnPreviewKeyDown;
+        Loaded += (_, _) => { UpdateKioskMode(); if (!viewModel.IsAuthenticated) { LoginPassword.Password = "Demo@123"; LoginPassword.Focus(); } };
     }
     private async void OnPoll(object? sender, EventArgs e) { if (!closing) await viewModel.PollAsync(); }
     private void OnTick(object? sender, EventArgs e) => viewModel.UpdateClock();
@@ -46,6 +48,8 @@ public partial class MainWindow : Window
             else { syncTimer.Stop(); clockTimer.Stop(); compact?.Hide(); Show(); WindowState = WindowState.Normal; }
         }
         if (e.PropertyName == nameof(MainViewModel.IsAppLocked) && viewModel.IsAppLocked) { compact?.Hide(); Show(); WindowState = WindowState.Normal; Activate(); }
+        if (e.PropertyName == nameof(MainViewModel.IsTemporaryLocked) && viewModel.IsTemporaryLocked) { compact?.Hide(); Show(); WindowState = WindowState.Normal; Activate(); }
+        if (e.PropertyName is nameof(MainViewModel.IsAuthenticated) or nameof(MainViewModel.IsAppLocked) or nameof(MainViewModel.IsTemporaryLocked)) UpdateKioskMode();
         if (e.PropertyName is nameof(MainViewModel.Password) or nameof(MainViewModel.PasswordConfirmation) or nameof(MainViewModel.CurrentPassword) or nameof(MainViewModel.NewPassword) or nameof(MainViewModel.NewPasswordConfirmation)) ClearEmptyPasswords(this, e.PropertyName);
         if (e.PropertyName == nameof(MainViewModel.Notice)) ShowOperationPopup(viewModel.Notice, "Hoàn tất", MessageBoxImage.Information);
         if (e.PropertyName == nameof(MainViewModel.Error)) ShowOperationPopup(viewModel.Error, "Không thể thao tác", MessageBoxImage.Warning);
@@ -58,8 +62,50 @@ public partial class MainWindow : Window
         lastPopupMessage = message; lastPopupAt = now;
         Dispatcher.BeginInvoke(() =>
         {
-            if (!closing) MessageBox.Show(this, message, title, MessageBoxButton.OK, icon);
+        if (!closing) MessageBox.Show(this, message, title, MessageBoxButton.OK, icon);
         }, DispatcherPriority.Background);
+    }
+    private void UpdateKioskMode()
+    {
+        if (smokeMode || closing) return;
+        var isLocked = !viewModel.IsAuthenticated || viewModel.IsAppLocked || viewModel.IsTemporaryLocked;
+        if (isLocked)
+        {
+            WindowStyle = WindowStyle.None;
+            ResizeMode = ResizeMode.NoResize;
+            Topmost = true;
+            Left = 0;
+            Top = 0;
+            Width = SystemParameters.PrimaryScreenWidth;
+            Height = SystemParameters.PrimaryScreenHeight;
+            WindowState = WindowState.Maximized;
+            compact?.Hide();
+            Show();
+            Activate();
+            Focus();
+        }
+        else
+        {
+            WindowStyle = WindowStyle.SingleBorderWindow;
+            Topmost = false;
+            ResizeMode = ResizeMode.CanResize;
+            WindowState = WindowState.Normal;
+            Width = 1280;
+            Height = 850;
+        }
+    }
+    private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (smokeMode) return;
+        if (!viewModel.IsAuthenticated && e.Key == System.Windows.Input.Key.Escape)
+        {
+            closing = true;
+            Application.Current.Shutdown();
+            return;
+        }
+        var isLocked = !viewModel.IsAuthenticated || viewModel.IsAppLocked || viewModel.IsTemporaryLocked;
+        if (isLocked && e.Key == System.Windows.Input.Key.System && e.SystemKey == System.Windows.Input.Key.F4)
+            e.Handled = true;
     }
     private void ClearEmptyPasswords(DependencyObject parent, string property)
     {
@@ -80,6 +126,7 @@ public partial class MainWindow : Window
             case "CurrentPassword": model.CurrentPassword = box.Password; break;
             case "NewPassword": model.NewPassword = box.Password; break;
             case "NewPasswordConfirmation": model.NewPasswordConfirmation = box.Password; break;
+            case "TemporaryLockPassword": model.TemporaryLockPassword = box.Password; break;
         }
     }
     private void OpenCompact(object sender, RoutedEventArgs e)
@@ -89,9 +136,25 @@ public partial class MainWindow : Window
         compact.Show(); compact.Activate(); WindowState = WindowState.Minimized;
     }
     internal void RestoreMain() { Show(); WindowState = WindowState.Normal; Activate(); compact?.Hide(); }
+    private void OnExitClick(object sender, RoutedEventArgs e)
+    {
+        closing = true;
+        Application.Current.Shutdown();
+    }
     private async void OnClosing(object? sender, CancelEventArgs e)
     {
-        if (closing) return;
+        if (closing || smokeMode) return;
+        if (!viewModel.IsAuthenticated)
+        {
+            closing = true;
+            Application.Current.Shutdown();
+            return;
+        }
+        if (viewModel.IsAppLocked || viewModel.IsTemporaryLocked)
+        {
+            e.Cancel = true;
+            return;
+        }
         if (!smokeMode && viewModel.HasActiveSession && MessageBox.Show(this, "Phiên vẫn đang được máy chủ tính phí. Đóng ứng dụng không kết thúc phiên. Nên quay lại và chọn Kết thúc phiên. Vẫn đóng ứng dụng?", "Phiên đang hoạt động", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) { e.Cancel = true; return; }
         closing = true; syncTimer.Stop(); clockTimer.Stop();
         syncTimer.Tick -= OnPoll; clockTimer.Tick -= OnTick; viewModel.PropertyChanged -= OnViewModelChanged;

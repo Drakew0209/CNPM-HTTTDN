@@ -43,6 +43,67 @@ public sealed class DatabaseBootstrapper(SqlConnectionFactory connections)
             command.Parameters.AddWithValue("@fullName", account.FullName);
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
+
+        // HR: cấp tài khoản Staff (Demo@123) cho mọi nhân viên chưa có tài khoản.
+        // Không thể hash mật khẩu trong T-SQL nên backfill bằng C# tại đây.
+        var staffWithoutAccount = new List<(int EmployeeId, string Username, string FullName)>();
+        await using (var command = new SqlCommand("""
+            SELECT e.Employee_ID, e.Username, e.Full_Name FROM dbo.Employees e
+            WHERE NOT EXISTS (SELECT 1 FROM dbo.App_Accounts a WHERE a.Employee_ID = e.Employee_ID)
+            """, connection))
+        await using (var reader = await command.ExecuteReaderAsync(cancellationToken))
+        {
+            while (await reader.ReadAsync(cancellationToken))
+                staffWithoutAccount.Add((reader.GetInt32(0), reader.GetString(1), reader.GetString(2)));
+        }
+        foreach (var staff in staffWithoutAccount)
+        {
+            await using var taken = new SqlCommand(
+                "SELECT COUNT(*) FROM dbo.App_Accounts WHERE Username = @username UNION ALL SELECT COUNT(*) FROM dbo.Customers WHERE Username = @username",
+                connection);
+            taken.Parameters.AddWithValue("@username", staff.Username);
+            var used = Convert.ToInt32(await taken.ExecuteScalarAsync(cancellationToken)) > 0;
+            if (used) continue;
+            await using var command = new SqlCommand("""
+                INSERT INTO dbo.App_Accounts (Username, Password_Hash, Role, Employee_ID, Full_Name, Status)
+                VALUES (@username, @passwordHash, 'Staff', @employeeId, @fullName, 'Active')
+                """, connection);
+            command.Parameters.AddWithValue("@username", staff.Username);
+            command.Parameters.AddWithValue("@passwordHash", hasher.HashPassword(new object(), "Demo@123"));
+            command.Parameters.AddWithValue("@employeeId", staff.EmployeeId);
+            command.Parameters.AddWithValue("@fullName", staff.FullName);
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        // Phòng máy: cấp tài khoản Customer (Demo@123) cho mọi khách hàng chưa có tài khoản.
+        // Chỉ check trùng ở App_Accounts vì username nào cũng đã tồn tại trong Customers.
+        var customersWithoutAccount = new List<(int CustomerId, string Username, string FullName)>();
+        await using (var command = new SqlCommand("""
+            SELECT c.Customer_ID, c.Username, c.Full_Name FROM dbo.Customers c
+            WHERE NOT EXISTS (SELECT 1 FROM dbo.App_Accounts a WHERE a.Username = c.Username)
+            """, connection))
+        await using (var reader = await command.ExecuteReaderAsync(cancellationToken))
+        {
+            while (await reader.ReadAsync(cancellationToken))
+                customersWithoutAccount.Add((reader.GetInt32(0), reader.GetString(1), reader.GetString(2)));
+        }
+        foreach (var customer in customersWithoutAccount)
+        {
+            await using var taken = new SqlCommand(
+                "SELECT COUNT(*) FROM dbo.App_Accounts WHERE Username = @username",
+                connection);
+            taken.Parameters.AddWithValue("@username", customer.Username);
+            if (Convert.ToInt32(await taken.ExecuteScalarAsync(cancellationToken)) > 0) continue;
+            await using var command = new SqlCommand("""
+                INSERT INTO dbo.App_Accounts (Username, Password_Hash, Role, Customer_ID, Full_Name, Status)
+                VALUES (@username, @passwordHash, 'Customer', @customerId, @fullName, 'Active')
+                """, connection);
+            command.Parameters.AddWithValue("@username", customer.Username);
+            command.Parameters.AddWithValue("@passwordHash", hasher.HashPassword(new object(), "Demo@123"));
+            command.Parameters.AddWithValue("@customerId", customer.CustomerId);
+            command.Parameters.AddWithValue("@fullName", customer.FullName);
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
     }
 
     private static async Task EnsureGroupSchemaAsync(SqlConnection connection, CancellationToken cancellationToken)
@@ -246,6 +307,239 @@ public sealed class DatabaseBootstrapper(SqlConnectionFactory connections)
 
         IF COL_LENGTH('dbo.Idempotency_Records', 'Request_Hash') IS NULL
             ALTER TABLE dbo.Idempotency_Records ADD Request_Hash CHAR(64) NULL;
+
+        IF NOT EXISTS (SELECT 1 FROM dbo.Membership_Tier WHERE Tier_Name = 'Member')
+            INSERT INTO dbo.Membership_Tier (Tier_Name, Discount_Rate) VALUES (N'Member', 0);
+        IF NOT EXISTS (SELECT 1 FROM dbo.Membership_Tier WHERE Tier_Name = 'VIP')
+            INSERT INTO dbo.Membership_Tier (Tier_Name, Discount_Rate) VALUES (N'VIP', 0);
+        IF NOT EXISTS (SELECT 1 FROM dbo.Membership_Tier WHERE Tier_Name = 'Silver')
+            INSERT INTO dbo.Membership_Tier (Tier_Name, Discount_Rate) VALUES (N'Silver', 5);
+        IF NOT EXISTS (SELECT 1 FROM dbo.Membership_Tier WHERE Tier_Name = 'Gold')
+            INSERT INTO dbo.Membership_Tier (Tier_Name, Discount_Rate) VALUES (N'Gold', 10);
+        IF NOT EXISTS (SELECT 1 FROM dbo.Membership_Tier WHERE Tier_Name = 'Diamond')
+            INSERT INTO dbo.Membership_Tier (Tier_Name, Discount_Rate) VALUES (N'Diamond', 15);
+
+        IF COL_LENGTH('dbo.Customers', 'Citizen_ID') IS NULL
+            ALTER TABLE dbo.Customers ADD Citizen_ID VARCHAR(20) NULL;
+
+        -- Phòng máy: sửa font tiếng Việt cho khách hàng mẫu.
+        UPDATE dbo.Customers SET Full_Name = N'Nguyễn Văn An' WHERE Username = 'user01' AND Full_Name <> N'Nguyễn Văn An';
+        UPDATE dbo.Customers SET Full_Name = N'Trần Thị Bình' WHERE Username = 'user02' AND Full_Name <> N'Trần Thị Bình';
+        UPDATE dbo.Customers SET Full_Name = N'Lê Minh Tuấn' WHERE Username = 'user03' AND Full_Name <> N'Lê Minh Tuấn';
+        UPDATE dbo.Customers SET Full_Name = N'Trần Văn Dũng' WHERE Username = 'user05' AND Full_Name <> N'Trần Văn Dũng';
+
+        -- HR: đảm bảo nhân viên mẫu emp03 (dùng dynamic SQL vì cột Qualification
+        -- được ALTER ở đầu batch này; SQL Server biên dịch cả batch trước khi chạy).
+        -- Guard EXISTS Positions vì MigrationSql chạy trước SeedSql trên DB mới.
+        IF NOT EXISTS (SELECT 1 FROM dbo.Employees WHERE Username = 'emp03')
+            AND EXISTS (SELECT 1 FROM dbo.Positions)
+            EXEC(N'INSERT INTO dbo.Employees (Username, Password_Hash, Full_Name, Date_Of_Birth, Gender, Phone_Number, Email, Position_ID, Base_Salary, Status, Qualification)
+                   VALUES (''emp03'', ''seeded-via-app-accounts'', N''Nguyễn Minh Khoa'', ''1998-11-03'', N''Nam'', ''0903333333'', ''khoa@internetcafe.local'',
+                       COALESCE((SELECT TOP 1 Position_ID FROM dbo.Positions WHERE Position_Name = N''Kỹ thuật viên''), (SELECT MIN(Position_ID) FROM dbo.Positions)),
+                       6500000, ''Active'', N''Cao đẳng'')');
+
+        -- HR: gắn Employee_ID của emp03 cho tài khoản demo 'staff' nếu đang NULL.
+        UPDATE dbo.App_Accounts SET Employee_ID = (SELECT TOP 1 Employee_ID FROM dbo.Employees WHERE Username = 'emp03')
+        WHERE Username = 'staff' AND Employee_ID IS NULL AND EXISTS (SELECT 1 FROM dbo.Employees WHERE Username = 'emp03');
+
+        -- HR: lịch làm hôm nay cho emp03 để test chấm công.
+        IF EXISTS (SELECT 1 FROM dbo.Employees WHERE Username = 'emp03') AND EXISTS (SELECT 1 FROM dbo.Work_Shifts)
+            AND NOT EXISTS (SELECT 1 FROM dbo.Work_Schedules s JOIN dbo.Employees e ON e.Employee_ID = s.Employee_ID
+                            WHERE e.Username = 'emp03' AND s.Work_Date = CAST(SYSUTCDATETIME() AS DATE))
+            INSERT INTO dbo.Work_Schedules (Employee_ID, Shift_ID, Work_Date, Status)
+            SELECT (SELECT TOP 1 Employee_ID FROM dbo.Employees WHERE Username = 'emp03'),
+                   (SELECT MIN(Shift_ID) FROM dbo.Work_Shifts), CAST(SYSUTCDATETIME() AS DATE), 'Scheduled';
+
+        -- HR: phiếu lương mẫu tháng hiện tại cho emp03.
+        IF EXISTS (SELECT 1 FROM dbo.Employees WHERE Username = 'emp03')
+            AND NOT EXISTS (SELECT 1 FROM dbo.Payroll p JOIN dbo.Employees e ON e.Employee_ID = p.Employee_ID
+                            WHERE e.Username = 'emp03' AND p.Pay_Month = MONTH(SYSUTCDATETIME()) AND p.Pay_Year = YEAR(SYSUTCDATETIME()))
+            INSERT INTO dbo.Payroll (Employee_ID, Pay_Month, Pay_Year, Base_Salary, Bonus, Deduction, Status, Workflow_Status)
+            SELECT TOP 1 Employee_ID, MONTH(SYSUTCDATETIME()), YEAR(SYSUTCDATETIME()), 6500000, 500000, 0, 'Unpaid', 'Draft'
+            FROM dbo.Employees WHERE Username = 'emp03';
+
+        -- F&B 1a: chuẩn hóa danh mục (giữ nguyên các danh mục custom lạ).
+        UPDATE dbo.Product_Categories SET Category_Name = N'Đồ uống'
+        WHERE Category_Name = N'Thức uống'
+           OR (Category_ID = 1 AND Category_Name NOT IN (N'Đồ uống', N'Thức ăn', N'Đồ ăn nhanh', N'Combo & Món thêm'));
+        UPDATE dbo.Product_Categories SET Category_Name = N'Thức ăn'
+        WHERE Category_Name = N'Đồ ăn'
+           OR (Category_ID = 2 AND Category_Name NOT IN (N'Đồ uống', N'Thức ăn', N'Đồ ăn nhanh', N'Combo & Món thêm'));
+        IF NOT EXISTS (SELECT 1 FROM dbo.Product_Categories WHERE Category_Name = N'Đồ ăn nhanh')
+            INSERT INTO dbo.Product_Categories (Category_Name) VALUES (N'Đồ ăn nhanh');
+        IF NOT EXISTS (SELECT 1 FROM dbo.Product_Categories WHERE Category_Name = N'Combo & Món thêm')
+            INSERT INTO dbo.Product_Categories (Category_Name) VALUES (N'Combo & Món thêm');
+
+        -- F&B 1b: sửa font 2 món đầu + bổ sung món phổ biến quán Net.
+        UPDATE dbo.Products SET Product_Name = N'Trà sữa trân châu' WHERE Product_ID = 1 AND Product_Name <> N'Trà sữa trân châu';
+        UPDATE dbo.Products SET Product_Name = N'Mì xào hải sản' WHERE Product_ID = 2 AND Product_Name <> N'Mì xào hải sản';
+        DECLARE @FBDrink INT = (SELECT TOP 1 Category_ID FROM dbo.Product_Categories WHERE Category_Name = N'Đồ uống');
+        DECLARE @FBFood INT = (SELECT TOP 1 Category_ID FROM dbo.Product_Categories WHERE Category_Name = N'Thức ăn');
+        DECLARE @FBSnack INT = (SELECT TOP 1 Category_ID FROM dbo.Product_Categories WHERE Category_Name = N'Đồ ăn nhanh');
+        DECLARE @FBCombo INT = (SELECT TOP 1 Category_ID FROM dbo.Product_Categories WHERE Category_Name = N'Combo & Món thêm');
+        IF @FBDrink IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.Products WHERE Product_Name = N'Nước ngọt Sting dâu')
+            INSERT INTO dbo.Products (Category_ID, Product_Name, Price, Stock_Quantity, Status, Image_Url) VALUES (@FBDrink, N'Nước ngọt Sting dâu', 15000, 50, 'Active', NULL);
+        IF @FBDrink IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.Products WHERE Product_Name = N'Nước tăng lực Redbull')
+            INSERT INTO dbo.Products (Category_ID, Product_Name, Price, Stock_Quantity, Status, Image_Url) VALUES (@FBDrink, N'Nước tăng lực Redbull', 20000, 50, 'Active', NULL);
+        IF @FBDrink IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.Products WHERE Product_Name = N'Cà phê sữa đá')
+            INSERT INTO dbo.Products (Category_ID, Product_Name, Price, Stock_Quantity, Status, Image_Url) VALUES (@FBDrink, N'Cà phê sữa đá', 20000, 50, 'Active', NULL);
+        IF @FBDrink IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.Products WHERE Product_Name = N'Nước ngọt Pepsi lon')
+            INSERT INTO dbo.Products (Category_ID, Product_Name, Price, Stock_Quantity, Status, Image_Url) VALUES (@FBDrink, N'Nước ngọt Pepsi lon', 15000, 50, 'Active', NULL);
+        IF @FBFood IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.Products WHERE Product_Name = N'Mì tôm 2 trứng xúc xích')
+            INSERT INTO dbo.Products (Category_ID, Product_Name, Price, Stock_Quantity, Status, Image_Url) VALUES (@FBFood, N'Mì tôm 2 trứng xúc xích', 25000, 30, 'Active', NULL);
+        IF @FBFood IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.Products WHERE Product_Name = N'Cơm rang dưa bò')
+            INSERT INTO dbo.Products (Category_ID, Product_Name, Price, Stock_Quantity, Status, Image_Url) VALUES (@FBFood, N'Cơm rang dưa bò', 40000, 30, 'Active', NULL);
+        IF @FBFood IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.Products WHERE Product_Name = N'Bánh mì thập cẩm')
+            INSERT INTO dbo.Products (Category_ID, Product_Name, Price, Stock_Quantity, Status, Image_Url) VALUES (@FBFood, N'Bánh mì thập cẩm', 25000, 30, 'Active', NULL);
+        IF @FBSnack IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.Products WHERE Product_Name = N'Xúc xích nướng tiêu')
+            INSERT INTO dbo.Products (Category_ID, Product_Name, Price, Stock_Quantity, Status, Image_Url) VALUES (@FBSnack, N'Xúc xích nướng tiêu', 15000, 50, 'Active', NULL);
+        IF @FBSnack IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.Products WHERE Product_Name = N'Khô gà lá chanh')
+            INSERT INTO dbo.Products (Category_ID, Product_Name, Price, Stock_Quantity, Status, Image_Url) VALUES (@FBSnack, N'Khô gà lá chanh', 25000, 50, 'Active', NULL);
+        IF @FBSnack IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.Products WHERE Product_Name = N'Snack khoai tây Lay''s')
+            INSERT INTO dbo.Products (Category_ID, Product_Name, Price, Stock_Quantity, Status, Image_Url) VALUES (@FBSnack, N'Snack khoai tây Lay''s', 15000, 50, 'Active', NULL);
+        IF @FBCombo IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.Products WHERE Product_Name = N'Trứng ốp la thêm')
+            INSERT INTO dbo.Products (Category_ID, Product_Name, Price, Stock_Quantity, Status, Image_Url) VALUES (@FBCombo, N'Trứng ốp la thêm', 7000, 50, 'Active', NULL);
+        IF @FBCombo IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.Products WHERE Product_Name = N'Xúc xích thêm')
+            INSERT INTO dbo.Products (Category_ID, Product_Name, Price, Stock_Quantity, Status, Image_Url) VALUES (@FBCombo, N'Xúc xích thêm', 10000, 50, 'Active', NULL);
+        IF @FBCombo IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.Products WHERE Product_Name = N'Combo Bất Bại (Mì xào + Sting)')
+            INSERT INTO dbo.Products (Category_ID, Product_Name, Price, Stock_Quantity, Status, Image_Url) VALUES (@FBCombo, N'Combo Bất Bại (Mì xào + Sting)', 45000, 30, 'Active', NULL);
+
+        -- F&B 1c: chuẩn hóa nhà cung cấp thực tế.
+        IF EXISTS (SELECT 1 FROM dbo.Suppliers WHERE Name = N'PepsiCo Việt Nam')
+            UPDATE dbo.Suppliers SET Name = N'Suntory PepsiCo Việt Nam', Phone = '02838247555' WHERE Name = N'PepsiCo Việt Nam';
+        IF NOT EXISTS (SELECT 1 FROM dbo.Suppliers WHERE Name = N'Suntory PepsiCo Việt Nam')
+            INSERT INTO dbo.Suppliers (Name, Phone, Email, Address, Status) VALUES (N'Suntory PepsiCo Việt Nam', '02838247555', NULL, NULL, 'Active');
+        IF NOT EXISTS (SELECT 1 FROM dbo.Suppliers WHERE Name = N'Công ty CP Acecook Việt Nam')
+            INSERT INTO dbo.Suppliers (Name, Phone, Email, Address, Status) VALUES (N'Công ty CP Acecook Việt Nam', '02838154064', NULL, NULL, 'Active');
+        IF NOT EXISTS (SELECT 1 FROM dbo.Suppliers WHERE Name = N'Công ty CP Việt Nam Kỹ Nghệ Súc Sản (VISSAN)')
+            INSERT INTO dbo.Suppliers (Name, Phone, Email, Address, Status) VALUES (N'Công ty CP Việt Nam Kỹ Nghệ Súc Sản (VISSAN)', '02835533999', NULL, NULL, 'Active');
+        IF EXISTS (SELECT 1 FROM dbo.Suppliers WHERE Name = N'Highlands Coffee Supply' AND Phone <> '02873006666')
+            UPDATE dbo.Suppliers SET Phone = '02873006666' WHERE Name = N'Highlands Coffee Supply';
+        IF NOT EXISTS (SELECT 1 FROM dbo.Suppliers WHERE Name = N'Highlands Coffee Supply')
+            INSERT INTO dbo.Suppliers (Name, Phone, Email, Address, Status) VALUES (N'Highlands Coffee Supply', '02873006666', 'supply@highlandscoffee.com.vn', NULL, 'Active');
+
+        -- F&B 1d: sửa font và gắn NCC cho phiếu nhập cũ (giữ Supplier_ID đã có).
+        IF EXISTS (SELECT 1 FROM dbo.Inventory_Transactions WHERE Inv_Trans_ID = 1)
+            UPDATE dbo.Inventory_Transactions
+            SET Note = N'Nhập kho ban đầu',
+                Supplier_ID = COALESCE(Supplier_ID, (SELECT TOP 1 Supplier_ID FROM dbo.Suppliers WHERE Name LIKE N'%Highlands%' OR Name LIKE N'%Pepsi%'))
+            WHERE Inv_Trans_ID = 1;
+        IF EXISTS (SELECT 1 FROM dbo.Inventory_Transactions WHERE Inv_Trans_ID = 2)
+            UPDATE dbo.Inventory_Transactions
+            SET Note = N'Nhập nguyên liệu mì xào',
+                Supplier_ID = COALESCE(Supplier_ID, (SELECT TOP 1 Supplier_ID FROM dbo.Suppliers WHERE Name LIKE N'%VISSAN%' OR Name LIKE N'%Acecook%' OR Name LIKE N'%KFC%'))
+            WHERE Inv_Trans_ID = 2;
+
+        -- Production upgrade 1: Cho phép Withdraw trong Transactions
+        IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CHK_Trans_Type')
+        BEGIN
+            ALTER TABLE dbo.Transactions DROP CONSTRAINT CHK_Trans_Type;
+            ALTER TABLE dbo.Transactions ADD CONSTRAINT CHK_Trans_Type CHECK (Trans_Type IN ('TopUp', 'Refund', 'Rental', 'FoodOrder', 'Withdraw'));
+        END
+
+        -- Production upgrade 2: Trigger TR_Sync_Customer_Balance xử lý Withdraw (-i.Amount)
+        EXEC(N'
+        CREATE OR ALTER TRIGGER TR_Sync_Customer_Balance
+        ON dbo.Transactions
+        AFTER INSERT
+        AS
+        BEGIN
+            SET NOCOUNT ON;
+            DECLARE @OpeningBalances TABLE (
+                Customer_ID INT PRIMARY KEY,
+                Opening_Balance DECIMAL(12,2) NOT NULL
+            );
+
+            ;WITH Deltas AS (
+                SELECT i.Customer_ID,
+                       SUM(CASE i.Trans_Type
+                            WHEN ''TopUp'' THEN i.Amount + ISNULL(cb.Bonus_Balance, 0)
+                            WHEN ''Refund'' THEN i.Amount
+                            WHEN ''Rental'' THEN -i.Amount
+                            WHEN ''FoodOrder'' THEN -i.Amount
+                            WHEN ''Withdraw'' THEN -i.Amount
+                            ELSE 0 END) AS Net_Change
+                FROM inserted i
+                LEFT JOIN dbo.Combos cb ON i.Combo_ID = cb.Combo_ID
+                GROUP BY i.Customer_ID
+            )
+            UPDATE c
+            SET c.Balance = c.Balance + d.Net_Change
+            OUTPUT inserted.Customer_ID, deleted.Balance
+                INTO @OpeningBalances (Customer_ID, Opening_Balance)
+            FROM dbo.Customers c
+            JOIN Deltas d ON d.Customer_ID = c.Customer_ID;
+
+            ;WITH TransactionDeltas AS (
+                SELECT i.Transaction_ID, i.Customer_ID, i.Trans_Type,
+                       CASE i.Trans_Type
+                            WHEN ''TopUp'' THEN i.Amount + ISNULL(cb.Bonus_Balance, 0)
+                            WHEN ''Refund'' THEN i.Amount
+                            WHEN ''Rental'' THEN -i.Amount
+                            WHEN ''FoodOrder'' THEN -i.Amount
+                            WHEN ''Withdraw'' THEN -i.Amount
+                            ELSE 0 END AS Balance_Delta
+                FROM inserted i
+                LEFT JOIN dbo.Combos cb ON i.Combo_ID = cb.Combo_ID
+            ),
+            RunningBalances AS (
+                SELECT td.Transaction_ID, td.Customer_ID, td.Trans_Type,
+                       ob.Opening_Balance + COALESCE(
+                           SUM(td.Balance_Delta) OVER (
+                               PARTITION BY td.Customer_ID
+                               ORDER BY td.Transaction_ID
+                               ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+                           ), 0
+                       ) AS Balance_Before
+                FROM TransactionDeltas td
+                JOIN @OpeningBalances ob ON ob.Customer_ID = td.Customer_ID
+            )
+            UPDATE t
+            SET t.Balance_Before = rb.Balance_Before
+            FROM dbo.Transactions t
+            JOIN RunningBalances rb ON rb.Transaction_ID = t.Transaction_ID
+            WHERE rb.Trans_Type = ''TopUp''
+              AND t.Balance_Before IS NULL;
+        END;');
+
+        -- Production upgrade 3: Gói Combo nạp giờ thực tế
+        EXEC(N'
+        SET QUOTED_IDENTIFIER ON;
+        IF NOT EXISTS (SELECT 1 FROM dbo.Combos WHERE Combo_Name = N''Combo Đêm (50k tặng 15k)'')
+            INSERT INTO dbo.Combos (Combo_Name, Price, Bonus_Balance, Description, Is_Active)
+            VALUES (N''Combo Đêm (50k tặng 15k)'', 50000, 15000, N''Khuyến mãi chơi đêm 22h - 6h'', 1);
+        IF NOT EXISTS (SELECT 1 FROM dbo.Combos WHERE Combo_Name = N''Combo Sinh Viên (100k tặng 35k)'')
+            INSERT INTO dbo.Combos (Combo_Name, Price, Bonus_Balance, Description, Is_Active)
+            VALUES (N''Combo Sinh Viên (100k tặng 35k)'', 100000, 35000, N''Nạp 100k tặng 35k cho tài khoản Member'', 1);
+        IF NOT EXISTS (SELECT 1 FROM dbo.Combos WHERE Combo_Name = N''Combo Chiến Thần (200k tặng 80k)'')
+            INSERT INTO dbo.Combos (Combo_Name, Price, Bonus_Balance, Description, Is_Active)
+            VALUES (N''Combo Chiến Thần (200k tặng 80k)'', 200000, 80000, N''Nạp 200k tặng 80k tài khoản chính'', 1);
+        IF NOT EXISTS (SELECT 1 FROM dbo.Combos WHERE Combo_Name = N''Combo Đại Gia (500k tặng 250k)'')
+            INSERT INTO dbo.Combos (Combo_Name, Price, Bonus_Balance, Description, Is_Active)
+            VALUES (N''Combo Đại Gia (500k tặng 250k)'', 500000, 250000, N''Nạp 500k tặng 250k tài khoản chính'', 1);
+        ');
+
+        -- Games catalog is admin-managed. Ensure the initial VALORANT row exists
+        -- without overwriting or removing games later added by administrators.
+        IF OBJECT_ID('dbo.Games', 'U') IS NULL
+            EXEC(N'CREATE TABLE dbo.Games (
+                Game_ID INT IDENTITY(1,1) PRIMARY KEY,
+                Code NVARCHAR(50) NOT NULL UNIQUE,
+                Name NVARCHAR(150) NOT NULL,
+                Category NVARCHAR(50) NOT NULL,
+                Executable_Path NVARCHAR(500) NOT NULL,
+                Banner_Url NVARCHAR(500) NOT NULL,
+                Description NVARCHAR(500) NULL,
+                Is_Active BIT NOT NULL DEFAULT 1,
+                Created_At DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET()
+            );');
+        EXEC(N'
+            IF NOT EXISTS (SELECT 1 FROM dbo.Games WHERE Code = N''valorant'')
+                INSERT INTO dbo.Games (Code, Name, Category, Executable_Path, Banner_Url, Description)
+                VALUES (N''valorant'', N''VALORANT'', N''Bắn súng (FPS)'', N''D:\Riot Games\VALORANT\live\VALORANT.exe'',
+                    N''https://images.contentstack.io/v3/assets/blt370612131b6e0756/blt02fae44364e4a199/62a93444f6da4a123bc807be/Valorant_Hero.jpg'',
+                    N''Game bắn súng chiến thuật 5v5 của Riot Games.'');
+        ');
 
         COMMIT TRANSACTION;
         """;

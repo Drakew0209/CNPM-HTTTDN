@@ -10,3 +10,14 @@
 !.codex/prompts/**
 AGENTS.md
 .pdf
+node_modules/
+bin/
+obj/
+dist/
+Temp/
+Backend/
+WebAdmin/
+InternetCafe/scratch/
+.build-check*
+*.user
+*.log

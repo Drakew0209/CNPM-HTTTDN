@@ -58,9 +58,9 @@ public sealed class AuthService(SqlConnectionFactory connections)
             if (taken) { await transaction.RollbackAsync(ct); return OperationResult<object>.Fail("USERNAME_EXISTS", "Tên đăng nhập đã được sử dụng.", StatusCodes.Status409Conflict); }
 
             await using var customer = new SqlCommand("""
-                INSERT INTO dbo.Customers (Username, Password_Hash, Full_Name, Phone_Number, Email, Date_Of_Birth, Hobbies, Tier_ID, Status)
+                INSERT INTO dbo.Customers (Username, Password_Hash, Full_Name, Phone_Number, Email, Date_Of_Birth, Hobbies, Citizen_ID, Tier_ID, Status)
                 OUTPUT inserted.Customer_ID
-                VALUES (@username, @passwordHash, @fullName, @phone, @email, @dateOfBirth, @hobbies,
+                VALUES (@username, @passwordHash, @fullName, @phone, @email, @dateOfBirth, @hobbies, @citizenId,
                     COALESCE((SELECT TOP 1 Tier_ID FROM dbo.Membership_Tier WHERE Tier_Name = 'Member'), 1), 'Active')
                 """, connection, (SqlTransaction)transaction);
             customer.Parameters.AddWithValue("@username", username);
@@ -70,6 +70,7 @@ public sealed class AuthService(SqlConnectionFactory connections)
             customer.Parameters.AddWithValue("@email", (object?)request.Email?.Trim() ?? DBNull.Value);
             customer.Parameters.AddWithValue("@dateOfBirth", ParseDate(request.DateOfBirth));
             customer.Parameters.AddWithValue("@hobbies", (object?)request.Hobbies?.Trim() ?? DBNull.Value);
+            customer.Parameters.AddWithValue("@citizenId", (object?)request.CitizenId?.Trim() ?? DBNull.Value);
             var customerId = Convert.ToInt32(await customer.ExecuteScalarAsync(ct));
             await using var account = new SqlCommand("""
                 INSERT INTO dbo.App_Accounts (Username, Password_Hash, Role, Customer_ID, Full_Name, Status)
@@ -81,7 +82,7 @@ public sealed class AuthService(SqlConnectionFactory connections)
             account.Parameters.AddWithValue("@fullName", request.FullName.Trim());
             await account.ExecuteNonQueryAsync(ct);
             await transaction.CommitAsync(ct);
-            return OperationResult<object>.Ok(new { id = $"c-{customerId:000}", username, fullName = request.FullName.Trim(), phone = request.Phone.Trim(), email = request.Email?.Trim() ?? "", dateOfBirth = request.DateOfBirth ?? "", hobbies = request.Hobbies ?? "", tier = "Member", balance = 0m, status = "Active" });
+            return OperationResult<object>.Ok(new { id = $"c-{customerId:000}", username, fullName = request.FullName.Trim(), phone = request.Phone.Trim(), email = request.Email?.Trim() ?? "", dateOfBirth = request.DateOfBirth ?? "", hobbies = request.Hobbies ?? "", citizenId = request.CitizenId?.Trim() ?? "", tier = "Member", balance = 0m, status = "Active" });
         }
         catch (SqlException exception) when (exception.Number is 2601 or 2627)
         {

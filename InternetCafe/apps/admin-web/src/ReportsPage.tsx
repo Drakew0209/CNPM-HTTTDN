@@ -94,7 +94,7 @@ export function ReportsPage() {
       {metric('Hoàn tiền', money(totals.refund), 'Trừ khỏi doanh thu trong kỳ', <RollbackOutlined />)}
       {metric('Doanh thu thuần', money(totals.net), 'Giờ chơi + F&B − hoàn tiền', <BankOutlined />)}
     </GridRow>
-    <Alert style={{ margin: '20px 0' }} type="info" showIcon title={`Nạp vào ví: ${money(totals.topup)} — theo dõi riêng, không cộng vào doanh thu.`} description="Doanh thu lấy từ giao dịch đã ghi sổ; không cộng lại tổng đơn hàng hoặc tiền phiên. Khoản hoàn của kỳ trước có thể làm doanh thu kỳ đang chọn âm." />
+    <Alert style={{ margin: '20px 0' }} type="info" showIcon title={`Nạp vào ví: ${money(totals.topup)} · Rút/trả lại tiền ví: ${money(totals.withdraw)} — theo dõi biến động dòng tiền ví riêng.`} description="Doanh thu lấy từ giao dịch đã ghi sổ (Giờ chơi + F&B − Hoàn tiền đơn). Khoản hoàn của kỳ trước có thể làm doanh thu kỳ đang chọn âm." />
     <Card title="Diễn biến theo ngày" extra={<Tag>{period}</Tag>}>
       {daily.length ? <div role="img" aria-label="Biểu đồ doanh thu giờ chơi, dịch vụ, hoàn tiền và doanh thu thuần theo ngày">
         <ResponsiveContainer width="100%" height={320} minWidth={0}><LineChart data={daily} margin={{ top: 10, right: 20, left: 8, bottom: 8 }}>
@@ -103,7 +103,7 @@ export function ReportsPage() {
         </LineChart></ResponsiveContainer>
       </div> : <EmptyState description="Không có giao dịch trong khoảng ngày đã chọn." />}
     </Card>
-    <ReportTable title={`Doanh thu theo ngày · ${period}`} rows={daily} workspace={workspace} columns={[{ key: 'date', label: 'Ngày' }, ...[['rental', 'Giờ chơi'], ['food', 'F&B'], ['refund', 'Hoàn tiền'], ['net', 'Doanh thu thuần'], ['topup', 'Nạp vào ví']].map(([key, label]) => ({ key, label, currency: true }))]} />
+    <ReportTable title={`Doanh thu theo ngày · ${period}`} rows={daily} workspace={workspace} columns={[{ key: 'date', label: 'Ngày' }, ...[['rental', 'Giờ chơi'], ['food', 'F&B'], ['refund', 'Hoàn tiền'], ['net', 'Doanh thu thuần'], ['topup', 'Nạp vào ví'], ['withdraw', 'Rút tiền ví']].map(([key, label]) => ({ key, label, currency: true }))]} />
     <ReportTable title={`Món bán nhiều · ${period}`} rows={topProducts} workspace={workspace} description="Tổng hợp đơn Pending, Preparing và Served tạo trong kỳ; loại đơn Cancelled. Đây là phân tích món, không cộng thêm vào doanh thu giao dịch." columns={[{ key: 'name', label: 'Sản phẩm' }, { key: 'quantity', label: 'Số lượng đặt' }, { key: 'revenue', label: 'Giá trị món', currency: true }]} />
     <ReportTable title={`Chi tiết giao dịch · ${period}`} rows={selectedTransactions} workspace={workspace} columns={[...commonColumns, { key: 'customerId', label: 'Khách hàng', reference: true }, { key: 'type', label: 'Loại', reference: true }, { key: 'amount', label: 'Số tiền', currency: true }, { key: 'referenceId', label: 'Tham chiếu' }]} />
   </>;

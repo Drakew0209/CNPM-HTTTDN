@@ -45,6 +45,7 @@ public sealed partial class MainViewModel : ObservableObject
     private DateTimeOffset? receivedServerTime;
     private DateTimeOffset receivedLocalTime;
     private bool syncing;
+    private bool isAutoEnding;
     private string? userId;
     private bool profileLoaded;
     private readonly CancellationTokenSource lifetime = new();
@@ -52,17 +53,30 @@ public sealed partial class MainViewModel : ObservableObject
     public MainViewModel(ICafeApi api, IRealtimeUpdates realtime, string machineId = "pc-01", TimeProvider? clock = null)
     {
         this.api = api; this.realtime = realtime; this.clock = clock ?? TimeProvider.System; MachineId = machineId;
+        Games.Clear();
+        Games.Add(new GameItem
+        {
+            Id = "valorant",
+            Name = "VALORANT",
+            Category = "Bắn súng (FPS)",
+            ExecutablePath = @"D:\Riot Games\VALORANT\live\VALORANT.exe",
+            BannerUrl = "https://images.contentstack.io/v3/assets/blt370612131b6e0756/blt02fae44364e4a199/62a93444f6da4a123bc807be/Valorant_Hero.jpg",
+            Description = "Game bắn súng chiến thuật 5v5 của Riot Games.",
+            Active = true
+        });
     }
     public Func<string, Task<bool>> ConfirmAsync { get; set; } = _ => Task.FromResult(false);
+    public Action? OnGameLaunched { get; set; }
     public string MachineId { get; }
     [ObservableProperty] private bool isAuthenticated;
     [ObservableProperty] private bool isRegistering;
     [ObservableProperty] private bool isBusy;
     [ObservableProperty] private bool isConnected;
     [ObservableProperty] private bool isAppLocked;
+    [ObservableProperty] private bool isTemporaryLocked;
     [ObservableProperty] private bool lowBalance;
     [ObservableProperty] private string username = "gamer";
-    [ObservableProperty] private string password = "";
+    [ObservableProperty] private string password = "Demo@123";
     [ObservableProperty] private string passwordConfirmation = "";
     [ObservableProperty] private string fullName = "";
     [ObservableProperty] private string phone = "";
@@ -92,14 +106,17 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private string orderNote = "";
     [ObservableProperty] private string topupAmount = "50000";
     [ObservableProperty] private string topupNote = "";
+    [ObservableProperty] private string temporaryLockPassword = "";
     [ObservableProperty] private string feedbackSubject = "";
     [ObservableProperty] private string feedbackContent = "";
     [ObservableProperty] private int selectedTab;
     public ObservableCollection<Product> Products { get; } = [];
+    public ObservableCollection<GameItem> Games { get; } = [];
     public ObservableCollection<Category> Categories { get; } = [];
     public ObservableCollection<CartItem> Cart { get; } = [];
     public ObservableCollection<Order> Orders { get; } = [];
     public ObservableCollection<Topup> Topups { get; } = [];
+    public ObservableCollection<Combo> Combos { get; } = [];
     public ObservableCollection<Transaction> Transactions { get; } = [];
     public ObservableCollection<Session> Sessions { get; } = [];
     public ObservableCollection<Feedback> FeedbackItems { get; } = [];
@@ -149,6 +166,18 @@ public sealed partial class MainViewModel : ObservableObject
             if (login.User.Role != "Customer") throw new ApiException("FORBIDDEN", "Ứng dụng máy trạm chỉ dành cho khách hàng. Nhân viên dùng cổng web.", HttpStatusCode.Forbidden);
             api.AccessToken = login.AccessToken; userId = login.User.Id; IsAuthenticated = true; IsRegistering = false; profileLoaded = false; Password = "";
             await LoadSnapshotAsync();
+            if (Balance <= 0)
+            {
+                Error = "Tài khoản của bạn đã hết số dư (0 ₫). Vui lòng nạp tiền tại quầy để mở máy!";
+                await ClearIdentityAsync();
+                return;
+            }
+            if (Balance > 0 && ActiveSession is null)
+            {
+                await api.SendAsync<Session>(HttpMethod.Post, "sessions/start", new { computerId = MachineId });
+                await LoadSnapshotAsync();
+                Notice = "Đăng nhập thành công. Đã tự động bắt đầu tính giờ chơi!";
+            }
             try { await realtime.StartAsync(() => Task.FromResult<string?>(api.AccessToken)); }
             catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or OperationCanceledException) { Notice = "Realtime chưa sẵn sàng; ứng dụng vẫn đồng bộ qua HTTP."; }
         });
@@ -165,17 +194,27 @@ public sealed partial class MainViewModel : ObservableObject
     }
     [RelayCommand] private async Task LogoutAsync()
     {
-        if (HasActiveSession) { Error = "Kết thúc phiên đang sử dụng trước khi đăng xuất."; return; }
-        await ExecuteAsync(async () => { await api.SendAsync<JsonElement>(HttpMethod.Post, "auth/logout", new { }); await ClearIdentityAsync(); Notice = "Đã đăng xuất."; });
+        await ExecuteAsync(async () =>
+        {
+            if (ActiveSession is { } active)
+                await api.SendAsync<Session>(HttpMethod.Post, $"sessions/{Uri.EscapeDataString(active.Id)}/end", new { });
+            await api.SendAsync<JsonElement>(HttpMethod.Post, "auth/logout", new { });
+            await ClearIdentityAsync();
+            Notice = "Đã đăng xuất.";
+        });
     }
     private async Task ClearIdentityAsync()
     {
-        api.AccessToken = null; userId = null; IsAuthenticated = false; IsAppLocked = false; profileLoaded = false; snapshot = new(); Balance = 0;
-        Cart.Clear(); Products.Clear(); Categories.Clear(); Orders.Clear(); Topups.Clear(); Transactions.Clear(); Sessions.Clear(); FeedbackItems.Clear(); Surveys.Clear(); Answers.Clear(); SelectedSurvey = null; SelectedOrder = null;
+        api.AccessToken = null; userId = null; IsAuthenticated = false; IsAppLocked = false; IsTemporaryLocked = false; TemporaryLockPassword = ""; profileLoaded = false; snapshot = new(); Balance = 0;
+        Cart.Clear(); Products.Clear(); Categories.Clear(); Orders.Clear(); Topups.Clear(); Combos.Clear(); Transactions.Clear(); Sessions.Clear(); FeedbackItems.Clear(); Surveys.Clear(); Answers.Clear(); SelectedSurvey = null; SelectedOrder = null;
         Password = ""; CurrentPassword = ""; NewPassword = ""; NewPasswordConfirmation = "";
         await realtime.StopAsync(); NotifyState(); NotifyCart();
     }
-    [RelayCommand] private async Task RefreshAsync() => await ExecuteAsync(LoadSnapshotAsync);
+    [RelayCommand] private async Task RefreshAsync()
+    {
+        if (api is SmartCafeApi smartApi) smartApi.ResetMode();
+        await ExecuteAsync(LoadSnapshotAsync);
+    }
     public async Task PollAsync()
     {
         if (!IsAuthenticated || IsBusy || syncing) return;
@@ -193,6 +232,8 @@ public sealed partial class MainViewModel : ObservableObject
         if (profile.Status != "Active") throw new ApiException("ACCOUNT_BANNED", "Tài khoản đã bị khóa. Liên hệ nhân viên.", HttpStatusCode.Forbidden);
         var oldSession = ActiveSession?.Id;
         snapshot = data; receivedServerTime = api.ServerTime; receivedLocalTime = clock.GetUtcNow();
+        if (snapshot.Games.Count > 0) Replace(Games, snapshot.Games.Where(x => x.Active));
+        try { var combos = await api.GetAsync<List<Combo>>("combos"); Replace(Combos, combos); } catch { }
         Balance = profile.Balance; AccountName = profile.FullName; Tier = profile.Tier;
         if (!profileLoaded) { CopyProfile(profile); profileLoaded = true; }
         var orderId = SelectedOrder?.Id; var surveyId = SelectedSurvey?.Id;
@@ -205,8 +246,14 @@ public sealed partial class MainViewModel : ObservableObject
         var categoryId = SelectedCategory?.Id;
         Replace(Categories, new[] { new Category("", "Tất cả món") }.Concat(data.Categories)); SelectedCategory = Categories.FirstOrDefault(x => x.Id == categoryId) ?? Categories.FirstOrDefault();
         FilterProducts(); MachineName = Machine?.Name ?? MachineId; HourlyRateLabel = Machine is { } machine ? Format.Money(machine.HourlyRate) + "/giờ" : "Chưa tìm thấy máy";
-        IsConnected = true; ConnectionStatus = "Đã kết nối · HTTP đồng bộ định kỳ"; LastSyncLabel = "Đồng bộ lúc " + clock.GetLocalNow().ToString("HH:mm:ss");
+        IsConnected = true; ConnectionStatus = (api is SmartCafeApi { IsStandalone: true }) ? "Chế độ Ngoại tuyến Standalone Demo · Đầy đủ tính năng 100%" : "Đã kết nối máy chủ · HTTP đồng bộ định kỳ"; LastSyncLabel = "Đồng bộ lúc " + clock.GetLocalNow().ToString("HH:mm:ss");
         if (oldSession is not null && ActiveSession is null) { IsAppLocked = true; SessionSummary = Summary(data.Sessions.FirstOrDefault(x => x.Id == oldSession)); Notice = "Phiên đã được kết thúc từ máy chủ."; }
+        var otherSession = data.Sessions.FirstOrDefault(x => x.Status == "Active" && x.CustomerId == userId);
+        if (otherSession is not null && otherSession.ComputerId != MachineId)
+        {
+            IsAppLocked = true;
+            Notice = $"Phiên chơi của bạn đã được chuyển sang máy {otherSession.ComputerId.ToUpperInvariant()}. Vui lòng di chuyển sang máy mới!";
+        }
         UpdateClock(); NotifyState();
     }
     public void UpdateClock()
@@ -219,6 +266,23 @@ public sealed partial class MainViewModel : ObservableObject
         RemainingLabel = estimate.Remaining is { } remaining ? SessionEstimate.Duration(remaining) : "Chưa có đơn giá";
         LowBalance = IsAuthenticated && (Balance <= 10000 || estimate.Remaining is { TotalMinutes: <= 10 });
         SessionStatus = active is null ? (Balance <= 0 ? "Hết số dư · vui lòng nạp tại quầy" : "Chưa bắt đầu phiên") : active.ComputerId != MachineId ? "Phiên đang hoạt động trên máy khác" : "Phiên đang sử dụng";
+        if (active is not null && !isAutoEnding && (estimate.Remaining is { TotalSeconds: <= 0 } || Balance - estimate.EstimatedRental <= 0))
+        {
+            isAutoEnding = true;
+            _ = AutoEndSessionAsync(active);
+        }
+    }
+    private async Task AutoEndSessionAsync(Session active)
+    {
+        try
+        {
+            await api.SendAsync<Session>(HttpMethod.Post, $"sessions/{Uri.EscapeDataString(active.Id)}/end", new { });
+            IsAppLocked = true;
+            Notice = "Hết số dư tài khoản. Phiên sử dụng đã tự động kết thúc.";
+            await LoadSnapshotAsync();
+        }
+        catch (Exception ex) { await HandleErrorAsync(ex); }
+        finally { isAutoEnding = false; }
     }
     [RelayCommand] private async Task StartSessionAsync()
     {
@@ -234,6 +298,53 @@ public sealed partial class MainViewModel : ObservableObject
     private static string Summary(Session? session) => session is null ? "" : $"Phiên {session.Id} · {session.Started} → {session.Ended} · Phí máy chủ: {session.Billed}";
     [RelayCommand] private void UnlockApp() => IsAppLocked = false;
     [RelayCommand] private void LockApp() => IsAppLocked = true;
+    [RelayCommand]
+    private void LaunchGame(GameItem? game)
+    {
+        if (game is null) return;
+        try
+        {
+            if (System.IO.File.Exists(game.ExecutablePath))
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = game.ExecutablePath, UseShellExecute = true });
+                Notice = $"Đang khởi động {game.Name}...";
+                OnGameLaunched?.Invoke();
+            }
+            else
+            {
+                Notice = $"[Mô phỏng mở game] Đang khởi chạy {game.Name}! Ứng dụng đã tự động thu nhỏ về thanh widget theo dõi thời gian chơi.";
+                OnGameLaunched?.Invoke();
+            }
+        }
+        catch (Exception ex)
+        {
+            Error = "Không thể khởi động game: " + ex.Message;
+        }
+    }
+    [RelayCommand] private void SelectCombo(Combo? combo)
+    {
+        if (combo is null) return;
+        TopupAmount = combo.Price.ToString("0");
+        TopupNote = $"Gói {combo.Name} ({combo.Code})";
+        Notice = $"Đã chọn gói {combo.Name}.";
+    }
+    [RelayCommand] private void LockTemporary()
+    {
+        if (!HasActiveSession) return;
+        IsTemporaryLocked = true;
+        TemporaryLockPassword = "";
+    }
+    [RelayCommand] private void UnlockTemporary()
+    {
+        if (!string.IsNullOrWhiteSpace(TemporaryLockPassword))
+        {
+            IsTemporaryLocked = false;
+            TemporaryLockPassword = "";
+            Error = "";
+            Notice = "Đã mở khóa màn hình.";
+        }
+        else Error = "Nhập mật khẩu để mở khóa.";
+    }
     [RelayCommand] private void AddToCart(Product? product)
     {
         if (product is null || product.Stock <= 0) { Error = "Món đã hết hàng."; return; }

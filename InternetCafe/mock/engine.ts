@@ -311,6 +311,27 @@ export function createMockEngine(options: EngineOptions = {}) {
       requireValue(input.currentPassword !== input.newPassword, 'Mật khẩu mới phải khác mật khẩu cũ.', 'newPassword'); credentials.set(user.username.toLowerCase(), input.newPassword); return ok({ changed: true });
     }
     if (path === '/workspace' && method === 'GET') return ok(Object.fromEntries(resources.map(resource => [resource, view(user!, resource)])));
+    if (path === '/combos' && method === 'GET') {
+      return ok([
+        { id: 'combo-001', name: 'Combo Đêm 50k (+15k)', price: 50000, bonusBalance: 15000, totalValue: 65000, isActive: true },
+        { id: 'combo-002', name: 'Combo Sinh Viên 100k (+35k)', price: 100000, bonusBalance: 35000, totalValue: 135000, isActive: true },
+        { id: 'combo-003', name: 'Combo Chiến Thần 200k (+80k)', price: 200000, bonusBalance: 80000, totalValue: 280000, isActive: true },
+        { id: 'combo-004', name: 'Combo Đại Gia 500k (+250k)', price: 500000, bonusBalance: 250000, totalValue: 750000, isActive: true },
+      ]);
+    }
+    if (path === '/payroll/calculate-month' && method === 'POST') {
+      allow(user.role, managers);
+      const m = text(input.month, 'month');
+      const activeEmps = state.employees.filter(e => e.status === 'Active');
+      let createdCount = 0;
+      for (const e of activeEmps) {
+        if (!state.payroll.some(p => p.employeeId === e.id && p.month === m)) {
+          state.payroll.unshift({ id: id('payroll'), employeeId: e.id, month: m, baseSalary: e.baseSalary || 6000000, bonus: 0, deduction: 0, total: e.baseSalary || 6000000, status: 'Draft' });
+          createdCount++;
+        }
+      }
+      return ok({ month: m, totalActiveEmployees: activeEmps.length, createdCount });
+    }
     if (path === '/reports/summary' && method === 'GET') {
       allow(user.role, operators); const filtered = list(user, 'transactions', new URLSearchParams({ ...Object.fromEntries(url.searchParams), page: '1', pageSize: '100' }));
       // Aggregate the full filtered set, independently of the pagination limit.
@@ -333,6 +354,16 @@ export function createMockEngine(options: EngineOptions = {}) {
     if (action && method === 'POST') {
       const row = find(resource, rowId!);
       if (resource === 'sessions' && action === 'end') { whitelist(input, []); if (user.role === 'Customer') { if (row.customerId !== user.id) fail(404, 'NOT_FOUND', 'Không tìm thấy phiên.'); } else allow(user.role, operators); return endSession(row); }
+      if (resource === 'sessions' && action === 'transfer') {
+        allow(user.role, operators); whitelist(input, ['targetComputerId']);
+        const targetPc = find('computers', text(input.targetComputerId, 'targetComputerId'));
+        if (targetPc.status !== 'Available') fail(409, 'COMPUTER_UNAVAILABLE', 'Máy đích không sẵn sàng.');
+        const oldPc = find('computers', row.computerId);
+        oldPc.status = 'Available'; delete oldPc.customerId; delete oldPc.sessionId;
+        targetPc.status = 'InUse'; targetPc.customerId = row.customerId; targetPc.sessionId = row.id;
+        row.computerId = targetPc.id;
+        return ok(row);
+      }
       if (resource === 'computers' && action === 'command') {
         allow(user.role, operators); whitelist(input, ['command']); enumValue(input.command, 'command', ['Maintenance', 'Available', 'EndSession']);
         if (input.command === 'EndSession') { const session = state.sessions.find(s => s.computerId === row.id && s.status === 'Active'); if (!session) fail(409, 'NO_ACTIVE_SESSION', 'Máy không có phiên đang chạy.'); return endSession(session); }
@@ -363,6 +394,14 @@ export function createMockEngine(options: EngineOptions = {}) {
         row.status = input.status; if (row.status === 'Approved') for (const schedule of state.schedules) if (schedule.employeeId === row.employeeId && schedule.date >= row.startDate && schedule.date <= row.endDate && schedule.status === 'Scheduled') schedule.status = 'OnLeave'; return ok(row);
       }
       if (resource === 'attendance' && action === 'check-out') { allow(user.role, ['Staff']); whitelist(input, []); if (row.employeeId !== user.id) fail(404, 'NOT_FOUND', 'Không tìm thấy chấm công.'); if (row.checkOut) fail(409, 'ALREADY_PROCESSED', 'Bạn đã chấm công ra.'); row.checkOut = stamp(); find('schedules', row.scheduleId).status = 'Completed'; return ok(row); }
+      if (resource === 'attendance' && action === 'admin-checkout') {
+        allow(user.role, managers);
+        if (row.checkOut) fail(409, 'ALREADY_PROCESSED', 'Ca làm việc đã được chốt công ra.');
+        row.checkOut = stamp();
+        row.note = (row.note ? row.note + ' | ' : '') + 'Quản lý chốt: ' + (input.note || 'Admin checkout');
+        find('schedules', row.scheduleId).status = 'Completed';
+        return ok(row);
+      }
       if (resource === 'surveys' && action === 'publish') {
         allow(user.role, managers); whitelist(input, ['customerIds']); if (row.status !== 'Draft') fail(409, 'SURVEY_PUBLISHED', 'Khảo sát đã được phát.'); requireValue(Array.isArray(input.customerIds) && input.customerIds.length > 0, 'Chọn ít nhất một khách hàng.', 'customerIds');
         const customerIds = [...new Set(input.customerIds)] as string[]; for (const customerId of customerIds) { const c = find('customers', customerId); requireValue(c.status === 'Active', 'Chỉ phát cho khách đang hoạt động.', 'customerIds'); }
@@ -373,6 +412,27 @@ export function createMockEngine(options: EngineOptions = {}) {
         if (row.responses.some((response: any) => response.customerId === user.id)) fail(409, 'DUPLICATE_RESPONSE', 'Bạn đã trả lời khảo sát này.');
         const answers = object(input.answers); whitelist(answers, row.questions.map((q: any) => q.id)); for (const q of row.questions) enumValue(answers[q.id], q.id, q.options);
         const response = { customerId: user.id, answers: clone(answers), createdAt: stamp() }; row.responses.push(response); return ok(response, 201);
+      }
+      if (resource === 'customers' && action === 'topup') {
+        allow(user.role, operators); whitelist(input, ['amount', 'comboId']); integer(input.amount, 'amount', 1000, 10_000_000);
+        if (row.status === 'Inactive') fail(409, 'INVALID_STATUS', 'Khách đã ngừng hoạt động.');
+        let bonus = 0;
+        if (input.comboId) {
+          if (input.amount >= 500000) bonus = 250000;
+          else if (input.amount >= 200000) bonus = 80000;
+          else if (input.amount >= 100000) bonus = 35000;
+          else if (input.amount >= 50000) bonus = 15000;
+        }
+        requireValue(Number.isSafeInteger(row.balance + input.amount + bonus), 'Số dư vượt giới hạn.');
+        const tx = { id: id('tx'), customerId: row.id, type: 'TopUp', amount: input.amount, referenceId: id('topup'), createdAt: stamp() };
+        state.transactions.unshift(tx); row.balance += input.amount + bonus; return ok(tx, 201);
+      }
+      if (resource === 'customers' && action === 'refund') {
+        allow(user.role, operators); whitelist(input, ['amount', 'note']); integer(input.amount, 'amount', 1000, 10_000_000);
+        if (row.balance < input.amount) fail(409, 'INSUFFICIENT_BALANCE', 'Số dư không đủ để rút tiền.');
+        row.balance -= input.amount;
+        const tx = { id: id('tx'), customerId: row.id, type: 'Withdraw', amount: input.amount, referenceId: id('refund'), createdAt: stamp() };
+        state.transactions.unshift(tx); return ok(tx, 201);
       }
       fail(404, 'NOT_FOUND', 'Hành động không tồn tại.');
     }

@@ -15,15 +15,21 @@ public static class Roles
 }
 
 public sealed record LoginRequest(string Username, string Password);
-public sealed record RegisterRequest(string Username, string Password, string FullName, string Phone, string? Email, string? DateOfBirth, string? Hobbies);
+public sealed record RegisterRequest(string Username, string Password, string FullName, string Phone, string? Email, string? DateOfBirth, string? Hobbies, string? CitizenId = null);
 public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);
 public sealed record StartSessionRequest(string ComputerId);
+public sealed record TransferSessionRequest(string TargetComputerId);
 public sealed record CreateOrderRequest(string ComputerId, IReadOnlyList<OrderLineRequest> Items, string? Note, string? IdempotencyKey = null);
 public sealed record OrderLineRequest(string ProductId, int Quantity, decimal? ExpectedUnitPrice = null);
 public sealed record CreateTopupRequest(decimal Amount, string? Note, string? IdempotencyKey = null);
+public sealed record AdminTopupRequest(decimal Amount, string? ComboId = null);
+public sealed record GameDto(string Id, string Code, string Name, string Category, string ExecutablePath, string BannerUrl, string Description, bool Active);
+public sealed record RefundRequest(decimal Amount, string? Note = null);
 public sealed record TransitionRequest(string Status);
 public sealed record DecisionRequest(string Status);
 public sealed record ComputerCommandRequest(string Command);
+public sealed record CalculatePayrollRequest(string Month);
+public sealed record AdminCheckoutRequest(string Note, DateTime? CheckOutTime = null);
 
 public sealed record ApiError(string Code, string Message, int Status, IReadOnlyDictionary<string, string>? Fields = null);
 public sealed record OperationResult<T>(T? Value, ApiError? Error)

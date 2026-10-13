@@ -88,6 +88,32 @@ public sealed class Topup
     public string Created => Format.Time(CreatedAt);
     public string StatusLabel => Format.Status(Status);
 }
+public sealed class Combo
+{
+    public string Id { get; set; } = "";
+    public string Code { get; set; } = "";
+    public string Name { get; set; } = "";
+    public decimal Price { get; set; }
+    public decimal BonusBalance { get; set; }
+    public decimal BonusValue { get => BonusBalance; set => BonusBalance = value; }
+    public decimal TotalValue { get; set; }
+    public int DurationHours { get; set; }
+    public string Description { get; set; } = "";
+    public bool IsActive { get; set; } = true;
+    public string PriceLabel => Format.Money(Price);
+    public string BonusLabel => Format.Money(BonusBalance);
+    public string Display => $"{Name} · {PriceLabel} (Tặng {BonusLabel})";
+}
+public sealed class GameItem
+{
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string Category { get; set; } = "";
+    public string ExecutablePath { get; set; } = "";
+    public string BannerUrl { get; set; } = "";
+    public string Description { get; set; } = "";
+    public bool Active { get; set; } = true;
+}
 public sealed class Transaction
 {
     public string Id { get; set; } = "";
@@ -123,6 +149,7 @@ public sealed class Survey
 }
 public sealed class Workspace
 {
+    public List<GameItem> Games { get; set; } = [];
     public List<Computer> Computers { get; set; } = [];
     public List<Customer> Customers { get; set; } = [];
     public List<Session> Sessions { get; set; } = [];
@@ -133,6 +160,7 @@ public sealed class Workspace
     public List<Transaction> Transactions { get; set; } = [];
     public List<Feedback> Feedback { get; set; } = [];
     public List<Survey> Surveys { get; set; } = [];
+    public List<Combo> Combos { get; set; } = [];
 }
 public static class Format
 {

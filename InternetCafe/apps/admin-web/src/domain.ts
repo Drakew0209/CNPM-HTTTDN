@@ -14,13 +14,13 @@ export const labels: Record<string, string> = {
   Pending: 'Chờ xử lý', Approved: 'Đã duyệt', Rejected: 'Từ chối', Preparing: 'Đang chuẩn bị', Served: 'Đã phục vụ', Cancelled: 'Đã hủy',
   Processing: 'Đang xử lý', Resolved: 'Đã giải quyết', Published: 'Đang phát hành', Draft: 'Bản nháp', Closed: 'Đã đóng', Completed: 'Hoàn tất',
   Scheduled: 'Đã xếp lịch', Absent: 'Vắng', OnLeave: 'Nghỉ phép', Paid: 'Đã trả', Silver: 'Bạc', Gold: 'Vàng', Diamond: 'Kim cương',
-  Standard: 'Tiêu chuẩn', VIP: 'VIP', TopUp: 'Nạp tiền', FoodOrder: 'Dịch vụ F&B', Rental: 'Giờ chơi', Refund: 'Hoàn tiền',
+  Standard: 'Tiêu chuẩn', VIP: 'VIP', TopUp: 'Nạp tiền', FoodOrder: 'Dịch vụ F&B', Rental: 'Giờ chơi', Refund: 'Hoàn tiền', Withdraw: 'Rút tiền / Hoàn số dư',
   Import: 'Nhập kho', Export: 'Xuất kho', Annual: 'Nghỉ phép', Sick: 'Nghỉ ốm', Resignation: 'Nghỉ việc', ...roleLabel,
 };
 export function revenue(rows: Row[]) {
   const sum = (type: string) => rows.filter(r => r.type === type).reduce((s, r) => s + Math.abs(Number(r.amount) || 0), 0);
-  const rental = sum('Rental'), food = sum('FoodOrder'), refund = sum('Refund');
-  return { rental, food, refund, net: rental + food - refund, topup: sum('TopUp') };
+  const rental = sum('Rental'), food = sum('FoodOrder'), refund = sum('Refund'), withdraw = sum('Withdraw');
+  return { rental, food, refund, withdraw, net: rental + food - refund, topup: sum('TopUp') };
 }
 export function filterDates(rows: Row[], from: string, to: string, field = 'createdAt') {
   return rows.filter(r => {

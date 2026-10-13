@@ -18,12 +18,13 @@ public sealed class SignalRUpdates(string url) : IRealtimeUpdates
     {
         await StopAsync();
         connection = new HubConnectionBuilder().WithUrl(url, options => options.AccessTokenProvider = token).WithAutomaticReconnect().Build();
-        foreach (var name in new[] { "ComputerChanged", "SessionStarted", "SessionEnded", "BalanceChanged", "TopupRequested", "TopupDecided", "OrderCreated", "OrderChanged" })
+        foreach (var name in new[] { "ComputerChanged", "SessionStarted", "SessionEnded", "SessionChanged", "BalanceChanged", "TopupRequested", "TopupDecided", "OrderCreated", "OrderChanged" })
             connection.On<object>(name, _ => Changed?.Invoke());
         connection.Reconnecting += _ => { ConnectionChanged?.Invoke("SignalR mất kết nối — đang kết nối lại."); return Task.CompletedTask; };
         connection.Reconnected += _ => { ConnectionChanged?.Invoke("SignalR đã kết nối lại; đang tải snapshot."); Changed?.Invoke(); return Task.CompletedTask; };
         connection.Closed += _ => { ConnectionChanged?.Invoke("SignalR đã ngắt; HTTP vẫn đồng bộ định kỳ."); return Task.CompletedTask; };
-        await connection.StartAsync();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        await connection.StartAsync(timeout.Token);
         ConnectionChanged?.Invoke("SignalR đã kết nối.");
     }
     public async Task StopAsync() { if (connection is not null) { await connection.DisposeAsync(); connection = null; } }

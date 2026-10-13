@@ -18,6 +18,7 @@ public sealed class ManagementService(SqlConnectionFactory connections)
         {
             "computers" => await CreateComputerAsync(actor, body, ct),
             "customers" => await CreateCustomerAsync(actor, body, ct),
+            "games" => await CreateGameAsync(actor, body, ct),
             "categories" => await CreateCategoryAsync(actor, body, ct),
             "products" => await CreateProductAsync(actor, body, ct),
             "suppliers" => await CreateSupplierAsync(actor, body, ct),
@@ -38,6 +39,7 @@ public sealed class ManagementService(SqlConnectionFactory connections)
         {
             "computers" => await UpdateComputerAsync(actor, id, body, ct),
             "customers" => await UpdateCustomerAsync(actor, id, body, ct),
+            "games" => await UpdateGameAsync(actor, id, body, ct),
             "categories" => await UpdateCategoryAsync(actor, id, body, ct),
             "products" => await UpdateProductAsync(actor, id, body, ct),
             "suppliers" => await UpdateSupplierAsync(actor, id, body, ct),
@@ -56,6 +58,7 @@ public sealed class ManagementService(SqlConnectionFactory connections)
         await ExecuteAsync(async () => resource.ToLowerInvariant() switch
         {
             "customers" => await SetStatusAsync(actor, "customers", id, "Inactive", ct),
+            "games" => await SetStatusAsync(actor, "games", id, "Inactive", ct),
             "products" => await SetStatusAsync(actor, "products", id, "Discontinued", ct),
             "suppliers" => await SetStatusAsync(actor, "suppliers", id, "Inactive", ct),
             "employees" => await SetStatusAsync(actor, "employees", id, "Resigned", ct),
@@ -77,6 +80,12 @@ public sealed class ManagementService(SqlConnectionFactory connections)
     public Task<OperationResult<object>> CheckOutAsync(IdentityContext actor, string id, JsonElement body, CancellationToken ct) =>
         ExecuteAsync(() => CheckOutCoreAsync(actor, id, body, ct));
 
+    public Task<OperationResult<object>> AdminCheckOutAsync(IdentityContext actor, string id, JsonElement body, CancellationToken ct) =>
+        ExecuteAsync(() => AdminCheckOutCoreAsync(actor, id, body, ct));
+
+    public Task<OperationResult<object>> CalculateMonthlyPayrollAsync(IdentityContext actor, JsonElement body, CancellationToken ct) =>
+        ExecuteAsync(() => CalculateMonthlyPayrollCoreAsync(actor, body, ct));
+
     public Task<OperationResult<object>> PublishSurveyAsync(IdentityContext actor, string id, JsonElement body, CancellationToken ct) =>
         ExecuteAsync(() => PublishSurveyCoreAsync(actor, id, body, ct));
 
@@ -93,22 +102,37 @@ public sealed class ManagementService(SqlConnectionFactory connections)
         return OperationResult<object>.Ok(new { id = Id("pc", id), name, zone, status = "Available", online = false, hourlyRate = rate.Value });
     }
 
+    private async Task<OperationResult<object>> CreateGameAsync(IdentityContext actor, JsonElement body, CancellationToken ct)
+    {
+        if (!actor.IsManagement) return Forbidden();
+        var name = Required(body, "name"); var category = Required(body, "category");
+        var executablePath = Required(body, "executablePath"); var bannerUrl = Required(body, "bannerUrl");
+        var description = Value(body, "description"); var active = Bool(body, "active") is not false;
+        if (name is null || category is null || executablePath is null || bannerUrl is null)
+            return Validation("Tên, thể loại, đường dẫn thực thi và URL banner là bắt buộc.");
+        var code = "game-" + Guid.NewGuid().ToString("N")[..8];
+        await using var c = await connections.OpenAsync(ct);
+        var id = await ScalarIntAsync(c, "INSERT INTO dbo.Games (Code,Name,Category,Executable_Path,Banner_Url,Description,Is_Active) VALUES (@code,@name,@category,@path,@banner,@description,@active); SELECT CAST(SCOPE_IDENTITY() AS int);", ct,
+            ("@code", code), ("@name", name), ("@category", category), ("@path", executablePath), ("@banner", bannerUrl), ("@description", Db(description)), ("@active", active));
+        return OperationResult<object>.Ok(new GameDto(Id("g", id), code, name, category, executablePath, bannerUrl, description ?? "", active));
+    }
+
     private async Task<OperationResult<object>> CreateCustomerAsync(IdentityContext actor, JsonElement body, CancellationToken ct)
     {
         if (!actor.IsOperator) return Forbidden();
         var username = Username(Value(body, "username")); var fullName = Required(body, "fullName"); var phone = Required(body, "phone");
-        var email = Required(body, "email"); var birth = Date(body, "dateOfBirth"); var tier = Value(body, "tier") ?? "Member"; var password = Value(body, "password") ?? "Demo@123";
-        if (username is null || fullName is null || phone is null || email is null || birth is null || password.Length < 8) return Validation("Thông tin khách hàng hoặc mật khẩu không hợp lệ.");
+        var email = Value(body, "email"); var birth = Date(body, "dateOfBirth"); var tier = "Member"; var password = Value(body, "password") ?? "Demo@123"; var citizenId = Value(body, "citizenId");
+        if (username is null || fullName is null || phone is null || birth is null || password.Length < 8) return Validation("Thông tin khách hàng hoặc mật khẩu không hợp lệ.");
         await using var c = await connections.OpenAsync(ct); await using var tx = (SqlTransaction)await c.BeginTransactionAsync(ct);
         try
         {
             if (await UsernameTakenAsync(c, tx, username, ct)) { await tx.RollbackAsync(ct); return OperationResult<object>.Fail("USERNAME_EXISTS", "Tên đăng nhập đã được sử dụng.", StatusCodes.Status409Conflict); }
             var tierId = await TierIdAsync(c, tx, tier, ct); if (tierId is null) { await tx.RollbackAsync(ct); return Validation("Hạng thành viên không tồn tại."); }
             var hash = passwords.HashPassword(new object(), password);
-            var customerId = await ScalarIntAsync(c, "INSERT INTO dbo.Customers (Username,Password_Hash,Full_Name,Phone_Number,Email,Date_Of_Birth,Hobbies,Tier_ID,Status) VALUES (@u,@h,@n,@p,@e,@d,@hb,@tier,'Active'); SELECT CAST(SCOPE_IDENTITY() AS int);", ct, tx, ("@u", username), ("@h", hash), ("@n", fullName), ("@p", phone), ("@e", email), ("@d", birth.Value), ("@hb", Db(Value(body, "hobbies"))), ("@tier", tierId.Value));
+            var customerId = await ScalarIntAsync(c, "INSERT INTO dbo.Customers (Username,Password_Hash,Full_Name,Phone_Number,Email,Date_Of_Birth,Hobbies,Citizen_ID,Tier_ID,Status) VALUES (@u,@h,@n,@p,@e,@d,@hb,@cid,@tier,'Active'); SELECT CAST(SCOPE_IDENTITY() AS int);", ct, tx, ("@u", username), ("@h", hash), ("@n", fullName), ("@p", phone), ("@e", Db(email)), ("@d", birth.Value), ("@hb", Db(Value(body, "hobbies"))), ("@cid", Db(citizenId)), ("@tier", tierId.Value));
             await ExecuteNonQueryAsync(c, "INSERT INTO dbo.App_Accounts (Username,Password_Hash,Role,Customer_ID,Full_Name,Status) VALUES (@u,@h,'Customer',@id,@n,'Active')", ct, tx, ("@u", username), ("@h", hash), ("@id", customerId), ("@n", fullName));
             await tx.CommitAsync(ct);
-            return OperationResult<object>.Ok(new { id = Id("c", customerId), username, fullName, phone, email, dateOfBirth = birth.Value.ToString("yyyy-MM-dd"), hobbies = Value(body, "hobbies") ?? "", tier, balance = 0m, status = "Active" });
+            return OperationResult<object>.Ok(new { id = Id("c", customerId), username, fullName, phone, email = email ?? "", dateOfBirth = birth.Value.ToString("yyyy-MM-dd"), hobbies = Value(body, "hobbies") ?? "", citizenId = citizenId ?? "", tier, balance = 0m, status = "Active" });
         }
         catch { await tx.RollbackAsync(ct); throw; }
     }
@@ -139,7 +163,9 @@ public sealed class ManagementService(SqlConnectionFactory connections)
     {
         if (!actor.IsManagement || actor.EmployeeId is null) return actor.IsManagement ? OperationResult<object>.Fail("EMPLOYEE_REQUIRED", "Tài khoản quản lý cần liên kết hồ sơ nhân viên.", StatusCodes.Status409Conflict) : Forbidden();
         var productId = ParseId(Value(body, "productId"), "p"); var supplierId = Has(body, "supplierId") ? ParseId(Value(body, "supplierId"), "supplier") : null; var type = Value(body, "type"); var quantity = Int(body, "quantity");
-        if (productId is null || (Has(body, "supplierId") && supplierId is null) || quantity is null || quantity <= 0 || type is not ("Import" or "Export")) return Validation("Phiếu kho không hợp lệ.");
+        if (productId is null || quantity is null || quantity <= 0 || type is not ("Import" or "Export")) return Validation("Phiếu kho không hợp lệ.");
+        if (type == "Import" && supplierId is null) return Validation("Phiếu nhập kho bắt buộc phải chọn nhà cung cấp.");
+        if (type == "Export" && string.IsNullOrWhiteSpace(Value(body, "note"))) return Validation("Phiếu xuất kho bắt buộc phải có ghi chú lý do xuất hàng (hao hụt, hết hạn hoặc xuất dùng).");
         await using var c = await connections.OpenAsync(ct); await using var tx = (SqlTransaction)await c.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         try
         {
@@ -177,13 +203,19 @@ public sealed class ManagementService(SqlConnectionFactory connections)
     private async Task<OperationResult<object>> CreateEmployeeAsync(IdentityContext actor, JsonElement body, CancellationToken ct)
     {
         if (!actor.IsManagement) return Forbidden(); var fullName = Required(body, "fullName"); var department = Required(body, "department"); var position = Required(body, "position"); var joinedAt = Date(body, "joinedAt"); var salary = Decimal(body, "baseSalary");
+        var username = Username(Value(body, "username")); var password = Value(body, "password") ?? "Demo@123";
         if (fullName is null || department is null || position is null || joinedAt is null || salary is null || salary < 0) return Validation("Thông tin nhân viên không hợp lệ.");
+        if (username is null || password.Length < 8) return Validation("Tên đăng nhập hoặc mật khẩu không hợp lệ (tối thiểu 8 ký tự).");
         await using var c = await connections.OpenAsync(ct); await using var tx = (SqlTransaction)await c.BeginTransactionAsync(ct);
         try
         {
+            if (await UsernameTakenAsync(c, tx, username, ct)) { await tx.RollbackAsync(ct); return OperationResult<object>.Fail("USERNAME_EXISTS", "Tên đăng nhập đã được sử dụng.", StatusCodes.Status409Conflict); }
             var departmentId = await EnsureDepartmentAsync(c, tx, department, ct); var positionId = await EnsurePositionAsync(c, tx, position, departmentId, ct);
+            var role = position.Contains("Quản lý") ? Roles.Manager : position.Contains("Thu ngân") ? Roles.Cashier : Roles.Staff;
             var employeeStatus = Value(body, "status") == "Inactive" ? "Suspended" : "Active";
-            var id = await ScalarIntAsync(c, "INSERT INTO dbo.Employees (Username,Password_Hash,Full_Name,Phone_Number,Email,Position_ID,Hire_Date,Base_Salary,Status,Qualification) VALUES (@username,@hash,@name,@phone,@email,@position,@joined,@salary,@status,@qualification); SELECT CAST(SCOPE_IDENTITY() AS int);", ct, tx, ("@username", $"employee-{Guid.NewGuid():N}"[..20]), ("@hash", "managed-by-app-account"), ("@name", fullName), ("@phone", Db(Value(body, "phone"))), ("@email", Db(Value(body, "email"))), ("@position", positionId), ("@joined", joinedAt.Value), ("@salary", salary.Value), ("@status", employeeStatus), ("@qualification", Db(Value(body, "qualification"))));
+            var hash = passwords.HashPassword(new object(), password);
+            var id = await ScalarIntAsync(c, "INSERT INTO dbo.Employees (Username,Password_Hash,Full_Name,Phone_Number,Email,Position_ID,Hire_Date,Base_Salary,Status,Qualification) VALUES (@username,@hash,@name,@phone,@email,@position,@joined,@salary,@status,@qualification); SELECT CAST(SCOPE_IDENTITY() AS int);", ct, tx, ("@username", username), ("@hash", hash), ("@name", fullName), ("@phone", Db(Value(body, "phone"))), ("@email", Db(Value(body, "email"))), ("@position", positionId), ("@joined", joinedAt.Value), ("@salary", salary.Value), ("@status", employeeStatus), ("@qualification", Db(Value(body, "qualification"))));
+            await ExecuteNonQueryAsync(c, "INSERT INTO dbo.App_Accounts (Username,Password_Hash,Role,Employee_ID,Full_Name,Status) VALUES (@u,@h,@role,@empId,@name,'Active')", ct, tx, ("@u", username), ("@h", hash), ("@role", role), ("@empId", id), ("@name", fullName));
             await tx.CommitAsync(ct); return OperationResult<object>.Ok(EmployeeObject(id, fullName, department, position, body, salary.Value, joinedAt.Value));
         }
         catch { await tx.RollbackAsync(ct); throw; }
@@ -200,7 +232,10 @@ public sealed class ManagementService(SqlConnectionFactory connections)
     {
         if (!actor.IsManagement) return Forbidden(); var employee = ParseId(Value(body, "employeeId"), "e"); var shift = ParseId(Value(body, "shiftId"), "shift"); var date = Date(body, "date"); var status = Value(body, "status") ?? "Scheduled";
         if (employee is null || shift is null || date is null || !ScheduleStatuses.Contains(status)) return Validation("Lịch làm không hợp lệ.");
-        await using var c = await connections.OpenAsync(ct); var id = await ScalarIntAsync(c, "INSERT INTO dbo.Work_Schedules (Employee_ID,Shift_ID,Work_Date,Status) VALUES (@employee,@shift,@date,@status); SELECT CAST(SCOPE_IDENTITY() AS int);", ct, ("@employee", employee.Value), ("@shift", shift.Value), ("@date", date.Value), ("@status", status));
+        await using var c = await connections.OpenAsync(ct);
+        var conflict = await CheckScheduleConflictsAsync(c, null, employee.Value, date.Value, shift.Value, null, ct);
+        if (conflict is not null) return conflict;
+        var id = await ScalarIntAsync(c, "INSERT INTO dbo.Work_Schedules (Employee_ID,Shift_ID,Work_Date,Status) VALUES (@employee,@shift,@date,@status); SELECT CAST(SCOPE_IDENTITY() AS int);", ct, ("@employee", employee.Value), ("@shift", shift.Value), ("@date", date.Value), ("@status", status));
         return OperationResult<object>.Ok(new { id = Id("schedule", id), employeeId = Id("e", employee.Value), shiftId = Id("shift", shift.Value), date = date.Value.ToString("yyyy-MM-dd"), status });
     }
 
@@ -209,17 +244,37 @@ public sealed class ManagementService(SqlConnectionFactory connections)
         var employee = ParseId(Value(body, "employeeId"), "e") ?? actor.EmployeeId; var type = Value(body, "type"); var start = Date(body, "startDate"); var end = Date(body, "endDate"); var reason = Required(body, "reason");
         if (employee is null || type is not ("Annual" or "Sick" or "Resignation") || start is null || end is null || end < start || reason is null) return Validation("Đơn nghỉ không hợp lệ.");
         if (!actor.IsManagement && actor.EmployeeId != employee) return Forbidden();
-        await using var c = await connections.OpenAsync(ct); var id = await ScalarIntAsync(c, "INSERT INTO dbo.Leave_Requests (Employee_ID,Leave_Type,Start_Date,End_Date,Reason,Status) VALUES (@employee,@type,@start,@end,@reason,'Pending'); SELECT CAST(SCOPE_IDENTITY() AS int);", ct, ("@employee", employee.Value), ("@type", type == "Resignation" ? "Unpaid" : type), ("@start", start.Value), ("@end", end.Value), ("@reason", reason));
+        await using var c = await connections.OpenAsync(ct);
+        if (await ScalarIntAsync(c, "SELECT COUNT(*) FROM dbo.Leave_Requests WHERE Employee_ID=@e AND Status IN ('Pending','Approved') AND NOT (End_Date < @start OR Start_Date > @end)", ct, ("@e", employee.Value), ("@start", start.Value), ("@end", end.Value)) > 0)
+            return OperationResult<object>.Fail("LEAVE_OVERLAP", "Bạn đã có đơn nghỉ phép khác đang chờ duyệt hoặc đã duyệt trong khoảng thời gian này.", StatusCodes.Status409Conflict);
+        var id = await ScalarIntAsync(c, "INSERT INTO dbo.Leave_Requests (Employee_ID,Leave_Type,Start_Date,End_Date,Reason,Status) VALUES (@employee,@type,@start,@end,@reason,'Pending'); SELECT CAST(SCOPE_IDENTITY() AS int);", ct, ("@employee", employee.Value), ("@type", type == "Resignation" ? "Unpaid" : type), ("@start", start.Value), ("@end", end.Value), ("@reason", reason));
         return OperationResult<object>.Ok(new { id = Id("leave", id), employeeId = Id("e", employee.Value), type, startDate = start.Value.ToString("yyyy-MM-dd"), endDate = end.Value.ToString("yyyy-MM-dd"), reason, status = "Pending" });
     }
 
     private async Task<OperationResult<object>> CreatePayrollAsync(IdentityContext actor, JsonElement body, CancellationToken ct)
     {
-        if (!actor.IsManagement) return Forbidden(); var employee = ParseId(Value(body, "employeeId"), "e"); var month = Month(body, "month"); var baseSalary = Decimal(body, "baseSalary");
-        if (employee is null || month is null || baseSalary is null || baseSalary < 0) return Validation("Phiếu lương không hợp lệ.");
-        var bonus = Decimal(body, "bonus") ?? 0; var deduction = Decimal(body, "deduction") ?? 0; if (bonus < 0 || deduction < 0) return Validation("Thưởng và khấu trừ không được âm.");
-        await using var c = await connections.OpenAsync(ct); var id = await ScalarIntAsync(c, "INSERT INTO dbo.Payroll (Employee_ID,Pay_Month,Pay_Year,Base_Salary,Bonus,Deduction,Status,Workflow_Status) VALUES (@employee,@month,@year,@base,@bonus,@deduction,'Unpaid','Draft'); SELECT CAST(SCOPE_IDENTITY() AS int);", ct, ("@employee", employee.Value), ("@month", month.Value.Month), ("@year", month.Value.Year), ("@base", baseSalary.Value), ("@bonus", bonus), ("@deduction", deduction));
-        return OperationResult<object>.Ok(PayrollObject(id, employee.Value, month.Value, baseSalary.Value, bonus, deduction, "Draft"));
+        if (!actor.IsManagement) return Forbidden(); var employee = ParseId(Value(body, "employeeId"), "e"); var month = Month(body, "month");
+        if (employee is null || month is null) return Validation("Phiếu lương không hợp lệ.");
+        await using var c = await connections.OpenAsync(ct);
+        if (await ScalarIntAsync(c, "SELECT COUNT(*) FROM dbo.Payroll WHERE Employee_ID=@e AND Pay_Month=@m AND Pay_Year=@y", ct, ("@e", employee.Value), ("@m", month.Value.Month), ("@y", month.Value.Year)) > 0)
+            return OperationResult<object>.Fail("PAYROLL_EXISTS", $"Bảng lương nhân viên trong tháng {month.Value:yyyy-MM} đã tồn tại.", StatusCodes.Status409Conflict);
+        await using var salaryCommand = new SqlCommand("SELECT Base_Salary FROM dbo.Employees WHERE Employee_ID=@id", c);
+        salaryCommand.Parameters.AddWithValue("@id", employee.Value);
+        var salaryValue = await salaryCommand.ExecuteScalarAsync(ct);
+        if (salaryValue is null || salaryValue == DBNull.Value) return NotFound("Không tìm thấy nhân viên.");
+        var inputBase = Decimal(body, "baseSalary"); var baseSalary = inputBase is null or <= 0 ? Convert.ToDecimal(salaryValue) : inputBase.Value;
+        var bonus = Decimal(body, "bonus") ?? 0; var manualDeduction = Decimal(body, "deduction") ?? 0;
+        if (bonus < 0 || manualDeduction < 0) return Validation("Thưởng và khấu trừ không được âm.");
+        var shiftRate = Math.Round(baseSalary / 26m, 0);
+        var totalScheduled = await ScalarIntAsync(c, "SELECT COUNT(*) FROM dbo.Work_Schedules WHERE Employee_ID=@e AND YEAR(Work_Date)=@y AND MONTH(Work_Date)=@m", ct, ("@e", employee.Value), ("@y", month.Value.Year), ("@m", month.Value.Month));
+        var attendedShifts = await ScalarIntAsync(c, "SELECT COUNT(*) FROM dbo.Attendance a JOIN dbo.Work_Schedules s ON s.Schedule_ID=a.Schedule_ID WHERE s.Employee_ID=@e AND YEAR(s.Work_Date)=@y AND MONTH(s.Work_Date)=@m AND a.Check_In_Time IS NOT NULL", ct, ("@e", employee.Value), ("@y", month.Value.Year), ("@m", month.Value.Month));
+        var paidLeaveShifts = await ScalarIntAsync(c, "SELECT COUNT(*) FROM dbo.Work_Schedules s WHERE s.Employee_ID=@e AND YEAR(s.Work_Date)=@y AND MONTH(s.Work_Date)=@m AND s.Status='OnLeave' AND EXISTS (SELECT 1 FROM dbo.Leave_Requests l WHERE l.Employee_ID=s.Employee_ID AND l.Status='Approved' AND l.Leave_Type='Annual' AND s.Work_Date BETWEEN l.Start_Date AND l.End_Date)", ct, ("@e", employee.Value), ("@y", month.Value.Year), ("@m", month.Value.Month));
+        var unpaidShifts = Math.Max(0, totalScheduled - attendedShifts - paidLeaveShifts);
+        var autoDeduction = unpaidShifts * shiftRate;
+        if (attendedShifts == 0 && paidLeaveShifts == 0 && totalScheduled > 0) autoDeduction = baseSalary;
+        var deduction = manualDeduction > 0 ? Math.Max(manualDeduction, autoDeduction) : autoDeduction;
+        var id = await ScalarIntAsync(c, "INSERT INTO dbo.Payroll (Employee_ID,Pay_Month,Pay_Year,Base_Salary,Bonus,Deduction,Status,Workflow_Status) VALUES (@employee,@month,@year,@base,@bonus,@deduction,'Unpaid','Draft'); SELECT CAST(SCOPE_IDENTITY() AS int);", ct, ("@employee", employee.Value), ("@month", month.Value.Month), ("@year", month.Value.Year), ("@base", baseSalary), ("@bonus", bonus), ("@deduction", deduction));
+        return OperationResult<object>.Ok(PayrollObject(id, employee.Value, month.Value, baseSalary, bonus, deduction, "Draft"));
     }
 
     private async Task<OperationResult<object>> CreateAccountAsync(IdentityContext actor, JsonElement body, CancellationToken ct)
@@ -238,10 +293,36 @@ public sealed class ManagementService(SqlConnectionFactory connections)
         return await UpdatedAsync(c, "dbo.Computers", changes, parameters, ct, () => new { id, name = Value(body, "name"), zone = Value(body, "zone"), hourlyRate = Decimal(body, "hourlyRate") });
     }
 
+    private async Task<OperationResult<object>> UpdateGameAsync(IdentityContext actor, string id, JsonElement body, CancellationToken ct)
+    {
+        if (!actor.IsManagement) return Forbidden();
+        var key = ParseId(id, "g"); if (key is null) return NotFound();
+        if (!new[] { "name", "category", "executablePath", "bannerUrl", "description", "active" }.Any(field => Has(body, field)))
+            return Validation("Không có dữ liệu game để cập nhật.");
+        await using var c = await connections.OpenAsync(ct);
+        var affected = await ExecuteNonQueryAsync(c, """
+            UPDATE dbo.Games
+            SET Name=COALESCE(@name,Name), Category=COALESCE(@category,Category),
+                Executable_Path=COALESCE(@path,Executable_Path), Banner_Url=COALESCE(@banner,Banner_Url),
+                Description=CASE WHEN @hasDescription=1 THEN @description ELSE Description END,
+                Is_Active=COALESCE(@active,Is_Active)
+            WHERE Game_ID=@id
+            """, ct,
+            ("@name", Db(Has(body, "name") ? Required(body, "name") : null)),
+            ("@category", Db(Has(body, "category") ? Required(body, "category") : null)),
+            ("@path", Db(Has(body, "executablePath") ? Required(body, "executablePath") : null)),
+            ("@banner", Db(Has(body, "bannerUrl") ? Required(body, "bannerUrl") : null)),
+            ("@hasDescription", Has(body, "description") ? 1 : 0),
+            ("@description", Db(Value(body, "description"))),
+            ("@active", Db(Bool(body, "active"))),
+            ("@id", key.Value));
+        return affected == 0 ? NotFound("Không tìm thấy game.") : OperationResult<object>.Ok(new { id });
+    }
+
     private async Task<OperationResult<object>> UpdateCustomerAsync(IdentityContext actor, string id, JsonElement body, CancellationToken ct)
     {
         var key = ParseId(id, "c"); if (key is null) return NotFound(); if (!actor.IsOperator && actor.CustomerId != key) return Forbidden(); if (!actor.IsManagement && (Has(body, "tier") || Has(body, "status"))) return Forbidden();
-        await using var c = await connections.OpenAsync(ct); var changes = new List<string>(); var p = new List<(string, object)> { ("@id", key.Value) }; Add(changes, p, "Full_Name", "@name", Value(body, "fullName")); Add(changes, p, "Phone_Number", "@phone", Value(body, "phone")); Add(changes, p, "Email", "@email", Value(body, "email")); Add(changes, p, "Date_Of_Birth", "@birth", Date(body, "dateOfBirth")); Add(changes, p, "Hobbies", "@hobbies", Value(body, "hobbies")); Add(changes, p, "Status", "@status", Value(body, "status"));
+        await using var c = await connections.OpenAsync(ct); var changes = new List<string>(); var p = new List<(string, object)> { ("@id", key.Value) }; Add(changes, p, "Full_Name", "@name", Value(body, "fullName")); Add(changes, p, "Phone_Number", "@phone", Value(body, "phone")); Add(changes, p, "Email", "@email", Has(body, "email") ? Db(Value(body, "email")) : null); Add(changes, p, "Date_Of_Birth", "@birth", Date(body, "dateOfBirth")); Add(changes, p, "Hobbies", "@hobbies", Value(body, "hobbies")); Add(changes, p, "Citizen_ID", "@cid", Has(body, "citizenId") ? Db(Value(body, "citizenId")) : null); Add(changes, p, "Status", "@status", Value(body, "status"));
         if (Has(body, "tier")) { var tierId = await TierIdAsync(c, null, Value(body, "tier")!, ct); if (tierId is null) return Validation("Hạng thành viên không tồn tại."); Add(changes, p, "Tier_ID", "@tier", tierId.Value); }
         return await UpdatedAsync(c, "dbo.Customers", changes, p, ct, () => new { id });
     }
@@ -298,7 +379,9 @@ public sealed class ManagementService(SqlConnectionFactory connections)
             var changes = new List<string>(); var p = new List<(string, object)> { ("@id", key.Value) }; Add(changes, p, "Full_Name", "@name", Value(body, "fullName")); Add(changes, p, "Phone_Number", "@phone", Value(body, "phone")); Add(changes, p, "Email", "@email", Value(body, "email")); Add(changes, p, "Qualification", "@qualification", Value(body, "qualification")); Add(changes, p, "Base_Salary", "@salary", Decimal(body, "baseSalary")); Add(changes, p, "Hire_Date", "@joined", Date(body, "joinedAt")); if (Has(body, "status")) Add(changes, p, "Status", "@status", Value(body, "status") == "Inactive" ? "Suspended" : Value(body, "status"));
             if (Has(body, "department") || Has(body, "position")) { var department = Value(body, "department") ?? await StringScalarAsync(c, "SELECT d.Department_Name FROM dbo.Employees e JOIN dbo.Positions p ON p.Position_ID=e.Position_ID JOIN dbo.Departments d ON d.Department_ID=p.Department_ID WHERE e.Employee_ID=@id", ct, tx, ("@id", key.Value)); var position = Value(body, "position") ?? await StringScalarAsync(c, "SELECT p.Position_Name FROM dbo.Employees e JOIN dbo.Positions p ON p.Position_ID=e.Position_ID WHERE e.Employee_ID=@id", ct, tx, ("@id", key.Value)); if (department is null || position is null) { await tx.RollbackAsync(ct); return NotFound(); } var departmentId = await EnsureDepartmentAsync(c, tx, department, ct); var positionId = await EnsurePositionAsync(c, tx, position, departmentId, ct); Add(changes, p, "Position_ID", "@position", positionId); }
             if (changes.Count == 0) { await tx.RollbackAsync(ct); return Validation("Không có dữ liệu để cập nhật."); }
-            var n = await ExecuteNonQueryAsync(c, $"UPDATE dbo.Employees SET {string.Join(',', changes)} WHERE Employee_ID=@id", ct, tx, p.ToArray()); if (n == 0) { await tx.RollbackAsync(ct); return NotFound(); } await tx.CommitAsync(ct); return OperationResult<object>.Ok(new { id });
+            var n = await ExecuteNonQueryAsync(c, $"UPDATE dbo.Employees SET {string.Join(',', changes)} WHERE Employee_ID=@id", ct, tx, p.ToArray()); if (n == 0) { await tx.RollbackAsync(ct); return NotFound(); }
+            if (Has(body, "fullName")) { await ExecuteNonQueryAsync(c, "UPDATE dbo.App_Accounts SET Full_Name = @name WHERE Employee_ID = @id", ct, tx, ("@name", Value(body, "fullName")!), ("@id", key.Value)); }
+            await tx.CommitAsync(ct); return OperationResult<object>.Ok(new { id });
         }
         catch { await tx.RollbackAsync(ct); throw; }
     }
@@ -310,7 +393,33 @@ public sealed class ManagementService(SqlConnectionFactory connections)
 
     private async Task<OperationResult<object>> UpdateScheduleAsync(IdentityContext actor, string id, JsonElement body, CancellationToken ct)
     {
-        if (!actor.IsManagement) return Forbidden(); var key = ParseId(id, "schedule"); if (key is null) return NotFound(); await using var c = await connections.OpenAsync(ct); var changes = new List<string>(); var p = new List<(string, object)> { ("@id", key.Value) }; if (Has(body, "employeeId")) Add(changes, p, "Employee_ID", "@employee", ParseId(Value(body, "employeeId"), "e")); if (Has(body, "shiftId")) Add(changes, p, "Shift_ID", "@shift", ParseId(Value(body, "shiftId"), "shift")); Add(changes, p, "Work_Date", "@date", Date(body, "date")); var status = Value(body, "status"); if (status is not null && !ScheduleStatuses.Contains(status)) return Validation("Trạng thái lịch làm không hợp lệ."); Add(changes, p, "Status", "@status", status); return await UpdatedAsync(c, "dbo.Work_Schedules", changes, p, ct, () => new { id });
+        if (!actor.IsManagement) return Forbidden(); var key = ParseId(id, "schedule"); if (key is null) return NotFound();
+        await using var c = await connections.OpenAsync(ct);
+        await using var find = new SqlCommand("SELECT Employee_ID, Shift_ID, Work_Date FROM dbo.Work_Schedules WHERE Schedule_ID=@id", c);
+        find.Parameters.AddWithValue("@id", key.Value);
+        await using var reader = await find.ExecuteReaderAsync(ct);
+        if (!await reader.ReadAsync(ct)) return NotFound();
+        var (currentEmployee, currentShift, currentDate) = (reader.GetInt32(0), reader.GetInt32(1), DateOnly.FromDateTime(reader.GetDateTime(2)));
+        await reader.CloseAsync();
+        int employee = currentEmployee, shift = currentShift; var date = currentDate;
+        if (Has(body, "employeeId")) { employee = ParseId(Value(body, "employeeId"), "e") ?? -1; if (employee < 0) return Validation("Nhân viên không hợp lệ."); }
+        if (Has(body, "shiftId")) { shift = ParseId(Value(body, "shiftId"), "shift") ?? -1; if (shift < 0) return Validation("Ca làm không hợp lệ."); }
+        if (Has(body, "date")) { var parsed = Date(body, "date"); if (parsed is null) return Validation("Ngày làm không hợp lệ."); date = parsed.Value; }
+        var status = Value(body, "status"); if (status is not null && !ScheduleStatuses.Contains(status)) return Validation("Trạng thái lịch làm không hợp lệ.");
+        if (Has(body, "employeeId") || Has(body, "shiftId") || Has(body, "date"))
+        {
+            await using var history = new SqlCommand("SELECT COUNT(*) FROM dbo.Attendance WHERE Schedule_ID=@id", c);
+            history.Parameters.AddWithValue("@id", key.Value);
+            if (Convert.ToInt32(await history.ExecuteScalarAsync(ct)) > 0)
+                return OperationResult<object>.Fail("HAS_HISTORY", "Lịch làm việc đã có dữ liệu chấm công, không được đổi nhân viên, ca làm hoặc ngày làm.", StatusCodes.Status409Conflict);
+            var conflict = await CheckScheduleConflictsAsync(c, null, employee, date, shift, key.Value, ct);
+            if (conflict is not null) return conflict;
+        }
+        var changes = new List<string>(); var p = new List<(string, object)> { ("@id", key.Value) };
+        if (Has(body, "employeeId")) Add(changes, p, "Employee_ID", "@employee", employee);
+        if (Has(body, "shiftId")) Add(changes, p, "Shift_ID", "@shift", shift);
+        Add(changes, p, "Work_Date", "@date", Date(body, "date")); Add(changes, p, "Status", "@status", status);
+        return await UpdatedAsync(c, "dbo.Work_Schedules", changes, p, ct, () => new { id });
     }
 
     private async Task<OperationResult<object>> UpdateLeaveAsync(IdentityContext actor, string id, JsonElement body, CancellationToken ct)
@@ -342,18 +451,145 @@ public sealed class ManagementService(SqlConnectionFactory connections)
     private async Task<OperationResult<object>> DecideLeaveCoreAsync(IdentityContext actor, string id, DecisionRequest request, CancellationToken ct)
     {
         if (!actor.IsManagement) return Forbidden(); var key = ParseId(id, "leave"); if (key is null) return NotFound(); if (request.Status is not ("Approved" or "Rejected")) return Validation("Trạng thái phải là Approved hoặc Rejected.");
-        await using var c = await connections.OpenAsync(ct); var n = await ExecuteNonQueryAsync(c, "UPDATE dbo.Leave_Requests SET Status=@status, Approved_By=@by WHERE Leave_ID=@id AND Status='Pending'", ct, ("@status", request.Status), ("@by", Db(actor.EmployeeId)), ("@id", key.Value)); return n == 0 ? OperationResult<object>.Fail("ALREADY_PROCESSED", "Đơn nghỉ không tồn tại hoặc đã xử lý.", StatusCodes.Status409Conflict) : OperationResult<object>.Ok(new { id, status = request.Status });
+        await using var c = await connections.OpenAsync(ct); await using var tx = (SqlTransaction)await c.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        try
+        {
+            await using var find = new SqlCommand("SELECT Employee_ID, Start_Date, End_Date, Status FROM dbo.Leave_Requests WITH (UPDLOCK,HOLDLOCK) WHERE Leave_ID=@id", c, tx);
+            find.Parameters.AddWithValue("@id", key.Value);
+            await using var reader = await find.ExecuteReaderAsync(ct);
+            if (!await reader.ReadAsync(ct)) { await tx.RollbackAsync(ct); return NotFound(); }
+            var (employee, start, end, status) = (reader.GetInt32(0), DateOnly.FromDateTime(reader.GetDateTime(1)), DateOnly.FromDateTime(reader.GetDateTime(2)), reader.GetString(3));
+            await reader.CloseAsync();
+            if (status != "Pending") { await tx.RollbackAsync(ct); return OperationResult<object>.Fail("ALREADY_PROCESSED", "Đơn nghỉ không tồn tại hoặc đã xử lý.", StatusCodes.Status409Conflict); }
+            await ExecuteNonQueryAsync(c, "UPDATE dbo.Leave_Requests SET Status=@status, Approved_By=@by WHERE Leave_ID=@id", ct, tx, ("@status", request.Status), ("@by", Db(actor.EmployeeId)), ("@id", key.Value));
+            if (request.Status == "Approved")
+                await ExecuteNonQueryAsync(c, "UPDATE dbo.Work_Schedules SET Status='OnLeave' WHERE Employee_ID=@e AND Work_Date>=@start AND Work_Date<=@end AND Status='Scheduled'", ct, tx, ("@e", employee), ("@start", start), ("@end", end));
+            await tx.CommitAsync(ct); return OperationResult<object>.Ok(new { id, status = request.Status });
+        }
+        catch { await tx.RollbackAsync(ct); throw; }
     }
 
     private async Task<OperationResult<object>> CheckInCoreAsync(IdentityContext actor, JsonElement body, CancellationToken ct)
     {
-        var scheduleId = ParseId(Value(body, "scheduleId"), "schedule"); if (scheduleId is null) return Validation("Lịch làm không hợp lệ."); await using var c = await connections.OpenAsync(ct); var owner = await ScalarIntOrMissingAsync(c, "SELECT Employee_ID FROM dbo.Work_Schedules WHERE Schedule_ID=@id", ct, null, ("@id", scheduleId.Value)); if (owner < 0) return NotFound("Không tìm thấy lịch làm."); if (!actor.IsManagement && actor.EmployeeId != owner) return Forbidden();
+        var scheduleId = ParseId(Value(body, "scheduleId"), "schedule"); if (scheduleId is null) return Validation("Lịch làm không hợp lệ.");
+        await using var c = await connections.OpenAsync(ct);
+        await using var find = new SqlCommand("SELECT Employee_ID, Work_Date, Status FROM dbo.Work_Schedules WHERE Schedule_ID=@id", c);
+        find.Parameters.AddWithValue("@id", scheduleId.Value);
+        await using var reader = await find.ExecuteReaderAsync(ct);
+        if (!await reader.ReadAsync(ct)) return NotFound("Không tìm thấy lịch làm.");
+        var (owner, workDate, scheduleStatus) = (reader.GetInt32(0), DateOnly.FromDateTime(reader.GetDateTime(1)), reader.GetString(2));
+        await reader.CloseAsync();
+        if (!actor.IsManagement && actor.EmployeeId != owner) return Forbidden();
+        if (scheduleStatus == "OnLeave") return OperationResult<object>.Fail("OUTSIDE_SCHEDULE", "Ca làm việc này đã được duyệt nghỉ phép (OnLeave), không được phép chấm công.", StatusCodes.Status409Conflict);
+        if (scheduleStatus != "Scheduled") return OperationResult<object>.Fail("OUTSIDE_SCHEDULE", "Lịch làm việc không ở trạng thái sẵn sàng để chấm công.", StatusCodes.Status409Conflict);
+        if (workDate != DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7))) return OperationResult<object>.Fail("OUTSIDE_SCHEDULE", "Chỉ được chấm công đúng ngày của ca làm việc.", StatusCodes.Status409Conflict);
+        await using var leave = new SqlCommand("SELECT COUNT(*) FROM dbo.Leave_Requests WHERE Employee_ID=@e AND Status='Approved' AND @date BETWEEN Start_Date AND End_Date", c);
+        leave.Parameters.AddWithValue("@e", owner); leave.Parameters.AddWithValue("@date", workDate);
+        if (Convert.ToInt32(await leave.ExecuteScalarAsync(ct)) > 0) return OperationResult<object>.Fail("OUTSIDE_SCHEDULE", "Bạn đang trong thời gian nghỉ phép đã được phê duyệt, không thể chấm công.", StatusCodes.Status409Conflict);
+        await using var dup = new SqlCommand("SELECT COUNT(*) FROM dbo.Attendance WHERE Schedule_ID=@id", c);
+        dup.Parameters.AddWithValue("@id", scheduleId.Value);
+        if (Convert.ToInt32(await dup.ExecuteScalarAsync(ct)) > 0) return OperationResult<object>.Fail("DUPLICATE_CHECK_IN", "Ca này đã chấm công vào.", StatusCodes.Status409Conflict);
+        await using var open = new SqlCommand("SELECT COUNT(*) FROM dbo.Attendance a JOIN dbo.Work_Schedules s ON s.Schedule_ID=a.Schedule_ID WHERE s.Employee_ID=@e AND a.Check_Out_Time IS NULL", c);
+        open.Parameters.AddWithValue("@e", owner);
+        if (Convert.ToInt32(await open.ExecuteScalarAsync(ct)) > 0) return OperationResult<object>.Fail("OPEN_SHIFT_EXISTS", "Bạn đang có một ca làm việc khác chưa chấm công ra. Vui lòng kết thúc ca trước.", StatusCodes.Status409Conflict);
         var id = await ScalarIntAsync(c, "INSERT INTO dbo.Attendance (Schedule_ID,Check_In_Time,Note) VALUES (@schedule,SYSUTCDATETIME(),@note); SELECT CAST(SCOPE_IDENTITY() AS int);", ct, ("@schedule", scheduleId.Value), ("@note", Db(Value(body, "note")))); return OperationResult<object>.Ok(new { id = Id("attendance", id), scheduleId = Id("schedule", scheduleId.Value), employeeId = Id("e", owner), checkIn = DateTime.UtcNow, checkOut = (DateTime?)null });
     }
 
     private async Task<OperationResult<object>> CheckOutCoreAsync(IdentityContext actor, string id, JsonElement body, CancellationToken ct)
     {
-        var key = ParseId(id, "attendance"); if (key is null) return NotFound(); await using var c = await connections.OpenAsync(ct); var owner = await ScalarIntOrMissingAsync(c, "SELECT s.Employee_ID FROM dbo.Attendance a JOIN dbo.Work_Schedules s ON s.Schedule_ID=a.Schedule_ID WHERE a.Attendance_ID=@id", ct, null, ("@id", key.Value)); if (owner < 0) return NotFound(); if (!actor.IsManagement && actor.EmployeeId != owner) return Forbidden(); var n = await ExecuteNonQueryAsync(c, "UPDATE dbo.Attendance SET Check_Out_Time=SYSUTCDATETIME(), Note=COALESCE(@note,Note) WHERE Attendance_ID=@id AND Check_Out_Time IS NULL", ct, ("@note", Db(Value(body, "note"))), ("@id", key.Value)); return n == 0 ? OperationResult<object>.Fail("ALREADY_PROCESSED", "Đã chấm công ra hoặc không tồn tại.", StatusCodes.Status409Conflict) : OperationResult<object>.Ok(new { id, checkOut = DateTime.UtcNow });
+        var key = ParseId(id, "attendance"); if (key is null) return NotFound(); await using var c = await connections.OpenAsync(ct); var owner = await ScalarIntOrMissingAsync(c, "SELECT s.Employee_ID FROM dbo.Attendance a JOIN dbo.Work_Schedules s ON s.Schedule_ID=a.Schedule_ID WHERE a.Attendance_ID=@id", ct, null, ("@id", key.Value)); if (owner < 0) return NotFound(); if (!actor.IsManagement && actor.EmployeeId != owner) return Forbidden();
+        await using var tx = (SqlTransaction)await c.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        try
+        {
+            var n = await ExecuteNonQueryAsync(c, "UPDATE dbo.Attendance SET Check_Out_Time=SYSUTCDATETIME(), Note=COALESCE(@note,Note) WHERE Attendance_ID=@id AND Check_Out_Time IS NULL", ct, tx, ("@note", Db(Value(body, "note"))), ("@id", key.Value));
+            if (n == 0) { await tx.RollbackAsync(ct); return OperationResult<object>.Fail("ALREADY_PROCESSED", "Đã chấm công ra hoặc không tồn tại.", StatusCodes.Status409Conflict); }
+            await ExecuteNonQueryAsync(c, "UPDATE dbo.Work_Schedules SET Status='Completed' WHERE Schedule_ID=(SELECT Schedule_ID FROM dbo.Attendance WHERE Attendance_ID=@id)", ct, tx, ("@id", key.Value));
+            await tx.CommitAsync(ct); return OperationResult<object>.Ok(new { id, checkOut = DateTime.UtcNow });
+        }
+        catch { await tx.RollbackAsync(ct); throw; }
+    }
+
+    private async Task<OperationResult<object>> AdminCheckOutCoreAsync(IdentityContext actor, string id, JsonElement body, CancellationToken ct)
+    {
+        if (!actor.IsManagement) return Forbidden();
+        var key = ParseId(id, "attendance"); if (key is null) return NotFound();
+        var note = Value(body, "note");
+        if (string.IsNullOrWhiteSpace(note)) return Validation("Vui lòng nhập ghi chú / lý do quản lý can thiệp chốt công ra.");
+
+        await using var c = await connections.OpenAsync(ct);
+        await using var tx = (SqlTransaction)await c.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        try
+        {
+            await using var find = new SqlCommand("SELECT a.Attendance_ID, a.Schedule_ID, a.Check_In_Time, a.Check_Out_Time FROM dbo.Attendance a WITH (UPDLOCK, HOLDLOCK) WHERE a.Attendance_ID = @id", c, tx);
+            find.Parameters.AddWithValue("@id", key.Value);
+            await using var reader = await find.ExecuteReaderAsync(ct);
+            if (!await reader.ReadAsync(ct)) { await tx.RollbackAsync(ct); return NotFound(); }
+            var scheduleId = reader.GetInt32(1);
+            var checkInTime = reader.GetDateTime(2);
+            var isAlreadyCheckedOut = !reader.IsDBNull(3);
+            await reader.CloseAsync();
+
+            if (isAlreadyCheckedOut) { await tx.RollbackAsync(ct); return OperationResult<object>.Fail("ALREADY_PROCESSED", "Ca làm việc này đã được chấm công ra trước đó.", StatusCodes.Status409Conflict); }
+
+            var checkOutTime = DateTime.UtcNow;
+            if (checkOutTime < checkInTime) checkOutTime = checkInTime.AddHours(4);
+
+            await ExecuteNonQueryAsync(c, "UPDATE dbo.Attendance SET Check_Out_Time = @out, Note = CASE WHEN Note IS NULL OR Note = '' THEN @note ELSE Note + N' | Quản lý chốt: ' + @note END WHERE Attendance_ID = @id", ct, tx, ("@out", checkOutTime), ("@note", note), ("@id", key.Value));
+            await ExecuteNonQueryAsync(c, "UPDATE dbo.Work_Schedules SET Status = 'Completed' WHERE Schedule_ID = @sid", ct, tx, ("@sid", scheduleId));
+
+            await tx.CommitAsync(ct);
+            return OperationResult<object>.Ok(new { id, scheduleId = Id("schedule", scheduleId), checkOut = checkOutTime, note });
+        }
+        catch { await tx.RollbackAsync(ct); throw; }
+    }
+
+    private async Task<OperationResult<object>> CalculateMonthlyPayrollCoreAsync(IdentityContext actor, JsonElement body, CancellationToken ct)
+    {
+        if (!actor.IsManagement) return Forbidden();
+        var month = Month(body, "month");
+        if (month is null) return Validation("Tháng tính lương không hợp lệ (định dạng YYYY-MM).");
+
+        await using var c = await connections.OpenAsync(ct);
+        await using var tx = (SqlTransaction)await c.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        try
+        {
+            var employees = new List<(int Id, decimal BaseSalary)>();
+            await using (var empCmd = new SqlCommand("SELECT Employee_ID, Base_Salary FROM dbo.Employees WHERE Status = 'Active'", c, tx))
+            await using (var reader = await empCmd.ExecuteReaderAsync(ct))
+            {
+                while (await reader.ReadAsync(ct))
+                    employees.Add((reader.GetInt32(0), reader.IsDBNull(1) ? 0m : reader.GetDecimal(1)));
+            }
+
+            var createdList = new List<object>();
+            foreach (var emp in employees)
+            {
+                var existsCount = await ScalarIntAsync(c, "SELECT COUNT(*) FROM dbo.Payroll WHERE Employee_ID=@e AND Pay_Month=@m AND Pay_Year=@y", ct, tx, ("@e", emp.Id), ("@m", month.Value.Month), ("@y", month.Value.Year));
+                if (existsCount > 0) continue;
+
+                var baseSalary = emp.BaseSalary;
+                var shiftRate = Math.Round(baseSalary / 26m, 0);
+                var totalScheduled = await ScalarIntAsync(c, "SELECT COUNT(*) FROM dbo.Work_Schedules WHERE Employee_ID=@e AND YEAR(Work_Date)=@y AND MONTH(Work_Date)=@m", ct, tx, ("@e", emp.Id), ("@y", month.Value.Year), ("@m", month.Value.Month));
+                var attendedShifts = await ScalarIntAsync(c, "SELECT COUNT(*) FROM dbo.Attendance a JOIN dbo.Work_Schedules s ON s.Schedule_ID=a.Schedule_ID WHERE s.Employee_ID=@e AND YEAR(s.Work_Date)=@y AND MONTH(s.Work_Date)=@m AND a.Check_In_Time IS NOT NULL", ct, tx, ("@e", emp.Id), ("@y", month.Value.Year), ("@m", month.Value.Month));
+                var paidLeaveShifts = await ScalarIntAsync(c, "SELECT COUNT(*) FROM dbo.Work_Schedules s WHERE s.Employee_ID=@e AND YEAR(s.Work_Date)=@y AND MONTH(s.Work_Date)=@m AND s.Status='OnLeave' AND EXISTS (SELECT 1 FROM dbo.Leave_Requests l WHERE l.Employee_ID=s.Employee_ID AND l.Status='Approved' AND l.Leave_Type='Annual' AND s.Work_Date BETWEEN l.Start_Date AND l.End_Date)", ct, tx, ("@e", emp.Id), ("@y", month.Value.Year), ("@m", month.Value.Month));
+                var unpaidShifts = Math.Max(0, totalScheduled - attendedShifts - paidLeaveShifts);
+                var autoDeduction = unpaidShifts * shiftRate;
+                if (attendedShifts == 0 && paidLeaveShifts == 0 && totalScheduled > 0) autoDeduction = baseSalary;
+
+                var id = await ScalarIntAsync(c, "INSERT INTO dbo.Payroll (Employee_ID,Pay_Month,Pay_Year,Base_Salary,Bonus,Deduction,Status,Workflow_Status) VALUES (@employee,@month,@year,@base,0,@deduction,'Unpaid','Draft'); SELECT CAST(SCOPE_IDENTITY() AS int);", ct, tx, ("@employee", emp.Id), ("@month", month.Value.Month), ("@year", month.Value.Year), ("@base", baseSalary), ("@deduction", autoDeduction));
+                createdList.Add(PayrollObject(id, emp.Id, month.Value, baseSalary, 0, autoDeduction, "Draft"));
+            }
+
+            await tx.CommitAsync(ct);
+            return OperationResult<object>.Ok(new
+            {
+                month = month.Value.ToString("yyyy-MM"),
+                totalActiveEmployees = employees.Count,
+                createdCount = createdList.Count,
+                items = createdList
+            });
+        }
+        catch { await tx.RollbackAsync(ct); throw; }
     }
 
     private async Task<OperationResult<object>> PublishSurveyCoreAsync(IdentityContext actor, string id, JsonElement body, CancellationToken ct)
@@ -391,7 +627,21 @@ public sealed class ManagementService(SqlConnectionFactory connections)
 
     private async Task<OperationResult<object>> SetStatusAsync(IdentityContext actor, string resource, string id, string status, CancellationToken ct)
     {
-        if (resource == "accounts" ? actor.Role != Roles.Admin : !actor.IsManagement) return Forbidden(); var (table, column, prefix) = resource switch { "customers" => ("dbo.Customers", "Customer_ID", "c"), "products" => ("dbo.Products", "Product_ID", "p"), "suppliers" => ("dbo.Suppliers", "Supplier_ID", "supplier"), "employees" => ("dbo.Employees", "Employee_ID", "e"), "accounts" => ("dbo.App_Accounts", "Account_ID", "a"), _ => throw new InvalidOperationException() }; var key = ParseId(id, prefix); if (key is null) return NotFound(); if (resource == "accounts" && key == actor.AccountId) return OperationResult<object>.Fail("SELF_LOCKOUT", "Không thể khóa chính tài khoản hiện tại.", StatusCodes.Status409Conflict); await using var c = await connections.OpenAsync(ct); var n = await ExecuteNonQueryAsync(c, $"UPDATE {table} SET Status=@status{(resource == "accounts" ? ", Updated_At=SYSUTCDATETIME()" : "")} WHERE {column}=@id", ct, ("@status", status), ("@id", key.Value)); return n == 0 ? NotFound() : OperationResult<object>.Ok(new { id, deleted = true, status = resource == "employees" ? "Inactive" : status });
+        if (resource == "accounts" ? actor.Role != Roles.Admin : !actor.IsManagement) return Forbidden();
+        var (table, column, prefix) = resource switch
+        {
+            "customers" => ("dbo.Customers", "Customer_ID", "c"), "products" => ("dbo.Products", "Product_ID", "p"),
+            "suppliers" => ("dbo.Suppliers", "Supplier_ID", "supplier"), "employees" => ("dbo.Employees", "Employee_ID", "e"),
+            "accounts" => ("dbo.App_Accounts", "Account_ID", "a"), "games" => ("dbo.Games", "Game_ID", "g"),
+            _ => throw new InvalidOperationException()
+        };
+        var key = ParseId(id, prefix); if (key is null) return NotFound();
+        if (resource == "accounts" && key == actor.AccountId) return OperationResult<object>.Fail("SELF_LOCKOUT", "Không thể khóa chính tài khoản hiện tại.", StatusCodes.Status409Conflict);
+        await using var c = await connections.OpenAsync(ct);
+        var n = resource == "games"
+            ? await ExecuteNonQueryAsync(c, "UPDATE dbo.Games SET Is_Active=0 WHERE Game_ID=@id", ct, ("@id", key.Value))
+            : await ExecuteNonQueryAsync(c, $"UPDATE {table} SET Status=@status{(resource == "accounts" ? ", Updated_At=SYSUTCDATETIME()" : "")} WHERE {column}=@id", ct, ("@status", status), ("@id", key.Value));
+        return n == 0 ? NotFound() : OperationResult<object>.Ok(new { id, deleted = true, status = resource is "employees" or "games" ? "Inactive" : status });
     }
 
     private async Task<OperationResult<object>> DeleteCategoryAsync(IdentityContext actor, string id, CancellationToken ct)
@@ -406,7 +656,10 @@ public sealed class ManagementService(SqlConnectionFactory connections)
 
     private async Task<OperationResult<object>> DeleteRowAsync(IdentityContext actor, string resource, string id, CancellationToken ct)
     {
-        if (!actor.IsManagement) return Forbidden(); var (table, column, prefix) = resource == "shifts" ? ("dbo.Work_Shifts", "Shift_ID", "shift") : ("dbo.Work_Schedules", "Schedule_ID", "schedule"); var key = ParseId(id, prefix); if (key is null) return NotFound(); await using var c = await connections.OpenAsync(ct); var n = await ExecuteNonQueryAsync(c, $"DELETE FROM {table} WHERE {column}=@id", ct, ("@id", key.Value)); return n == 0 ? NotFound() : OperationResult<object>.Ok(new { id, deleted = true });
+        if (!actor.IsManagement) return Forbidden(); var (table, column, prefix) = resource == "shifts" ? ("dbo.Work_Shifts", "Shift_ID", "shift") : ("dbo.Work_Schedules", "Schedule_ID", "schedule"); var key = ParseId(id, prefix); if (key is null) return NotFound(); await using var c = await connections.OpenAsync(ct);
+        if (resource == "schedules" && await ScalarIntAsync(c, "SELECT COUNT(*) FROM dbo.Attendance WHERE Schedule_ID=@id", ct, ("@id", key.Value)) > 0)
+            return OperationResult<object>.Fail("HAS_HISTORY", "Lịch làm việc đã có dữ liệu chấm công, không thể xóa.", StatusCodes.Status409Conflict);
+        var n = await ExecuteNonQueryAsync(c, $"DELETE FROM {table} WHERE {column}=@id", ct, ("@id", key.Value)); return n == 0 ? NotFound() : OperationResult<object>.Ok(new { id, deleted = true });
     }
 
     private async Task<OperationResult<object>> DeleteSurveyAsync(IdentityContext actor, string id, CancellationToken ct)
@@ -458,6 +711,45 @@ public sealed class ManagementService(SqlConnectionFactory connections)
     private static void Add(List<string> fields, List<(string, object)> parameters, string column, string parameter, object? value) { if (value is not null) { fields.Add($"{column}={parameter}"); parameters.Add((parameter, value)); } }
     private static string KeyColumn(string table) => table switch { "dbo.Computers" => "Computer_ID", "dbo.Customers" => "Customer_ID", "dbo.Product_Categories" => "Category_ID", "dbo.Products" => "Product_ID", "dbo.Suppliers" => "Supplier_ID", "dbo.Feedback" => "Feedback_ID", "dbo.Work_Shifts" => "Shift_ID", "dbo.Work_Schedules" => "Schedule_ID", "dbo.App_Accounts" => "Account_ID", _ => throw new InvalidOperationException("Bảng không hỗ trợ.") };
     private static readonly HashSet<string> ScheduleStatuses = ["Scheduled", "Completed", "Absent", "OnLeave"];
+    private static bool IsShiftOverlapping(TimeSpan s1, TimeSpan e1, TimeSpan s2, TimeSpan e2)
+    {
+        static IEnumerable<(TimeSpan Start, TimeSpan End)> Segments(TimeSpan s, TimeSpan e)
+        {
+            if (e > s) yield return (s, e);
+            else { yield return (s, TimeSpan.FromHours(24)); if (e > TimeSpan.Zero) yield return (TimeSpan.Zero, e); }
+        }
+        foreach (var a in Segments(s1, e1))
+            foreach (var b in Segments(s2, e2))
+                if (a.Start < b.End && b.Start < a.End) return true;
+        return false;
+    }
+    private static async Task<OperationResult<object>?> CheckScheduleConflictsAsync(SqlConnection c, SqlTransaction? tx, int employeeId, DateOnly date, int shiftId, int? excludeScheduleId, CancellationToken ct)
+    {
+        await using var leave = new SqlCommand("SELECT COUNT(*) FROM dbo.Leave_Requests WHERE Employee_ID=@e AND Status='Approved' AND @date BETWEEN Start_Date AND End_Date", c, tx);
+        leave.Parameters.AddWithValue("@e", employeeId); leave.Parameters.AddWithValue("@date", date);
+        if (Convert.ToInt32(await leave.ExecuteScalarAsync(ct)) > 0)
+            return OperationResult<object>.Fail("EMPLOYEE_ON_LEAVE", "Nhân viên đang trong kỳ nghỉ phép đã được duyệt vào ngày này.", StatusCodes.Status409Conflict);
+        await using var dup = new SqlCommand("SELECT COUNT(*) FROM dbo.Work_Schedules WHERE Employee_ID=@e AND Work_Date=@date AND Shift_ID=@shift AND Schedule_ID<>@exclude", c, tx);
+        dup.Parameters.AddWithValue("@e", employeeId); dup.Parameters.AddWithValue("@date", date); dup.Parameters.AddWithValue("@shift", shiftId); dup.Parameters.AddWithValue("@exclude", excludeScheduleId ?? -1);
+        if (Convert.ToInt32(await dup.ExecuteScalarAsync(ct)) > 0)
+            return OperationResult<object>.Fail("SCHEDULE_EXISTS", "Nhân viên đã được phân ca làm việc này trong ngày.", StatusCodes.Status409Conflict);
+        await using var current = new SqlCommand("SELECT Shift_Name, Start_Time, End_Time FROM dbo.Work_Shifts WHERE Shift_ID=@shift", c, tx);
+        current.Parameters.AddWithValue("@shift", shiftId);
+        await using var currentReader = await current.ExecuteReaderAsync(ct);
+        if (!await currentReader.ReadAsync(ct)) return NotFound("Không tìm thấy ca làm.");
+        var (start, end) = (currentReader.GetTimeSpan(1), currentReader.GetTimeSpan(2));
+        await currentReader.CloseAsync();
+        await using var others = new SqlCommand("SELECT sh.Shift_Name, sh.Start_Time, sh.End_Time FROM dbo.Work_Schedules s JOIN dbo.Work_Shifts sh ON sh.Shift_ID=s.Shift_ID WHERE s.Employee_ID=@e AND s.Work_Date=@date AND s.Schedule_ID<>@exclude", c, tx);
+        others.Parameters.AddWithValue("@e", employeeId); others.Parameters.AddWithValue("@date", date); others.Parameters.AddWithValue("@exclude", excludeScheduleId ?? -1);
+        await using var otherReader = await others.ExecuteReaderAsync(ct);
+        while (await otherReader.ReadAsync(ct))
+        {
+            var (otherName, otherStart, otherEnd) = (otherReader.GetString(0), otherReader.GetTimeSpan(1), otherReader.GetTimeSpan(2));
+            if (IsShiftOverlapping(start, end, otherStart, otherEnd))
+                return OperationResult<object>.Fail("SCHEDULE_CONFLICT", $"Khung giờ ca làm bị trùng hoặc giao thoa với ca '{otherName}' ({otherStart:hh\\:mm}-{otherEnd:hh\\:mm}) trong ngày.", StatusCodes.Status409Conflict);
+        }
+        return null;
+    }
     private static string? Value(JsonElement body, string name) => body.ValueKind == JsonValueKind.Object && body.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString()?.Trim() : null;
     private static string? Required(JsonElement body, string name) => string.IsNullOrWhiteSpace(Value(body, name)) ? null : Value(body, name);
     private static bool Has(JsonElement body, string name) => body.ValueKind == JsonValueKind.Object && body.TryGetProperty(name, out _);

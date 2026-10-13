@@ -108,13 +108,19 @@ api.MapGet("/attendance", [Authorize] async (HttpContext context, ManagementRepo
     Results.Ok(Api.List(await repository.AttendanceAsync(context.User.IdentityContext(), ct), context.Request)));
 api.MapGet("/payroll", [Authorize] async (HttpContext context, ManagementRepository repository, CancellationToken ct) =>
     Results.Ok(Api.List(await repository.PayrollAsync(context.User.IdentityContext(), ct), context.Request)));
-api.MapGet("/accounts", [Authorize] async (HttpContext context, ManagementRepository repository, CancellationToken ct) =>
+api.MapGet("/accounts", [Authorize(Roles = Roles.Admin)] async (HttpContext context, ManagementRepository repository, CancellationToken ct) =>
     Results.Ok(Api.List(await repository.AccountsAsync(context.User.IdentityContext(), ct), context.Request)));
+api.MapGet("/combos", [Authorize] async (HttpContext context, CafeRepository repository, CancellationToken ct) =>
+    Results.Ok(Api.List(await repository.CombosAsync(ct), context.Request)));
+api.MapGet("/games", [Authorize] async (HttpContext context, CafeRepository repository, CancellationToken ct) =>
+    Results.Ok(Api.List(await repository.GamesAsync(ct), context.Request)));
 
 api.MapPost("/sessions/start", [Authorize(Roles = Roles.Customer)] async (HttpContext context, StartSessionRequest request, BusinessService service, CancellationToken ct) =>
     (await service.StartSessionAsync(context.User.IdentityContext(), request, ct)).ToResult());
 api.MapPost("/sessions/{id}/end", [Authorize] async (HttpContext context, string id, BusinessService service, CancellationToken ct) =>
     (await service.EndSessionAsync(context.User.IdentityContext(), id, ct)).ToResult());
+api.MapPost("/sessions/{id}/transfer", [Authorize] async (HttpContext context, string id, TransferSessionRequest request, BusinessService service, CancellationToken ct) =>
+    (await service.TransferSessionAsync(context.User.IdentityContext(), id, request, ct)).ToResult());
 api.MapPost("/orders", [Authorize(Roles = Roles.Customer)] async (HttpContext context, CreateOrderRequest request, BusinessService service, CancellationToken ct) =>
     (await service.CreateOrderAsync(context.User.IdentityContext(), request, ct)).ToResult());
 api.MapPost("/orders/{id}/transition", [Authorize] async (HttpContext context, string id, TransitionRequest request, BusinessService service, CancellationToken ct) =>
@@ -123,12 +129,18 @@ api.MapPost("/topups", [Authorize(Roles = Roles.Customer)] async (HttpContext co
     (await service.CreateTopupAsync(context.User.IdentityContext(), request, ct)).ToResult());
 api.MapPost("/topups/{id}/decision", [Authorize] async (HttpContext context, string id, DecisionRequest request, BusinessService service, CancellationToken ct) =>
     (await service.DecideTopupAsync(context.User.IdentityContext(), id, request, ct)).ToResult());
+api.MapPost("/customers/{id}/topup", [Authorize(Roles = Roles.Owner + "," + Roles.Manager + "," + Roles.Cashier)] async (HttpContext context, string id, AdminTopupRequest request, BusinessService service, CancellationToken ct) =>
+    (await service.AdminTopupAsync(context.User.IdentityContext(), id, request, ct)).ToResult());
+api.MapPost("/customers/{id}/refund", [Authorize(Roles = Roles.Owner + "," + Roles.Manager + "," + Roles.Cashier)] async (HttpContext context, string id, RefundRequest request, BusinessService service, CancellationToken ct) =>
+    (await service.RefundCustomerBalanceAsync(context.User.IdentityContext(), id, request, ct)).ToResult());
 api.MapPost("/computers/{id}/command", [Authorize] async (HttpContext context, string id, ComputerCommandRequest request, BusinessService service, CancellationToken ct) =>
     (await service.CommandComputerAsync(context.User.IdentityContext(), id, request, ct)).ToResult());
 api.MapPost("/machines/{id}/heartbeat", [Authorize] async (HttpContext context, string id, BusinessService service, CancellationToken ct) =>
     (await service.HeartbeatAsync(context.User.IdentityContext(), id, ct)).ToResult());
 api.MapGet("/reports/summary", [Authorize(Roles = Roles.Owner + "," + Roles.Manager + "," + Roles.Cashier)] async (DateOnly? from, DateOnly? to, CafeRepository repository, CancellationToken ct) =>
     Results.Ok(Api.Data(await repository.ReportAsync(from, to, ct))));
+api.MapGet("/reports/analytics", [Authorize(Roles = Roles.Owner + "," + Roles.Manager)] async (DateOnly? from, DateOnly? to, CafeRepository repository, CancellationToken ct) =>
+    Results.Ok(Api.Data(await repository.AnalyticsReportAsync(from, to, ct))));
 
 // The workspace is the authorization-aware read model. Detail routes select from
 // that model so a caller can never bypass row-level filtering by guessing an ID.
@@ -162,6 +174,10 @@ api.MapPost("/attendance/check-in", [Authorize] async (HttpContext context, Json
     (await service.CheckInAsync(context.User.IdentityContext(), body, ct)).ToResult());
 api.MapPost("/attendance/{id}/check-out", [Authorize] async (HttpContext context, string id, JsonElement body, ManagementService service, CancellationToken ct) =>
     (await service.CheckOutAsync(context.User.IdentityContext(), id, body, ct)).ToResult());
+api.MapPost("/attendance/{id}/admin-checkout", [Authorize(Roles = Roles.Owner + "," + Roles.Manager)] async (HttpContext context, string id, JsonElement body, ManagementService service, CancellationToken ct) =>
+    (await service.AdminCheckOutAsync(context.User.IdentityContext(), id, body, ct)).ToResult());
+api.MapPost("/payroll/calculate-month", [Authorize(Roles = Roles.Owner + "," + Roles.Manager)] async (HttpContext context, JsonElement body, ManagementService service, CancellationToken ct) =>
+    (await service.CalculateMonthlyPayrollAsync(context.User.IdentityContext(), body, ct)).ToResult());
 api.MapPost("/surveys/{id}/publish", [Authorize] async (HttpContext context, string id, JsonElement body, ManagementService service, CancellationToken ct) =>
     (await service.PublishSurveyAsync(context.User.IdentityContext(), id, body, ct)).ToResult());
 api.MapPost("/surveys/{id}/responses", [Authorize] async (HttpContext context, string id, JsonElement body, ManagementService service, CancellationToken ct) =>

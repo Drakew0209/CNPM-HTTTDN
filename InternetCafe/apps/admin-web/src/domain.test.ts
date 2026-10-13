@@ -8,12 +8,12 @@ describe('report revenue ledger', () => {
       { id: 'refund', type: 'Refund', amount: 10000 }, { id: 'topup', type: 'TopUp', amount: 200000 },
       { id: 'other', type: 'Pending', amount: 900000 },
     ];
-    expect(revenue(rows)).toEqual({ rental: 20000, food: 35000, refund: 10000, net: 45000, topup: 200000 });
+    expect(revenue(rows)).toEqual({ rental: 20000, food: 35000, refund: 10000, withdraw: 0, net: 45000, topup: 200000 });
     expect(revenue(rows.filter(row => row.type !== 'TopUp')).net).toBe(revenue(rows).net);
   });
   it('allows a refund-only reporting period to have negative net revenue', () => {
-    expect(revenue([{ id: 'refund', type: 'Refund', amount: 50000 }])).toEqual({ rental: 0, food: 0, refund: 50000, net: -50000, topup: 0 });
-    expect(revenue([])).toEqual({ rental: 0, food: 0, refund: 0, net: 0, topup: 0 });
+    expect(revenue([{ id: 'refund', type: 'Refund', amount: 50000 }])).toEqual({ rental: 0, food: 0, refund: 50000, withdraw: 0, net: -50000, topup: 0 });
+    expect(revenue([])).toEqual({ rental: 0, food: 0, refund: 0, withdraw: 0, net: 0, topup: 0 });
   });
   it('does not modify source transactions while aggregating', () => {
     const row = Object.freeze({ id: 'tx', type: 'Rental', amount: 15000 });

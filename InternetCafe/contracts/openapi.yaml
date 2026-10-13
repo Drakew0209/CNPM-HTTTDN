@@ -5636,6 +5636,68 @@ paths:
           $ref: "#/components/responses/Error422"
         "500":
           $ref: "#/components/responses/Error500"
+  /customers/{id}/topup:
+    post:
+      tags:
+        - customers
+      operationId: post_customers_id_topup
+      summary: Admin direct top-up for customer
+      description: Direct TopUp without TopUp_Requests approval. Inserts one TopUp Transaction;
+        DB triggers update Customers.Balance and create TopUp_Receipts. Owner/Manager/Cashier
+        only. Amount 1000..10000000 VND.
+      x-roles:
+        - Owner
+        - Manager
+        - Cashier
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminTopupRequest"
+            example:
+              amount: 100000
+      responses:
+        "201":
+          description: Created
+          headers:
+            Date:
+              description: HTTP server date used to estimate client clock offset. Exposed through CORS in HTTP mock host.
+              schema:
+                type: string
+              example: Sat, 03 Oct 2026 05:00:00 GMT
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Transaction"
+                required:
+                  - data
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "405":
+          $ref: "#/components/responses/Error405"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "413":
+          $ref: "#/components/responses/Error413"
+        "415":
+          $ref: "#/components/responses/Error415"
+        "422":
+          $ref: "#/components/responses/Error422"
+        "500":
+          $ref: "#/components/responses/Error500"
   /computers/{id}/command:
     post:
       tags:
@@ -6799,6 +6861,17 @@ components:
         amount: 200000
         createdAt: 2026-10-03T02:00:00.000Z
         referenceId: topup-approved
+    AdminTopupRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        amount:
+          type: integer
+          format: int64
+          minimum: 1000
+          maximum: 10000000
+      required:
+        - amount
     Supplier:
       type: object
       additionalProperties: false
