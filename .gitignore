@@ -1,3 +1,40 @@
+# Node dependencies & Vite build
+node_modules/
+.npm/
+.vite/
+
+# .NET & MSBuild artifacts
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# IDE & Editor caches
+.vs/
+.idea/
+.vscode/
+*.swp
+
+# Build output & Temp directories
+dist/
+!docs/client/
+Temp/
+Backend/
+WebAdmin/
+InternetCafe/scratch/
+.build-check*
+*.log
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Agent internal caches
 .omx/
 .codex/
 .codex/*
@@ -9,15 +46,4 @@
 !.codex/prompts/
 !.codex/prompts/**
 AGENTS.md
-.pdf
-node_modules/
-bin/
-obj/
-dist/
-Temp/
-Backend/
-WebAdmin/
-InternetCafe/scratch/
-.build-check*
-*.user
-*.log
+
