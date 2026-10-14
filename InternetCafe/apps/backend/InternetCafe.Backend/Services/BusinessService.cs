@@ -192,7 +192,44 @@ public sealed class BusinessService(SqlConnectionFactory connections, IHubContex
             command.Parameters.AddWithValue("@customerId", identity.CustomerId.Value); command.Parameters.AddWithValue("@amount", request.Amount); command.Parameters.AddWithValue("@note", (object?)request.Note?.Trim() ?? DBNull.Value); command.Parameters.AddWithValue("@key", (object?)request.IdempotencyKey ?? DBNull.Value);
             await using var reader = await command.ExecuteReaderAsync(ct); await reader.ReadAsync(ct);
             var item = new TopupDto(CafeRepository.Id("topup", reader.GetInt32(0)), CafeRepository.Id("c", identity.CustomerId.Value), request.Amount, "Pending", request.Note?.Trim() ?? "", reader.GetDateTime(1));
-            await NotifyAsync("TopupRequested", item.Id, new { topupId = item.Id }, ct);
+            await reader.CloseAsync();
+
+            string customerName = string.IsNullOrWhiteSpace(identity.Username) ? "Khách hàng" : identity.Username;
+            string? computerCode = null;
+            try
+            {
+                await using var infoCmd = new SqlCommand("""
+                    SELECT c.Full_Name, pc.Computer_Code
+                    FROM dbo.Customers c
+                    LEFT JOIN dbo.Usage_Sessions s ON s.Customer_ID = c.Customer_ID AND s.Status = 'Active'
+                    LEFT JOIN dbo.Computers pc ON pc.Computer_ID = s.Computer_ID
+                    WHERE c.Customer_ID = @cid
+                    """, connection);
+                infoCmd.Parameters.AddWithValue("@cid", identity.CustomerId.Value);
+                await using var infoReader = await infoCmd.ExecuteReaderAsync(ct);
+                if (await infoReader.ReadAsync(ct))
+                {
+                    customerName = infoReader.IsDBNull(0) ? customerName : infoReader.GetString(0);
+                    computerCode = infoReader.IsDBNull(1) ? null : infoReader.GetString(1);
+                }
+            }
+            catch { }
+
+            var noteStr = request.Note?.Trim() ?? "";
+            var isTransfer = noteStr.Contains("Chuyển khoản", StringComparison.OrdinalIgnoreCase) || noteStr.Contains("VietQR", StringComparison.OrdinalIgnoreCase);
+            var paymentMethod = isTransfer ? "Transfer" : "Cash";
+
+            await NotifyAsync("TopupRequested", item.Id, new
+            {
+                topupId = item.Id,
+                customerId = item.CustomerId,
+                customerName,
+                computerCode,
+                amount = item.Amount,
+                paymentMethod,
+                note = item.Note,
+                createdAt = item.CreatedAt
+            }, ct);
             return OperationResult<object>.Ok(item);
         }
         catch (SqlException exception) when (exception.Number is 2601 or 2627)

@@ -15,19 +15,14 @@ export function StaffPage() {
   const [dialog, setDialog] = useState<'profile' | 'leave' | 'password' | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [month, setMonth] = useState(localDay().slice(0, 7));
-  const [year, setYear] = useState(localDay().slice(0, 4));
   const [form] = Form.useForm();
   const employee = (workspace.employees || []).find(row => row.id === session.user.id);
   const schedules = (workspace.schedules || []).filter(row => row.employeeId === session.user.id);
   const attendance = (workspace.attendance || []).filter(row => row.employeeId === session.user.id);
   const leaves = (workspace.leaves || []).filter(row => row.employeeId === session.user.id);
-  const payroll = (workspace.payroll || []).filter(row => row.employeeId === session.user.id);
   const today = localDay();
   const todaysSchedules = schedules.filter(row => row.date === today);
   const openAttendance = attendance.find(row => !row.checkOut);
-  const monthlyPayroll = payroll.filter(row => !month || row.month === month);
-  const annualTotal = payroll.filter(row => String(row.month).startsWith(`${year}-`)).reduce((sum, row) => sum + Number(row.total || 0), 0);
   const shiftLabel = (id: unknown) => {
     const shift = (workspace.shifts || []).find(row => row.id === id);
     return shift ? `${shift.name} · ${shift.startTime}–${shift.endTime}` : String(id || '—');
@@ -98,7 +93,6 @@ export function StaffPage() {
       <Metric title="Ca làm hôm nay" value={todaysSchedules.length} note={todaysSchedules.length ? shiftLabel(todaysSchedules[0].shiftId) : 'Hôm nay chưa có lịch phân công'} icon={<CalendarOutlined />} />
       <Metric title="Trạng thái chấm công" value={openAttendance ? 'Trong ca' : 'Ngoài ca'} note={openAttendance ? `Vào lúc ${dateTime(openAttendance.checkIn)}` : 'Chấm công theo lịch được phân công'} icon={<ClockCircleOutlined />} />
       <Metric title="Đơn nghỉ chờ duyệt" value={leaves.filter(row => row.status === 'Pending').length} note="Quản lý sẽ xử lý yêu cầu của bạn" icon={<UserOutlined />} />
-      <Metric title="Lương tháng hiện tại" value={money(payroll.find(row => row.month === today.slice(0, 7))?.total)} note="Theo bảng lương hiện có tại service" icon={<DollarOutlined />} />
     </div>
     <Tabs items={[
       { key: 'schedule', label: 'Lịch làm & chấm công', children: <>
@@ -110,14 +104,7 @@ export function StaffPage() {
         { title: 'Từ ngày', dataIndex: 'startDate' }, { title: 'Đến ngày', dataIndex: 'endDate' },
         { title: 'Lý do', dataIndex: 'reason' }, { title: 'Trạng thái', dataIndex: 'status', render: value => <StatusTag value={value} /> },
       ]} /></Card> },
-      { key: 'payroll', label: 'Phiếu lương', children: <Card className="data-card" title="Bảng lương cá nhân">
-        <div className="table-toolbar"><label>Tháng <Input aria-label="Tháng lương" type="month" value={month} onChange={e => setMonth(e.target.value)} /></label><label>Năm tổng hợp <Input aria-label="Năm tổng hợp" type="number" min={2000} max={2100} value={year} onChange={e => setYear(e.target.value)} /></label><Tag color="cyan">Tổng năm {year}: {money(annualTotal)}</Tag><PrintButton title={`Phiếu lương ${month || 'tất cả'}`} rows={monthlyPayroll} keys={['employeeId', 'month', 'baseSalary', 'bonus', 'deduction', 'total', 'status']} workspace={workspace} /></div>
-        <Alert type="info" showIcon title="Số liệu lương do service cung cấp. Bản nháp chưa phải số tiền đã thanh toán." className="section-alert" />
-        <Table rowKey="id" dataSource={monthlyPayroll} scroll={{ x: 720 }} locale={{ emptyText: <EmptyState description="Chưa có bảng lương cho tháng này." /> }} columns={[
-          { title: 'Tháng', dataIndex: 'month' }, { title: 'Lương cơ bản', dataIndex: 'baseSalary', render: money }, { title: 'Thưởng', dataIndex: 'bonus', render: money },
-          { title: 'Khấu trừ', dataIndex: 'deduction', render: money }, { title: 'Thực nhận', dataIndex: 'total', render: money }, { title: 'Trạng thái', dataIndex: 'status', render: value => <StatusTag value={value} /> },
-        ]} />
-      </Card> },
+      
       { key: 'profile', label: 'Hồ sơ & bảo mật', children: <Card title="Thông tin cá nhân" extra={<Space><Button onClick={() => openDialog('profile')}>Sửa hồ sơ</Button><Button onClick={() => openDialog('password')}>Đổi mật khẩu</Button></Space>}>
         {employee ? <Descriptions bordered column={{ xs: 1, sm: 2 }} items={[
           { key: 'name', label: 'Họ tên', children: String(employee.fullName) }, { key: 'phone', label: 'Điện thoại', children: String(employee.phone || '—') },

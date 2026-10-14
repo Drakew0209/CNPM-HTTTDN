@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Alert, App, Button, Card, Checkbox, Descriptions, Divider, Form, Input, InputNumber, Modal, Select, Space, Switch, Table, Tag, Tooltip } from 'antd';
-import { CalculatorOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, EyeOutlined, LockOutlined, PlusOutlined, SearchOutlined, SendOutlined, UnlockOutlined } from '@ant-design/icons';
+import { DeleteOutlined, DownloadOutlined, EditOutlined, EyeOutlined, LockOutlined, PlusOutlined, SearchOutlined, SendOutlined, UnlockOutlined, WalletOutlined } from '@ant-design/icons';
 import { api, ApiError } from './api';
 import { dateTime, downloadCsv, filterDates, labels, money, type Row } from './domain';
 import { columnLabels, type Field, type Module } from './modules';
@@ -16,18 +16,18 @@ export function ResourcePage({ module, readonly = false }: { module: Module; rea
   const [selectedCombo,setSelectedCombo]=useState<string|null>(null);
   const [withdrawCustomer,setWithdrawCustomer]=useState<Row|null>(null),[withdrawAmount,setWithdrawAmount]=useState<number>(50000),[withdrawNote,setWithdrawNote]=useState<string>('');
   const [adminCheckoutRow,setAdminCheckoutRow]=useState<Row|null>(null),[adminCheckoutNote,setAdminCheckoutNote]=useState<string>('Quản lý chốt công cuối ca');
-  const [payrollCalcOpen,setPayrollCalcOpen]=useState(false),[payrollMonth,setPayrollMonth]=useState<string>(new Date().toISOString().slice(0,7));
+  const [directTopupOpen,setDirectTopupOpen]=useState(false),[directCustomerId,setDirectCustomerId]=useState<string>('');
   const canEdit=!readonly && (module.editRoles || module.roles).includes(session.user.role);
   const all=workspace[module.key] || [];
   const dateField=module.key==='sessions'?'startTime':module.key==='attendance'?'checkIn':'createdAt';
   const rows=filterDates(all,from,to,dateField).filter(row=>(!status||row.status===status)&&(!search||[row.id,...module.columns.map(k=>displayValue(k,row[k],workspace))].join(' ').toLocaleLowerCase('vi').includes(search.toLocaleLowerCase('vi'))));
   const lowStockItems=(workspace.products||[]).filter(p=>Number(p.stock)<=5);
   useEffect(()=>{
-    if(!topupCustomer)return;
+    if(!topupCustomer && !directTopupOpen) return;
     api<{data?:any[]}|any[]>('/combos','GET')
       .then(res=>{const list=Array.isArray(res)?res:((res as any)?.data||[]);setCombos(list);})
       .catch(()=>setCombos([]));
-  },[topupCustomer]);
+  },[topupCustomer, directTopupOpen]);
   async function act(path:string,body:unknown,success:string,method='POST') {
     setBusy(true);try {await api(path,method,body);await refresh();message.success(success);}catch(e){message.error((e as Error).message);throw e;}finally{setBusy(false);}
   }
@@ -36,7 +36,7 @@ export function ResourcePage({ module, readonly = false }: { module: Module; rea
   useEffect(() => {
     if (editor === null) return;
     form.resetFields();
-    const defaults: Record<string, unknown> = { active:true, tier:'Member', status:module.key==='payroll'?'Draft':module.key==='schedules'?'Scheduled':'Active', type:'Import', quantity:1, bonus:0, deduction:0 };
+    const defaults: Record<string, unknown> = { active:true, tier:'Member', status:module.key==='schedules'?'Scheduled':'Active', type:'Import', quantity:1, bonus:0, deduction:0 };
     form.setFieldsValue(editor === 'new' ? {...defaults, questions:[{text:'Bạn hài lòng với dịch vụ như thế nào?', optionsText:'Rất hài lòng\nHài lòng\nCần cải thiện'}]} : {...editor, questions:Array.isArray(editor.questions) ? editor.questions.map(q => ({...q, optionsText:q.options.join('\n')})) : undefined});
   }, [editor, form, module.key]);
   async function save(values:Record<string,unknown>) {
@@ -129,7 +129,7 @@ export function ResourcePage({ module, readonly = false }: { module: Module; rea
       )}
     </div>}];
   return <>
-    <PageTitle eyebrow={readonly?'INTERNETCAFE / TRA CỨU HỆ THỐNG':module.section.toLocaleUpperCase('vi')} title={module.title} description={module.description} actions={<Space wrap><Button icon={<DownloadOutlined/>} onClick={()=>downloadCsv(module.key,rows,module.columns.map(key=>({key,label:columnLabels[key]||key})))}>Xuất CSV</Button>{canEdit&&module.key==='payroll'&&<Button icon={<CalculatorOutlined/>} onClick={()=>setPayrollCalcOpen(true)}>Tính lương tháng</Button>}{canEdit&&module.create&&<Button type="primary" icon={<PlusOutlined/>} onClick={()=>openEditor('new')}>Thêm {module.singular}</Button>}</Space>}/>
+    <PageTitle eyebrow={readonly?'INTERNETCAFE / TRA CỨU HỆ THỐNG':module.section.toLocaleUpperCase('vi')} title={module.title} description={module.description} actions={<Space wrap>{canEdit&&(module.key==='topups'||module.key==='customers')&&<Button type="primary" icon={<WalletOutlined/>} style={{background:'linear-gradient(135deg, #10b981, #059669)',borderColor:'#10b981'}} onClick={()=>{setDirectCustomerId('');setTopupAmount(50000);setSelectedCombo(null);setDirectTopupOpen(true);}}>Nạp tiền tại quầy</Button>}<Button icon={<DownloadOutlined/>} onClick={()=>downloadCsv(module.key,rows,module.columns.map(key=>({key,label:columnLabels[key]||key})))}>Xuất CSV</Button>{canEdit&&module.create&&<Button type="primary" icon={<PlusOutlined/>} onClick={()=>openEditor('new')}>Thêm {module.singular}</Button>}</Space>}/>
     {module.key==='inventory'&&(lowStockItems.length>0?<Alert className="section-alert" type="warning" showIcon title={`Cảnh báo: Có ${lowStockItems.length} món tồn kho thấp (≤ 5) hoặc đã hết hàng!`} description={`Các món cần nhập thêm: ${lowStockItems.slice(0, 5).map(p=>`${p.name} (còn ${p.stock})`).join(', ')}${lowStockItems.length>5?'...':''}. Vui lòng liên hệ nhà cung cấp để lập phiếu nhập kho.`}/>:<Alert className="section-alert" type="success" showIcon title="Tồn kho an toàn" description="Tất cả các món đều có số lượng tồn kho đảm bảo sẵn sàng phục vụ khách hàng."/>)}
     {module.key==='accounts'&&<Alert className="section-alert" type="info" showIcon title="Admin quản lý truy cập. Owner/Manager vận hành quán. Staff chỉ xem dữ liệu cá nhân."/>}
     <Card className="data-card"><div className="table-toolbar"><Input prefix={<SearchOutlined/>} placeholder={`Tìm trong ${module.title.toLocaleLowerCase('vi')}…`} aria-label="Tìm kiếm" allowClear value={search} onChange={e=>setSearch(e.target.value)} className="search-input"/>{module.statuses&&<Select placeholder="Tất cả trạng thái" aria-label="Lọc trạng thái" allowClear value={status} onChange={setStatus} style={{minWidth:165}} options={module.statuses.map(value=>({value,label:labels[value]}))}/>}<Tag>{rows.length} bản ghi</Tag></div>{module.dates&&<DateFilter from={from} to={to} onFrom={setFrom} onTo={setTo}/>}<Table rowKey="id" columns={columns} dataSource={rows} scroll={{x:'max-content'}} pagination={{pageSize:8,showSizeChanger:true,pageSizeOptions:[8,20,50],showTotal:total=>`${total} bản ghi`}} locale={{emptyText:<EmptyState/>}}/></Card>
@@ -153,6 +153,29 @@ export function ResourcePage({ module, readonly = false }: { module: Module; rea
       {combos.length>0&&<div style={{marginBottom:14}}><p style={{marginBottom:6,fontWeight:500}}>Chọn gói Combo ưu đãi (nạp tiền nhận thêm số dư):</p><Space wrap size={[6,6]}><Tag.CheckableTag checked={selectedCombo===null} onChange={()=>setSelectedCombo(null)}>Tự nhập số tiền</Tag.CheckableTag>{combos.filter(c=>c.isActive!==false).map(c=><Tag.CheckableTag key={c.id} checked={selectedCombo===c.id} onChange={()=>{setSelectedCombo(c.id);setTopupAmount(c.price);}}>{c.name} ({money(c.price)} → nhận {money(c.totalValue||(c.price+c.bonusBalance))})</Tag.CheckableTag>)}</Space></div>}
       <InputNumber aria-label="Số tiền nạp" min={1000} max={10000000} step={1000} precision={0} style={{width:'100%'}} addonAfter="VND" value={topupAmount} onChange={v=>{setSelectedCombo(null);setTopupAmount(Number(v||0));}}/>
     </Modal>
+    <Modal open={directTopupOpen} title="Nạp tiền trực tiếp tại quầy thu ngân" onCancel={()=>setDirectTopupOpen(false)} confirmLoading={busy} okText="Xác nhận thu tiền & Nạp" okButtonProps={{disabled:!directCustomerId}} onOk={async()=>{if(!directCustomerId){message.error('Vui lòng chọn khách hàng.');return;}if(!topupAmount||topupAmount<1000||topupAmount>10000000){message.error('Số tiền nạp từ 1.000 đến 10.000.000 đồng.');return;}await act(`/customers/${directCustomerId}/topup`,{amount:topupAmount,comboId:selectedCombo||undefined},'Nạp tiền tại quầy thành công.');setDirectTopupOpen(false);}}>
+      <div style={{marginBottom:14}}>
+        <label style={{display:'block',marginBottom:6,fontWeight:500}}>Chọn tài khoản khách hàng:</label>
+        <Select showSearch placeholder="Gõ tìm theo tên, username hoặc số điện thoại..." optionFilterProp="label" value={directCustomerId||undefined} onChange={v=>setDirectCustomerId(v)} style={{width:'100%'}} options={(workspace.customers||[]).filter(c=>c.status==='Active').map(c=>({value:c.id,label:`${c.fullName} (@${c.username||c.id}) · Dư: ${money(c.balance||0)}`} ) ) } />
+      </div>
+      {directCustomerId&&(()=>{const c=(workspace.customers||[]).find(x=>x.id===directCustomerId);return c?<p style={{fontSize:13,color:'#64748b',marginBottom:12}}>Khách: <strong>{String(c.fullName || '')}</strong> | Số dư hiện tại: <strong style={{color:'#10b981'}}>{money(c.balance||0)}</strong></p>:null;})()}
+      <div style={{marginBottom:14}}>
+        <label style={{display:'block',marginBottom:6,fontWeight:500}}>Mệnh giá nạp nhanh:</label>
+        <Space wrap size={[6,6]}>
+          {[10000, 20000, 50000, 100000, 200000, 500000].map(amt=>(
+            <Button key={amt} size="small" type={topupAmount===amt&&!selectedCombo?'primary':'default'} onClick={()=>{setSelectedCombo(null);setTopupAmount(amt);}}>
+              {money(amt)}
+            </Button>
+          ))}
+        </Space>
+      </div>
+      {combos.length>0&&<div style={{marginBottom:14}}><p style={{marginBottom:6,fontWeight:500}}>Hoặc chọn gói Combo ưu đãi:</p><Space wrap size={[6,6]}><Tag.CheckableTag checked={selectedCombo===null} onChange={()=>setSelectedCombo(null)}>Không dùng combo</Tag.CheckableTag>{combos.filter(c=>c.isActive!==false).map(c=><Tag.CheckableTag key={c.id} checked={selectedCombo===c.id} onChange={()=>{setSelectedCombo(c.id);setTopupAmount(c.price);}}>{c.name} ({money(c.price)} → nhận {money(c.totalValue||(c.price+c.bonusBalance))})</Tag.CheckableTag>)}</Space></div>}
+      <div style={{marginBottom:12}}>
+        <label style={{display:'block',marginBottom:4,fontWeight:500}}>Số tiền nạp (VND):</label>
+        <InputNumber aria-label="Số tiền nạp" min={1000} max={10000000} step={1000} precision={0} style={{width:'100%'}} addonAfter="VND" value={topupAmount} onChange={v=>{setSelectedCombo(null);setTopupAmount(Number(v||0));}}/>
+      </div>
+      <Alert type="info" showIcon message="Thu ngân xác nhận đã thu đủ tiền mặt hoặc đã nhận tiền chuyển khoản của khách tại quầy trước khi nhấn xác nhận."/>
+    </Modal>
     <Modal open={!!withdrawCustomer} title={`Rút tiền / Trả lại số dư cho ${String(withdrawCustomer?.fullName||withdrawCustomer?.id||'')}`} onCancel={()=>setWithdrawCustomer(null)} confirmLoading={busy} okText="Xác nhận rút" onOk={async()=>{if(!withdrawCustomer)return;if(!withdrawAmount||withdrawAmount<1000||withdrawAmount>10000000){message.error('Số tiền rút từ 1.000 đến 10.000.000 đồng.');return;}await act(`/customers/${withdrawCustomer.id}/refund`,{amount:withdrawAmount,note:withdrawNote||'Rút tiền thừa'},'Rút tiền thành công.');setWithdrawCustomer(null);}}>
       <p>Số dư hiện tại: <strong>{displayValue('price',withdrawCustomer?.balance,workspace)}</strong></p>
       <div style={{marginBottom:12}}><label style={{display:'block',marginBottom:4,fontWeight:500}}>Số tiền rút (VND):</label><InputNumber min={1000} max={Number(withdrawCustomer?.balance||10000000)} step={1000} precision={0} style={{width:'100%'}} addonAfter="VND" value={withdrawAmount} onChange={v=>setWithdrawAmount(Number(v||0))}/></div>
@@ -163,9 +186,6 @@ export function ResourcePage({ module, readonly = false }: { module: Module; rea
       <p>Nhân viên quên quẹt check-out? Quản lý xác nhận kết thúc ca làm tại thời điểm hiện tại.</p>
       <label style={{display:'block',marginBottom:4,fontWeight:500}}>Ghi chú lý do:</label><Input value={adminCheckoutNote} onChange={e=>setAdminCheckoutNote(e.target.value)} placeholder="Nhập lý do can thiệp..."/>
     </Modal>
-    <Modal open={payrollCalcOpen} title="Tính lương tự động cả tháng" onCancel={()=>setPayrollCalcOpen(false)} confirmLoading={busy} okText="Tính lương ngay" onOk={async()=>{if(!payrollMonth){message.error('Vui lòng chọn tháng.');return;}setBusy(true);try{const res=await api<{totalActiveEmployees?:number;createdCount?:number}>('/payroll/calculate-month','POST',{month:payrollMonth});await refresh();message.success(`Đã tính lương tháng ${payrollMonth}: tạo mới ${res.createdCount??0} phiếu lương nháp.`);setPayrollCalcOpen(false);}catch(e){message.error((e as Error).message);}finally{setBusy(false);}}}>
-      <p>Hệ thống tự động quét toàn bộ nhân viên hoạt động, đối chiếu lịch phân công và chấm công thực tế trong tháng để tự động tính tiền khấu trừ ca vắng không phép (chuẩn 26 ngày công) và sinh phiếu lương nháp.</p>
-      <label style={{display:'block',marginBottom:4,fontWeight:500}}>Tháng tính lương (YYYY-MM):</label><Input type="month" value={payrollMonth} onChange={e=>setPayrollMonth(e.target.value)} style={{width:'100%'}}/>
-    </Modal>
+    
   </>;
 }

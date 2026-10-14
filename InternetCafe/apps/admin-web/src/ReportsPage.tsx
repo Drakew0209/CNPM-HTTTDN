@@ -77,13 +77,6 @@ export function ReportsPage() {
     const age = fullYears(employee.dateOfBirth, asOf), years = fullYears(employee.joinedAt, asOf);
     return { ...employee, age: age ?? 'Chưa có ngày sinh', ageGroup: age === null ? 'Chưa có ngày sinh' : age < 25 ? 'Dưới 25' : age < 35 ? '25–34' : age < 45 ? '35–44' : '45+', tenure: years === null ? 'Chưa có ngày vào làm' : `${years} năm`, tenureGroup: years === null ? 'Chưa có ngày vào làm' : years < 1 ? 'Dưới 1 năm' : years < 3 ? '1–2 năm' : years < 5 ? '3–4 năm' : 'Từ 5 năm' };
   });
-  const payroll = (workspace.payroll ?? []).filter(row => !invalidRange && (!from || String(row.month) >= from.slice(0, 7)) && (!to || String(row.month) <= to.slice(0, 7)));
-  const salaryByMonth = new Map<string, Row>();
-  for (const row of payroll) { const month = text(row.month); const previous = salaryByMonth.get(month); salaryByMonth.set(month, { id: month, month, total: number(previous?.total) + number(row.total), paid: number(previous?.paid) + (row.status === 'Paid' ? number(row.total) : 0) }); }
-  const salaryMonths = [...salaryByMonth.values()].sort((a, b) => text(a.month).localeCompare(text(b.month)));
-  const salaryByYear = new Map<string, Row>();
-  for (const row of salaryMonths) { const year = text(row.month).slice(0, 4), old = salaryByYear.get(year); salaryByYear.set(year, { id: year, year, total: number(old?.total) + number(row.total), paid: number(old?.paid) + number(row.paid), months: number(old?.months) + 1 }); }
-  const salaryYears = [...salaryByYear.values()];
   const metric = (title: string, value: string | number, note: string, icon: React.ReactNode) => <Col xs={24} sm={12} xl={6}><Metric title={title} value={value} note={note} icon={icon} /></Col>;
   const commonColumns: ReportColumn[] = [{ key: 'id', label: 'Mã' }, { key: 'createdAt', label: 'Thời điểm', reference: true }];
 
@@ -130,22 +123,15 @@ export function ReportsPage() {
     <ReportTable title={`Chi tiết kho · ${period}`} rows={inventory} workspace={workspace} columns={[...commonColumns, { key: 'productId', label: 'Sản phẩm', reference: true }, { key: 'supplierId', label: 'Nhà cung cấp', reference: true }, { key: 'type', label: 'Loại', reference: true }, { key: 'quantity', label: 'Số lượng' }, { key: 'note', label: 'Ghi chú' }]} />
   </>;
   const hrTab = <>
-    <Alert type="info" showIcon style={{ marginBottom: 20 }} title={`Hồ sơ nhân sự và thâm niên đến ${asOf}`} description="Phân nhóm dùng hồ sơ hiện tại và ngày vào làm. Lương lọc theo các tháng giao với khoảng ngày; tổng năm bên dưới chỉ cộng những tháng đang được chọn. Bản nháp/đã duyệt là khoản tính lương, chỉ Paid là đã trả." />
+    <Alert type="info" showIcon style={{ marginBottom: 20 }} title={`Hồ sơ nhân sự và thâm niên đến ${asOf}`} description="Phân nhóm dùng hồ sơ hiện tại và ngày vào làm. Thống kê cơ cấu nhân sự theo phòng ban, vị trí, trình độ và thâm niên." />
     <GridRow gutter={[16, 16]}>
       {metric('Nhân sự', employees.length, 'Có ngày vào làm không sau mốc báo cáo', <TeamOutlined />)}
       {metric('Đang làm việc', employees.filter(row => row.status === 'Active').length, 'Trạng thái hiện tại', <TeamOutlined />)}
-      {metric('Tổng bảng lương', money(payroll.reduce((sum, row) => sum + number(row.total), 0)), 'Gồm Draft, Approved và Paid trong kỳ', <BankOutlined />)}
-      {metric('Đã trả', money(payroll.filter(row => row.status === 'Paid').reduce((sum, row) => sum + number(row.total), 0)), 'Chỉ các bảng lương Paid', <BankOutlined />)}
-    </GridRow>
+                </GridRow>
     <GridRow gutter={[16, 16]} style={{ marginTop: 20 }}><Col xs={24} lg={12}><CountChart title="Phòng ban" rows={countGroups(employees, 'department')} /></Col><Col xs={24} lg={12}><CountChart title="Vị trí công việc" rows={countGroups(employees, 'position')} /></Col><Col xs={24} lg={12}><CountChart title="Trình độ" rows={countGroups(employees, 'qualification')} /></Col><Col xs={24} lg={12}><CountChart title="Thâm niên" rows={countGroups(employees, 'tenureGroup')} /></Col></GridRow>
     {employees.some(row => typeof row.age === 'number') ? <div style={{ marginTop: 20 }}><CountChart title="Tuổi nhân sự có ngày sinh" rows={countGroups(employees, 'ageGroup')} /></div> : <Alert style={{ marginTop: 20 }} type="warning" showIcon title="Chưa thể thống kê tuổi nhân viên" description="DTO nhân viên hiện chưa có dateOfBirth. Báo cáo giữ thông tin này là thiếu dữ liệu; cần backend bổ sung trường ngày sinh." />}
-    <Card title="Quỹ lương theo tháng" style={{ marginTop: 20 }}>
-      {salaryMonths.length ? <div role="img" aria-label="Biểu đồ tổng bảng lương và lương đã trả theo tháng"><ResponsiveContainer width="100%" height={280} minWidth={0}><BarChart data={salaryMonths}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="month" /><YAxis tickFormatter={compactMoney} width={65} /><Tooltip formatter={value => money(value)} /><Legend /><Bar dataKey="total" name="Tổng bảng lương" fill="#276f62" radius={[4, 4, 0, 0]} isAnimationActive={false} /><Bar dataKey="paid" name="Đã trả" fill="#bf862e" radius={[4, 4, 0, 0]} isAnimationActive={false} /></BarChart></ResponsiveContainer></div> : <EmptyState description="Không có bảng lương thuộc kỳ đã chọn." />}
-    </Card>
-    <ReportTable title={`Nhân sự đến ${asOf}`} rows={employees} workspace={workspace} columns={[{ key: 'fullName', label: 'Nhân viên' }, { key: 'department', label: 'Phòng ban' }, { key: 'position', label: 'Vị trí' }, { key: 'qualification', label: 'Trình độ' }, { key: 'joinedAt', label: 'Ngày vào làm' }, { key: 'tenure', label: 'Thâm niên' }, { key: 'age', label: 'Tuổi' }, { key: 'status', label: 'Trạng thái', reference: true }]} />
-    <ReportTable title={`Bảng lương chi tiết · ${period}`} rows={payroll} workspace={workspace} columns={[{ key: 'employeeId', label: 'Nhân viên', reference: true }, { key: 'month', label: 'Tháng' }, { key: 'baseSalary', label: 'Lương cơ bản', currency: true }, { key: 'bonus', label: 'Thưởng', currency: true }, { key: 'deduction', label: 'Khấu trừ', currency: true }, { key: 'total', label: 'Thực lĩnh', currency: true }, { key: 'status', label: 'Trạng thái', reference: true }]} />
-    <ReportTable title={`Tổng lương theo năm trong kỳ · ${period}`} rows={salaryYears} workspace={workspace} columns={[{ key: 'year', label: 'Năm' }, { key: 'months', label: 'Số tháng có dữ liệu' }, { key: 'total', label: 'Tổng bảng lương', currency: true }, { key: 'paid', label: 'Đã trả', currency: true }]} />
-  </>;
+        <ReportTable title={`Nhân sự đến ${asOf}`} rows={employees} workspace={workspace} columns={[{ key: 'fullName', label: 'Nhân viên' }, { key: 'department', label: 'Phòng ban' }, { key: 'position', label: 'Vị trí' }, { key: 'qualification', label: 'Trình độ' }, { key: 'joinedAt', label: 'Ngày vào làm' }, { key: 'tenure', label: 'Thâm niên' }, { key: 'age', label: 'Tuổi' }, { key: 'status', label: 'Trạng thái', reference: true }]} />
+          </>;
 
   return <>
     <PageTitle eyebrow="INTERNETCAFE / BÁO CÁO" title="Báo cáo vận hành" description="Tổng hợp dữ liệu được cấp quyền từ hệ thống demo. Chọn kỳ và xuất từng bảng đang xem." actions={<Button icon={<ReloadOutlined />} loading={loading} onClick={() => void refresh()}>Làm mới</Button>} />

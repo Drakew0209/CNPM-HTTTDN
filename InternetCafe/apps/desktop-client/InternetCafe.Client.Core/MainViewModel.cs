@@ -107,6 +107,40 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private string orderNote = "";
     [ObservableProperty] private string topupAmount = "50000";
     [ObservableProperty] private string topupNote = "";
+    [ObservableProperty] private string paymentMethod = "Cash";
+    public bool IsCashMethod => PaymentMethod == "Cash";
+    public bool IsTransferMethod => PaymentMethod == "Transfer";
+    public string BankName => "MB Bank (Ngân hàng Quân Đội)";
+    public string BankAccount => "0987654321";
+    public string BankAccountName => "CYBERCAFE GAMING";
+    public string TransferSyntax => $"NAP {Username}";
+    public string VietQrUrl
+    {
+        get
+        {
+            if (!int.TryParse(TopupAmount, out var amt) || amt <= 0) amt = 50000;
+            var syntax = Uri.EscapeDataString($"NAP {Username}");
+            return $"https://api.vietqr.io/image/970422-0987654321-compact2.jpg?amount={amt}&addInfo={syntax}&accountName=CYBERCAFE%20GAMING";
+        }
+    }
+
+    partial void OnPaymentMethodChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsCashMethod));
+        OnPropertyChanged(nameof(IsTransferMethod));
+    }
+    partial void OnTopupAmountChanged(string value)
+    {
+        OnPropertyChanged(nameof(VietQrUrl));
+    }
+    partial void OnUsernameChanged(string value)
+    {
+        OnPropertyChanged(nameof(TransferSyntax));
+        OnPropertyChanged(nameof(VietQrUrl));
+    }
+
+    [RelayCommand] private void SetCashPayment() => PaymentMethod = "Cash";
+    [RelayCommand] private void SetTransferPayment() => PaymentMethod = "Transfer";
     [ObservableProperty] private string temporaryLockPassword = "";
     [ObservableProperty] private string feedbackSubject = "";
     [ObservableProperty] private string feedbackContent = "";
@@ -387,6 +421,7 @@ public sealed partial class MainViewModel : ObservableObject
         TopupAmount = combo.Price.ToString("0");
         TopupNote = $"Gói {combo.Name} ({combo.Code})";
         Notice = $"Đã chọn gói {combo.Name}.";
+        OnPropertyChanged(nameof(VietQrUrl));
     }
     [RelayCommand] private void LockTemporary()
     {
@@ -443,7 +478,22 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand] private async Task RequestTopupAsync()
     {
         if (!int.TryParse(TopupAmount, out var amount) || amount < 1000 || amount > 10000000) { Error = "Nhập số tiền nguyên từ 1.000 đến 10.000.000 ₫."; return; }
-        await MutateAsync(async () => { await api.SendAsync<Topup>(HttpMethod.Post, "topups", new { amount, note = TopupNote, idempotencyKey = Guid.NewGuid().ToString() }); TopupNote = ""; }, "Đã gửi yêu cầu. Thanh toán tại quầy; số dư chỉ tăng sau khi thu ngân xác nhận.");
+        
+        var methodPrefix = PaymentMethod == "Transfer" ? "[Chuyển khoản VietQR]" : "[Tiền mặt tại quầy]";
+        var fullNote = string.IsNullOrWhiteSpace(TopupNote) ? methodPrefix : $"{methodPrefix} {TopupNote.Trim()}";
+
+        await MutateAsync(async () =>
+        {
+            await api.SendAsync<Topup>(HttpMethod.Post, "topups", new
+            {
+                amount,
+                note = fullNote,
+                idempotencyKey = Guid.NewGuid().ToString()
+            });
+            TopupNote = "";
+        }, PaymentMethod == "Transfer"
+            ? "Đã gửi thông báo chuyển khoản VietQR đến thu ngân. Vui lòng quét mã QR; số dư sẽ được cộng ngay khi quầy xác nhận."
+            : "Đã gửi yêu cầu nạp tiền mặt. Vui lòng thanh toán trực tiếp tại quầy thu ngân; số dư sẽ được cộng sau khi thu ngân xác nhận.");
     }
     [RelayCommand] private async Task SaveProfileAsync()
     {
