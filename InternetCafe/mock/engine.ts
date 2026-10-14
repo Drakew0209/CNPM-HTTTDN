@@ -8,7 +8,7 @@ const operators: Role[] = ['Owner', 'Manager', 'Cashier'];
 const readable: Record<Role, readonly Resource[]> = {
   Admin: ['accounts', 'products', 'categories', 'suppliers'],
   Owner: resources.filter(x => x !== 'accounts'), Manager: resources.filter(x => x !== 'accounts'),
-  Cashier: ['computers', 'customers', 'products', 'categories', 'orders', 'topups', 'transactions', 'sessions'],
+  Cashier: ['computers', 'customers', 'products', 'categories', 'orders', 'topups', 'transactions', 'invoices', 'sessions'],
   Staff: ['employees', 'shifts', 'schedules', 'leaves', 'attendance', 'payroll'],
   Customer: ['computers', 'customers', 'products', 'categories', 'orders', 'topups', 'transactions', 'feedback', 'surveys', 'sessions'],
 };
@@ -204,7 +204,7 @@ export function createMockEngine(options: EngineOptions = {}) {
     else if (ownLeave || ownProfile) { /* scoped below */ }
     else if (resource === 'customers' && method !== 'DELETE') allow(user.role, operators);
     else allow(user.role, managers);
-    if (['transactions', 'sessions', 'orders', 'topups', 'attendance'].includes(resource)) fail(405, 'METHOD_NOT_ALLOWED', 'Dùng endpoint hành động nghiệp vụ; dữ liệu này không hỗ trợ CRUD trực tiếp.');
+    if (['transactions', 'invoices', 'sessions', 'orders', 'topups', 'attendance'].includes(resource)) fail(405, 'METHOD_NOT_ALLOWED', 'Dùng endpoint hành động nghiệp vụ; dữ liệu này không hỗ trợ CRUD trực tiếp.');
     const row = rowId ? find(resource, rowId) : undefined;
     if (ownLeave && row && row.employeeId !== user.id) fail(404, 'NOT_FOUND', 'Không tìm thấy đơn nghỉ.');
     if (resource === 'leaves' && row?.status !== 'Pending' && row) fail(409, 'LEAVE_FINAL', 'Đơn đã xử lý không được thay đổi.');

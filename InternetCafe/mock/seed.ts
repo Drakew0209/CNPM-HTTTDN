@@ -45,6 +45,11 @@ export function createSeed(now = new Date()): Workspace {
     { id: 'tx-food', customerId: 'c-001', type: 'FoodOrder', amount: 35000, createdAt: at(25), referenceId: 'order-served' },
     { id: 'tx-rental', customerId: 'c-001', type: 'Rental', amount: 20000, createdAt: at(24), referenceId: 'session-yesterday' },
   ];
+  state.invoices = [
+    { id: 'invoice-topup-001', invoiceCode: 'RCP-20261001-001', invoiceType: 'TopUp', customerId: 'c-002', customerName: 'Trần Ngọc Linh', computerId: null, totalAmount: 200000, cashierName: 'Thu ngân demo', createdAt: at(3), status: 'Paid', details: [{ itemName: 'Nạp tiền · Combo Sinh Viên', quantity: 1, unitPrice: 200000, subtotal: 200000 }, { itemName: 'Tiền thưởng khuyến mãi', quantity: 1, unitPrice: 0, subtotal: 0 }] },
+    { id: 'invoice-food-001', invoiceCode: 'HD-FB-000001', invoiceType: 'FoodOrder', customerId: 'c-001', customerName: 'Nguyễn Minh Huy', computerId: 'PC 01', totalAmount: 35000, cashierName: 'Thu ngân demo', createdAt: at(25), status: 'Paid', details: [{ itemName: 'Mì trộn trứng xúc xích', quantity: 1, unitPrice: 35000, subtotal: 35000 }] },
+    { id: 'invoice-session-001', invoiceCode: 'HD-GIO-000001', invoiceType: 'SessionRental', customerId: 'c-001', customerName: 'Nguyễn Minh Huy', computerId: 'PC 01', totalAmount: 20000, cashierName: null, createdAt: at(24), status: 'Paid', details: [{ itemName: 'Giờ chơi · 2.0 giờ', quantity: 1, unitPrice: 20000, subtotal: 20000 }] },
+  ];
   state.suppliers = [
     { id: 'supplier-001', name: 'Đại lý Minh Phát', phone: '02838123456', email: 'contact@minhphat.example', address: 'Quận 5, TP. Hồ Chí Minh', active: true },
     { id: 'supplier-002', name: 'Thực phẩm An Việt', phone: '02838987654', email: 'sales@anviet.example', address: 'Quận 10, TP. Hồ Chí Minh', active: true },

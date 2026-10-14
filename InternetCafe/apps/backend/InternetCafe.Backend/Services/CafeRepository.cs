@@ -189,6 +189,69 @@ public sealed class CafeRepository(SqlConnectionFactory connections, ManagementR
                 StringValue(r, 5),
                 !r.IsDBNull(6) && r.GetBoolean(6)), ct);
 
+    public async Task<IReadOnlyList<InvoiceDto>> InvoicesAsync(CancellationToken ct)
+    {
+        var invoices = new List<InvoiceDto>();
+        invoices.AddRange(await QueryAsync("""
+            SELECT r.Transaction_ID, r.Receipt_Code, r.Customer_ID, c.Full_Name, r.Paid_Amount, r.Bonus_Amount,
+                   cb.Combo_Name, e.Full_Name, r.Trans_Date
+            FROM dbo.TopUp_Receipts r
+            JOIN dbo.Customers c ON c.Customer_ID=r.Customer_ID
+            LEFT JOIN dbo.Combos cb ON cb.Combo_ID=r.Combo_ID
+            LEFT JOIN dbo.Employees e ON e.Employee_ID=r.Processed_By
+            ORDER BY r.Trans_Date DESC, r.Transaction_ID DESC
+            """, r =>
+            {
+                var paid = r.GetDecimal(4); var bonus = DecimalValue(r, 5);
+                var itemName = StringValue(r, 6);
+                var details = new List<InvoiceDetailDto> { new("Tiền nạp" + (itemName.Length > 0 ? $" · {itemName}" : ""), 1, paid, paid) };
+                if (bonus > 0) details.Add(new InvoiceDetailDto($"Khuyến mãi ({FormatCurrencyForInvoice(bonus)})", 1, 0, 0));
+                return new InvoiceDto(Id("invoice-topup", r.GetInt32(0)), r.GetString(1), "TopUp", Id("c", r.GetInt32(2)), r.GetString(3), null, paid, r.IsDBNull(7) ? null : r.GetString(7), r.GetDateTime(8), "Paid", details);
+            }, ct));
+
+        var orders = await QueryAsync("""
+            SELECT o.Order_ID, o.Customer_ID, c.Full_Name, o.Computer_ID, pc.Computer_Code,
+                   o.Total_Amount, e.Full_Name, o.Order_Date, o.Status
+            FROM dbo.Orders o
+            JOIN dbo.Customers c ON c.Customer_ID=o.Customer_ID
+            LEFT JOIN dbo.Computers pc ON pc.Computer_ID=o.Computer_ID
+            LEFT JOIN dbo.Employees e ON e.Employee_ID=o.Employee_ID
+            ORDER BY o.Order_Date DESC, o.Order_ID DESC
+            """, r => new InvoiceDto(Id("invoice-order", r.GetInt32(0)), $"HD-FB-{r.GetInt32(0):000000}", "FoodOrder", Id("c", r.GetInt32(1)), r.GetString(2), r.IsDBNull(4) ? null : r.GetString(4), r.GetDecimal(5), r.IsDBNull(6) ? null : r.GetString(6), r.GetDateTime(7), r.GetString(8) == "Cancelled" ? "Refunded" : "Paid", []), ct);
+        foreach (var order in orders)
+        {
+            var orderId = ParseId(order.Id);
+            var details = await QueryAsync("""
+                SELECT p.Product_Name, d.Quantity, d.Unit_Price, d.Line_Total
+                FROM dbo.Order_Details d JOIN dbo.Products p ON p.Product_ID=d.Product_ID
+                WHERE d.Order_ID=@id ORDER BY d.Order_Detail_ID
+                """, r => new InvoiceDetailDto(r.GetString(0), r.GetInt32(1), r.GetDecimal(2), r.GetDecimal(3)), ct, ("@id", orderId));
+            invoices.Add(order with { Details = details });
+        }
+
+        invoices.AddRange(await QueryAsync("""
+            SELECT s.Session_ID, s.Customer_ID, c.Full_Name, pc.Computer_Code, s.Amount,
+                   e.Full_Name, s.End_Time, s.Start_Time
+            FROM dbo.Usage_Sessions s
+            JOIN dbo.Customers c ON c.Customer_ID=s.Customer_ID
+            JOIN dbo.Computers pc ON pc.Computer_ID=s.Computer_ID
+            LEFT JOIN dbo.Employees e ON e.Employee_ID=s.Employee_ID
+            WHERE s.Status='Completed' AND COALESCE(s.Amount,0)>0
+            ORDER BY s.End_Time DESC, s.Session_ID DESC
+            """, r =>
+            {
+                var amount = r.GetDecimal(4);
+                var duration = r.IsDBNull(6) ? "" : $" · {Math.Max(0, (r.GetDateTime(6) - r.GetDateTime(7)).TotalHours):0.0} giờ";
+                return new InvoiceDto(Id("invoice-session", r.GetInt32(0)), $"HD-GIO-{r.GetInt32(0):000000}", "SessionRental", Id("c", r.GetInt32(1)), r.GetString(2), r.GetString(3), amount, r.IsDBNull(5) ? null : r.GetString(5), r.IsDBNull(6) ? r.GetDateTime(7) : r.GetDateTime(6), "Paid", [new InvoiceDetailDto("Giờ chơi" + duration, 1, amount, amount)]);
+            }, ct));
+        return invoices.OrderByDescending(x => x.CreatedAt).ToList();
+    }
+
+    public async Task<InvoiceDto?> InvoiceAsync(string id, CancellationToken ct) =>
+        (await InvoicesAsync(ct)).FirstOrDefault(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase) || string.Equals(x.InvoiceCode, id, StringComparison.OrdinalIgnoreCase));
+
+    private static string FormatCurrencyForInvoice(decimal amount) => amount.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) + " ₫";
+
     public async Task<object> AnalyticsReportAsync(DateOnly? from, DateOnly? to, CancellationToken ct)
     {
         await using var connection = await connections.OpenAsync(ct);

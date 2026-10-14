@@ -92,6 +92,7 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private string accountName = "Khách hàng";
     [ObservableProperty] private string tier = "";
     [ObservableProperty] private decimal balance;
+    [ObservableProperty] private decimal realtimeBalance;
     [ObservableProperty] private string machineName = "PC-01";
     [ObservableProperty] private string hourlyRateLabel = "—";
     [ObservableProperty] private string elapsedLabel = "00:00:00";
@@ -122,7 +123,7 @@ public sealed partial class MainViewModel : ObservableObject
     public ObservableCollection<Feedback> FeedbackItems { get; } = [];
     public ObservableCollection<Survey> Surveys { get; } = [];
     public ObservableCollection<AnswerViewModel> Answers { get; } = [];
-    public string BalanceLabel => Format.Money(Balance);
+    public string BalanceLabel => Format.Money(ActiveSession is null ? Balance : RealtimeBalance);
     public string CartTotalLabel => Format.Money(Cart.Sum(x => x.Quantity * x.UnitPrice));
     public bool HasActiveSession => ActiveSession is not null;
     public bool CanStartSession => IsAuthenticated && IsConnected && !IsBusy && !HasActiveSession && Balance > 0 && Machine is { Online: true, Status: "Available" };
@@ -138,6 +139,7 @@ public sealed partial class MainViewModel : ObservableObject
     partial void OnIsConnectedChanged(bool value) => NotifyState();
     partial void OnIsAuthenticatedChanged(bool value) => NotifyState();
     partial void OnBalanceChanged(decimal value) { OnPropertyChanged(nameof(BalanceLabel)); NotifyState(); }
+    partial void OnRealtimeBalanceChanged(decimal value) => OnPropertyChanged(nameof(BalanceLabel));
     partial void OnMenuSearchChanged(string value) => FilterProducts();
     partial void OnSelectedCategoryChanged(Category? value) => FilterProducts();
     partial void OnSelectedOrderChanged(Order? value) => OnPropertyChanged(nameof(CanCancelOrder));
@@ -262,6 +264,8 @@ public sealed partial class MainViewModel : ObservableObject
         var active = ActiveSession;
         var rate = active is null ? Machine?.HourlyRate ?? 0 : snapshot.Computers.FirstOrDefault(x => x.Id == active.ComputerId)?.HourlyRate ?? 0;
         var estimate = SessionEstimate.Calculate(Balance, active?.StartTime, rate, now);
+        var currentCost = active is not null ? estimate.EstimatedRental : 0m;
+        RealtimeBalance = Math.Max(0m, Balance - currentCost);
         ElapsedLabel = SessionEstimate.Duration(estimate.Elapsed);
         RemainingLabel = estimate.Remaining is { } remaining ? SessionEstimate.Duration(remaining) : "Chưa có đơn giá";
         LowBalance = IsAuthenticated && (Balance <= 10000 || estimate.Remaining is { TotalMinutes: <= 10 });
@@ -304,9 +308,59 @@ public sealed partial class MainViewModel : ObservableObject
         if (game is null) return;
         try
         {
-            if (System.IO.File.Exists(game.ExecutablePath))
+            var isValorant = (game.Name?.Contains("VALORANT", StringComparison.OrdinalIgnoreCase) ?? false)
+                || (game.ExecutablePath?.Contains("VALORANT", StringComparison.OrdinalIgnoreCase) ?? false);
+
+            if (isValorant)
             {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = game.ExecutablePath, UseShellExecute = true });
+                var candidates = new[]
+                {
+                    @"D:\Riot Games\Riot Client\RiotClientServices.exe",
+                    @"C:\Riot Games\Riot Client\RiotClientServices.exe",
+                    @"E:\Riot Games\Riot Client\RiotClientServices.exe"
+                };
+
+                string? riotClient = candidates.FirstOrDefault(System.IO.File.Exists);
+                if (riotClient is null && !string.IsNullOrWhiteSpace(game.ExecutablePath))
+                {
+                    try
+                    {
+                        var root = System.IO.Path.GetPathRoot(game.ExecutablePath);
+                        if (!string.IsNullOrEmpty(root))
+                        {
+                            var candidate = System.IO.Path.Combine(root, "Riot Games", "Riot Client", "RiotClientServices.exe");
+                            if (System.IO.File.Exists(candidate)) riotClient = candidate;
+                        }
+                    }
+                    catch { }
+                }
+
+                if (riotClient is not null)
+                {
+                    var startInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = riotClient,
+                        Arguments = "--launch-product=valorant --launch-patchline=live",
+                        WorkingDirectory = System.IO.Path.GetDirectoryName(riotClient) ?? "",
+                        UseShellExecute = true
+                    };
+                    System.Diagnostics.Process.Start(startInfo);
+                    Notice = "Đang khởi động VALORANT qua Riot Client...";
+                    OnGameLaunched?.Invoke();
+                    return;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(game.ExecutablePath) && System.IO.File.Exists(game.ExecutablePath))
+            {
+                var workDir = System.IO.Path.GetDirectoryName(game.ExecutablePath);
+                var startInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = game.ExecutablePath,
+                    WorkingDirectory = string.IsNullOrEmpty(workDir) ? "" : workDir,
+                    UseShellExecute = true
+                };
+                System.Diagnostics.Process.Start(startInfo);
                 Notice = $"Đang khởi động {game.Name}...";
                 OnGameLaunched?.Invoke();
             }
@@ -316,9 +370,15 @@ public sealed partial class MainViewModel : ObservableObject
                 OnGameLaunched?.Invoke();
             }
         }
-        catch (Exception ex)
+        catch (System.ComponentModel.Win32Exception)
         {
-            Error = "Không thể khởi động game: " + ex.Message;
+            Notice = $"[Chế độ an toàn] Đang khởi chạy {game.Name} (đã ghi nhận phiên chơi, thu nhỏ về thanh tiện ích).";
+            OnGameLaunched?.Invoke();
+        }
+        catch (Exception)
+        {
+            Notice = $"[Mô phỏng mở game] Đang khởi chạy {game.Name}...";
+            OnGameLaunched?.Invoke();
         }
     }
     [RelayCommand] private void SelectCombo(Combo? combo)

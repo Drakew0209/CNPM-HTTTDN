@@ -481,7 +481,7 @@ GO
 -- =============================================
 ALTER TABLE dbo.Customers ADD CONSTRAINT CHK_Customer_Status CHECK (Status IN ('Active', 'Banned', 'Inactive'));
 ALTER TABLE dbo.Orders ADD CONSTRAINT CHK_Order_Status CHECK (Status IN ('Pending', 'Preparing', 'Served', 'Cancelled'));
-ALTER TABLE dbo.Transactions ADD CONSTRAINT CHK_Trans_Type CHECK (Trans_Type IN ('TopUp', 'FoodOrder', 'Rental', 'Refund'));
+ALTER TABLE dbo.Transactions ADD CONSTRAINT CHK_Trans_Type CHECK (Trans_Type IN ('TopUp', 'FoodOrder', 'Rental', 'Refund', 'Withdraw'));
 ALTER TABLE dbo.Transactions ADD CONSTRAINT CHK_Trans_Amount CHECK (Amount > 0);
 ALTER TABLE dbo.Transactions ADD CONSTRAINT CHK_Trans_Balance_Before CHECK (Balance_Before IS NULL OR Balance_Before >= 0);
 ALTER TABLE dbo.Work_Schedules ADD CONSTRAINT CHK_Schedule_Status CHECK (Status IN ('Scheduled', 'Completed', 'Absent', 'OnLeave'));
@@ -550,7 +550,7 @@ GO
 
 -- Trigger 3: Sync Customer.Balance from Transactions
 -- Trigger tự cập nhật số dư và snapshot Balance_Before, kể cả INSERT nhiều dòng.
-CREATE TRIGGER TR_Sync_Customer_Balance
+CREATE OR ALTER TRIGGER TR_Sync_Customer_Balance
 ON dbo.Transactions
 AFTER INSERT
 AS
@@ -565,10 +565,11 @@ BEGIN
         SELECT i.Customer_ID,
                SUM(CASE i.Trans_Type
                     WHEN 'TopUp' THEN i.Amount + ISNULL(cb.Bonus_Balance, 0)
-                    WHEN 'Refund' THEN i.Amount
-                    WHEN 'Rental' THEN -i.Amount
-                    WHEN 'FoodOrder' THEN -i.Amount
-                    ELSE 0 END) AS Net_Change
+                     WHEN 'Refund' THEN i.Amount
+                     WHEN 'Rental' THEN -i.Amount
+                     WHEN 'FoodOrder' THEN -i.Amount
+                     WHEN 'Withdraw' THEN -i.Amount
+                     ELSE 0 END) AS Net_Change
         FROM inserted i
         LEFT JOIN dbo.Combos cb ON i.Combo_ID = cb.Combo_ID
         GROUP BY i.Customer_ID
@@ -586,10 +587,11 @@ BEGIN
         SELECT i.Transaction_ID, i.Customer_ID, i.Trans_Type,
                CASE i.Trans_Type
                     WHEN 'TopUp' THEN i.Amount + ISNULL(cb.Bonus_Balance, 0)
-                    WHEN 'Refund' THEN i.Amount
-                    WHEN 'Rental' THEN -i.Amount
-                    WHEN 'FoodOrder' THEN -i.Amount
-                    ELSE 0 END AS Balance_Delta
+                     WHEN 'Refund' THEN i.Amount
+                     WHEN 'Rental' THEN -i.Amount
+                     WHEN 'FoodOrder' THEN -i.Amount
+                     WHEN 'Withdraw' THEN -i.Amount
+                     ELSE 0 END AS Balance_Delta
         FROM inserted i
         LEFT JOIN dbo.Combos cb ON i.Combo_ID = cb.Combo_ID
     ),

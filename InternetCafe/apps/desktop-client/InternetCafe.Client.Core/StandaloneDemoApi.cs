@@ -42,7 +42,7 @@ public sealed class StandaloneDemoApi : ICafeApi
             DateOfBirth = "2002-05-15",
             Hobbies = "VALORANT, FPS, MOBA, Thức đêm leo rank",
             Tier = "VIP",
-            Balance = 150000m,
+            Balance = 120000m,
             Status = "Active"
         });
 

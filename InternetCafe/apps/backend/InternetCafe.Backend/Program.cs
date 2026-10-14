@@ -114,6 +114,13 @@ api.MapGet("/combos", [Authorize] async (HttpContext context, CafeRepository rep
     Results.Ok(Api.List(await repository.CombosAsync(ct), context.Request)));
 api.MapGet("/games", [Authorize] async (HttpContext context, CafeRepository repository, CancellationToken ct) =>
     Results.Ok(Api.List(await repository.GamesAsync(ct), context.Request)));
+api.MapGet("/invoices", [Authorize(Roles = Roles.Owner + "," + Roles.Manager + "," + Roles.Cashier)] async (HttpContext context, CafeRepository repository, CancellationToken ct) =>
+    Results.Ok(Api.List(await repository.InvoicesAsync(ct), context.Request)));
+api.MapGet("/invoices/{id}", [Authorize(Roles = Roles.Owner + "," + Roles.Manager + "," + Roles.Cashier)] async (string id, CafeRepository repository, CancellationToken ct) =>
+{
+    var invoice = await repository.InvoiceAsync(id, ct);
+    return invoice is null ? Api.Error("NOT_FOUND", "Không tìm thấy hóa đơn.", StatusCodes.Status404NotFound) : Results.Ok(Api.Data(invoice));
+});
 
 api.MapPost("/sessions/start", [Authorize(Roles = Roles.Customer)] async (HttpContext context, StartSessionRequest request, BusinessService service, CancellationToken ct) =>
     (await service.StartSessionAsync(context.User.IdentityContext(), request, ct)).ToResult());

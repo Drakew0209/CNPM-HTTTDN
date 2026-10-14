@@ -1229,3 +1229,28 @@ h1, h2, h3, p {
   .app-shell { display: block; }
   .metric-grid { grid-template-columns: repeat(4, 1fr); }
 }
+.invoice-customer-id { display: block; color: #8294b5; font-size: 11px; }
+.invoice-filters { flex-wrap: wrap; }
+.invoice-print { color: #18202c; background: #fff; font-family: Consolas, "Courier New", monospace; font-size: 12px; line-height: 1.4; padding: 18px; }
+.receipt-header { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; }
+.receipt-header strong { font-size: 21px; letter-spacing: 1px; }
+.receipt-header span { font-size: 10px; }
+.receipt-rule { border-top: 1px dashed #687080; margin: 10px 0; }
+.invoice-print h2 { text-align: center; font-size: 15px; margin: 8px 0; }
+.receipt-meta { display: flex; justify-content: space-between; gap: 10px; margin: 3px 0; }
+.receipt-meta strong { text-align: right; }
+.receipt-items { border-collapse: collapse; width: 100%; font-size: 10px; }
+.receipt-items th { text-align: left; border-bottom: 1px solid #888; padding: 3px 1px; }
+.receipt-items td { padding: 4px 1px; vertical-align: top; }
+.receipt-items th:not(:first-child), .receipt-items td:not(:first-child) { text-align: right; white-space: nowrap; }
+.receipt-total { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; margin: 8px 0; }
+.receipt-thanks { text-align: center; font-weight: 700; margin: 12px 0 8px; }
+.receipt-qr { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 9px; text-align: center; }
+.receipt-qr-pattern { width: 54px; height: 54px; border: 5px solid #111; background: repeating-conic-gradient(#111 0% 25%, #fff 0% 50%) 0 0 / 10px 10px; }
+@media print {
+  @page { size: 80mm auto; margin: 2mm; }
+  body * { visibility: hidden !important; }
+  .invoice-print, .invoice-print * { visibility: visible !important; }
+  .invoice-print { position: fixed !important; inset: 0 auto auto 0 !important; width: 76mm !important; max-width: 76mm !important; margin: 0 !important; padding: 2mm !important; color: #111 !important; background: #fff !important; box-shadow: none !important; }
+  .ant-modal-mask, .ant-modal-wrap, .ant-modal-content, .ant-modal-footer { background: transparent !important; box-shadow: none !important; }
+}

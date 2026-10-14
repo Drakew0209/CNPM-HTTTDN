@@ -24,6 +24,8 @@ public sealed record OrderLineRequest(string ProductId, int Quantity, decimal? E
 public sealed record CreateTopupRequest(decimal Amount, string? Note, string? IdempotencyKey = null);
 public sealed record AdminTopupRequest(decimal Amount, string? ComboId = null);
 public sealed record GameDto(string Id, string Code, string Name, string Category, string ExecutablePath, string BannerUrl, string Description, bool Active);
+public sealed record InvoiceDto(string Id, string InvoiceCode, string InvoiceType, string CustomerId, string CustomerName, string? ComputerId, decimal TotalAmount, string? CashierName, DateTime CreatedAt, string Status, IReadOnlyList<InvoiceDetailDto> Details);
+public sealed record InvoiceDetailDto(string ItemName, int Quantity, decimal UnitPrice, decimal Subtotal);
 public sealed record RefundRequest(decimal Amount, string? Note = null);
 public sealed record TransitionRequest(string Status);
 public sealed record DecisionRequest(string Status);

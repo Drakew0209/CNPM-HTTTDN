@@ -96,10 +96,23 @@ public sealed class BusinessService(SqlConnectionFactory connections, IHubContex
             await using var ledger = new SqlCommand("IF NOT EXISTS (SELECT 1 FROM dbo.Transactions WHERE Session_ID = @sessionId) INSERT INTO dbo.Transactions (Customer_ID, Session_ID, Trans_Type, Amount, Trans_Date) VALUES (@customerId, @sessionId, 'Rental', @amount, SYSUTCDATETIME())", connection, (SqlTransaction)transaction);
             ledger.Parameters.AddWithValue("@customerId", customerId); ledger.Parameters.AddWithValue("@sessionId", sessionId.Value); ledger.Parameters.AddWithValue("@amount", amount);
             await ledger.ExecuteNonQueryAsync(ct);
+
+            await using var syncBalance = new SqlCommand("""
+                IF NOT EXISTS (SELECT 1 FROM sys.triggers WHERE name = 'TR_Sync_Customer_Balance' AND is_disabled = 0)
+                BEGIN
+                    UPDATE dbo.Customers
+                    SET Balance = CASE WHEN Balance >= @amount THEN Balance - @amount ELSE 0 END
+                    WHERE Customer_ID = @customerId;
+                END
+                """, connection, (SqlTransaction)transaction);
+            syncBalance.Parameters.AddWithValue("@customerId", customerId);
+            syncBalance.Parameters.AddWithValue("@amount", amount);
+            await syncBalance.ExecuteNonQueryAsync(ct);
         }
         await transaction.CommitAsync(ct);
         var result = new SessionDto(id, CafeRepository.Id("c", customerId), CafeRepository.Id("pc", computerId), start, endTime, startBalance, amount, "Completed", rate);
         await NotifyAsync("SessionEnded", id, new { sessionId = id, computerId = result.ComputerId, amount }, ct);
+        await NotifyAsync("BalanceChanged", result.CustomerId, new { customerId = result.CustomerId }, ct);
         return OperationResult<object>.Ok(result);
     }
 
@@ -260,6 +273,22 @@ public sealed class BusinessService(SqlConnectionFactory connections, IHubContex
             ledger.Parameters.AddWithValue("@comboId", (object?)comboId ?? DBNull.Value);
             var transactionId = Convert.ToInt32(await ledger.ExecuteScalarAsync(ct));
 
+            await using var syncBalance = new SqlCommand("""
+                IF NOT EXISTS (SELECT 1 FROM sys.triggers WHERE name = 'TR_Sync_Customer_Balance' AND is_disabled = 0)
+                BEGIN
+                    DECLARE @bonus DECIMAL(18,2) = 0;
+                    IF @comboId IS NOT NULL
+                        SELECT @bonus = ISNULL(Bonus_Balance, 0) FROM dbo.Combos WHERE Combo_ID = @comboId;
+                    UPDATE dbo.Customers
+                    SET Balance = Balance + @amount + @bonus
+                    WHERE Customer_ID = @customerId;
+                END
+                """, connection, (SqlTransaction)transaction);
+            syncBalance.Parameters.AddWithValue("@customerId", customerId.Value);
+            syncBalance.Parameters.AddWithValue("@amount", request.Amount);
+            syncBalance.Parameters.AddWithValue("@comboId", (object?)comboId ?? DBNull.Value);
+            await syncBalance.ExecuteNonQueryAsync(ct);
+
             await using var stamped = new SqlCommand("SELECT Trans_Date FROM dbo.Transactions WHERE Transaction_ID = @id", connection, (SqlTransaction)transaction);
             stamped.Parameters.AddWithValue("@id", transactionId);
             var createdAt = (DateTime)(await stamped.ExecuteScalarAsync(ct) ?? DateTime.UtcNow);
@@ -310,6 +339,18 @@ public sealed class BusinessService(SqlConnectionFactory connections, IHubContex
             ledger.Parameters.AddWithValue("@employeeId", (object?)identity.EmployeeId ?? DBNull.Value);
             ledger.Parameters.AddWithValue("@amount", request.Amount);
             var transactionId = Convert.ToInt32(await ledger.ExecuteScalarAsync(ct));
+
+            await using var syncBalance = new SqlCommand("""
+                IF NOT EXISTS (SELECT 1 FROM sys.triggers WHERE name = 'TR_Sync_Customer_Balance' AND is_disabled = 0)
+                BEGIN
+                    UPDATE dbo.Customers
+                    SET Balance = CASE WHEN Balance >= @amount THEN Balance - @amount ELSE 0 END
+                    WHERE Customer_ID = @customerId;
+                END
+                """, connection, (SqlTransaction)transaction);
+            syncBalance.Parameters.AddWithValue("@customerId", customerId.Value);
+            syncBalance.Parameters.AddWithValue("@amount", request.Amount);
+            await syncBalance.ExecuteNonQueryAsync(ct);
 
             await using var stamped = new SqlCommand("SELECT Trans_Date FROM dbo.Transactions WHERE Transaction_ID = @id", connection, (SqlTransaction)transaction);
             stamped.Parameters.AddWithValue("@id", transactionId);
@@ -385,6 +426,18 @@ public sealed class BusinessService(SqlConnectionFactory connections, IHubContex
         }
         await using var ledger = new SqlCommand("INSERT INTO dbo.Transactions (Customer_ID, Order_ID, Trans_Type, Amount, Trans_Date) VALUES (@customerId, @orderId, 'FoodOrder', @amount, SYSUTCDATETIME())", connection, (SqlTransaction)transaction);
         ledger.Parameters.AddWithValue("@customerId", identity.CustomerId.Value); ledger.Parameters.AddWithValue("@orderId", orderId); ledger.Parameters.AddWithValue("@amount", total); await ledger.ExecuteNonQueryAsync(ct);
+
+        await using var syncBalance = new SqlCommand("""
+            IF NOT EXISTS (SELECT 1 FROM sys.triggers WHERE name = 'TR_Sync_Customer_Balance' AND is_disabled = 0)
+            BEGIN
+                UPDATE dbo.Customers
+                SET Balance = CASE WHEN Balance >= @amount THEN Balance - @amount ELSE 0 END
+                WHERE Customer_ID = @customerId;
+            END
+            """, connection, (SqlTransaction)transaction);
+        syncBalance.Parameters.AddWithValue("@customerId", identity.CustomerId.Value);
+        syncBalance.Parameters.AddWithValue("@amount", total);
+        await syncBalance.ExecuteNonQueryAsync(ct);
         var result = new OrderDto(CafeRepository.Id("order", orderId), CafeRepository.Id("c", identity.CustomerId.Value), request.ComputerId, lines.Select(x => new OrderItemDto(CafeRepository.Id("p", x.ProductId), x.Name, x.Quantity, x.Price)).ToList(), total, "Pending", request.Note?.Trim() ?? "", createdAt);
         if (request.IdempotencyKey is not null)
         {
@@ -411,6 +464,18 @@ public sealed class BusinessService(SqlConnectionFactory connections, IHubContex
         {
             await using var restore = new SqlCommand("UPDATE p SET Stock_Quantity = Stock_Quantity + d.Quantity FROM dbo.Products p JOIN dbo.Order_Details d ON d.Product_ID = p.Product_ID WHERE d.Order_ID = @orderId", connection, (SqlTransaction)transaction); restore.Parameters.AddWithValue("@orderId", orderId.Value); await restore.ExecuteNonQueryAsync(ct);
             await using var refund = new SqlCommand("IF NOT EXISTS (SELECT 1 FROM dbo.Transactions WHERE Order_ID = @orderId AND Trans_Type = 'Refund') INSERT INTO dbo.Transactions (Customer_ID, Order_ID, Trans_Type, Amount, Trans_Date) VALUES (@customerId, @orderId, 'Refund', @amount, SYSUTCDATETIME())", connection, (SqlTransaction)transaction); refund.Parameters.AddWithValue("@customerId", customerId); refund.Parameters.AddWithValue("@orderId", orderId.Value); refund.Parameters.AddWithValue("@amount", total); await refund.ExecuteNonQueryAsync(ct);
+
+            await using var syncBalance = new SqlCommand("""
+                IF NOT EXISTS (SELECT 1 FROM sys.triggers WHERE name = 'TR_Sync_Customer_Balance' AND is_disabled = 0)
+                BEGIN
+                    UPDATE dbo.Customers
+                    SET Balance = Balance + @amount
+                    WHERE Customer_ID = @customerId;
+                END
+                """, connection, (SqlTransaction)transaction);
+            syncBalance.Parameters.AddWithValue("@customerId", customerId);
+            syncBalance.Parameters.AddWithValue("@amount", total);
+            await syncBalance.ExecuteNonQueryAsync(ct);
         }
         await transaction.CommitAsync(ct); await NotifyAsync("OrderChanged", id, new { orderId = id, status = request.Status }, ct);
         return OperationResult<object>.Ok(new { id, status = request.Status });
