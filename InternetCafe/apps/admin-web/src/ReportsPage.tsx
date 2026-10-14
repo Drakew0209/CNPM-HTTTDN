@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Button, Card, Col, Row as GridRow, Space, Table, Tabs, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Col, Divider, Row as GridRow, Space, Table, Tabs, Tag, Typography } from 'antd';
 import { BankOutlined, ClockCircleOutlined, DownloadOutlined, ReloadOutlined, RollbackOutlined, ShoppingCartOutlined, TeamOutlined } from '@ant-design/icons';
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { DateFilter, EmptyState, Metric, PageTitle, PrintButton, Value, displayValue, useCafe } from './components';
@@ -73,6 +73,10 @@ export function ReportsPage() {
   const hobbyRows: Row[] = customers.flatMap(customer => [...new Set(text(customer.hobbies).split(/[,;]/).map(value => value.trim()).filter(Boolean))].map((name, index) => ({ id: `${customer.id}-${index}`, name })));
   const inventory = invalidRange ? [] : filterDates(workspace.inventory ?? [], from, to);
   const stock: Row[] = (workspace.products ?? []).map(product => ({ ...product, imported: inventory.filter(row => row.productId === product.id && row.type === 'Import').reduce((sum, row) => sum + number(row.quantity), 0), exported: inventory.filter(row => row.productId === product.id && row.type === 'Export').reduce((sum, row) => sum + number(row.quantity), 0), salesQuantity: number(topMap.get(product.id)?.quantity) }));
+  const materials: Row[] = workspace.materials ?? [];
+  const lowMaterials = materials.filter(m => number(m.stockQuantity) <= number(m.reorderLevel));
+  const totalMaterialValue = materials.reduce((sum, m) => sum + number(m.stockQuantity) * number(m.unitCost), 0);
+  const monthlyLeaves = filterDates(workspace.leaves ?? [], from, to, 'startDate');
   const employees: Row[] = (workspace.employees ?? []).filter(employee => !employee.joinedAt || String(employee.joinedAt).slice(0, 10) <= asOf).map(employee => {
     const age = fullYears(employee.dateOfBirth, asOf), years = fullYears(employee.joinedAt, asOf);
     return { ...employee, age: age ?? 'Chưa có ngày sinh', ageGroup: age === null ? 'Chưa có ngày sinh' : age < 25 ? 'Dưới 25' : age < 35 ? '25–34' : age < 45 ? '35–44' : '45+', tenure: years === null ? 'Chưa có ngày vào làm' : `${years} năm`, tenureGroup: years === null ? 'Chưa có ngày vào làm' : years < 1 ? 'Dưới 1 năm' : years < 3 ? '1–2 năm' : years < 5 ? '3–4 năm' : 'Từ 5 năm' };
@@ -121,6 +125,13 @@ export function ReportsPage() {
     </GridRow>
     <ReportTable title={`Tồn hiện tại và biến động · ${period}`} rows={stock} workspace={workspace} columns={[{ key: 'name', label: 'Sản phẩm' }, { key: 'categoryId', label: 'Danh mục', reference: true }, { key: 'stock', label: 'Tồn hiện tại' }, { key: 'imported', label: 'Nhập trong kỳ' }, { key: 'exported', label: 'Xuất thủ công' }, { key: 'salesQuantity', label: 'Đặt món chưa hủy' }, { key: 'active', label: 'Đang bán', reference: true }]} />
     <ReportTable title={`Chi tiết kho · ${period}`} rows={inventory} workspace={workspace} columns={[...commonColumns, { key: 'productId', label: 'Sản phẩm', reference: true }, { key: 'supplierId', label: 'Nhà cung cấp', reference: true }, { key: 'type', label: 'Loại', reference: true }, { key: 'quantity', label: 'Số lượng' }, { key: 'note', label: 'Ghi chú' }]} />
+    <Divider style={{ marginTop: 30, fontSize: 16, fontWeight: 600 }}>Hoạch định Nguyên vật liệu & Tồn kho sản xuất (MRP)</Divider>
+    <GridRow gutter={[16, 16]}>
+      {metric('Tổng loại NVL', materials.length, 'Danh mục nguyên vật liệu pha chế & F&B', <ShoppingCartOutlined />)}
+      {metric('NVL dưới định mức', lowMaterials.length, 'Cần lên kế hoạch mua sắm / nhập kho', <RollbackOutlined />)}
+      {metric('Tổng giá trị kho NVL', money(totalMaterialValue), 'Định giá theo đơn giá vốn nhập', <BankOutlined />)}
+    </GridRow>
+    <ReportTable title="Báo cáo Tồn kho Nguyên vật liệu (Kho NVL - MRP)" rows={materials} workspace={workspace} description="Bảng theo dõi tồn kho thực tế so với định mức tồn tối thiểu (Reorder Level) để kịp thời mua sắm nguyên vật liệu." columns={[{ key: 'code', label: 'Mã NVL' }, { key: 'name', label: 'Tên nguyên vật liệu' }, { key: 'unit', label: 'ĐVT' }, { key: 'stockQuantity', label: 'Tồn thực tế' }, { key: 'reorderLevel', label: 'Mức an toàn tối thiểu' }, { key: 'unitCost', label: 'Đơn giá vốn', currency: true }, { key: 'supplierName', label: 'Nhà cung cấp' }, { key: 'status', label: 'Trạng thái', reference: true }]} />
   </>;
   const hrTab = <>
     <Alert type="info" showIcon style={{ marginBottom: 20 }} title={`Hồ sơ nhân sự và thâm niên đến ${asOf}`} description="Phân nhóm dùng hồ sơ hiện tại và ngày vào làm. Thống kê cơ cấu nhân sự theo phòng ban, vị trí, trình độ và thâm niên." />
@@ -131,11 +142,12 @@ export function ReportsPage() {
     <GridRow gutter={[16, 16]} style={{ marginTop: 20 }}><Col xs={24} lg={12}><CountChart title="Phòng ban" rows={countGroups(employees, 'department')} /></Col><Col xs={24} lg={12}><CountChart title="Vị trí công việc" rows={countGroups(employees, 'position')} /></Col><Col xs={24} lg={12}><CountChart title="Trình độ" rows={countGroups(employees, 'qualification')} /></Col><Col xs={24} lg={12}><CountChart title="Thâm niên" rows={countGroups(employees, 'tenureGroup')} /></Col></GridRow>
     {employees.some(row => typeof row.age === 'number') ? <div style={{ marginTop: 20 }}><CountChart title="Tuổi nhân sự có ngày sinh" rows={countGroups(employees, 'ageGroup')} /></div> : <Alert style={{ marginTop: 20 }} type="warning" showIcon title="Chưa thể thống kê tuổi nhân viên" description="DTO nhân viên hiện chưa có dateOfBirth. Báo cáo giữ thông tin này là thiếu dữ liệu; cần backend bổ sung trường ngày sinh." />}
         <ReportTable title={`Nhân sự đến ${asOf}`} rows={employees} workspace={workspace} columns={[{ key: 'fullName', label: 'Nhân viên' }, { key: 'department', label: 'Phòng ban' }, { key: 'position', label: 'Vị trí' }, { key: 'qualification', label: 'Trình độ' }, { key: 'joinedAt', label: 'Ngày vào làm' }, { key: 'tenure', label: 'Thâm niên' }, { key: 'age', label: 'Tuổi' }, { key: 'status', label: 'Trạng thái', reference: true }]} />
-          </>;
+        <ReportTable title={`Thống kê Nghỉ phép trong kỳ · ${period}`} rows={monthlyLeaves} workspace={workspace} description="Tổng hợp đơn nghỉ phép thường niên, nghỉ ốm, thai sản và nghỉ việc." columns={[{ key: 'employeeId', label: 'Nhân viên', reference: true }, { key: 'type', label: 'Loại nghỉ', reference: true }, { key: 'startDate', label: 'Từ ngày' }, { key: 'endDate', label: 'Đến ngày' }, { key: 'reason', label: 'Lý do' }, { key: 'status', label: 'Trạng thái', reference: true }]} />
+      </>;
 
   return <>
     <PageTitle eyebrow="INTERNETCAFE / BÁO CÁO" title="Báo cáo vận hành" description="Tổng hợp dữ liệu được cấp quyền từ hệ thống demo. Chọn kỳ và xuất từng bảng đang xem." actions={<Button icon={<ReloadOutlined />} loading={loading} onClick={() => void refresh()}>Làm mới</Button>} />
-    <Space wrap style={{ marginBottom: 20 }}><DateFilter from={from} to={to} onFrom={setFrom} onTo={setTo} /><Tag color="gold">Nguồn: mock</Tag><Typography.Text type="secondary">{period}</Typography.Text></Space>
+    <Space wrap style={{ marginBottom: 20 }}><DateFilter from={from} to={to} onFrom={setFrom} onTo={setTo} /><Tag color="green">Nguồn: SQL Server</Tag><Typography.Text type="secondary">{period}</Typography.Text></Space>
     {invalidRange && <Alert style={{ marginBottom: 20 }} type="error" showIcon title="Ngày bắt đầu phải trước hoặc bằng ngày kết thúc." />}
     <Tabs items={[{ key: 'revenue', label: 'Doanh thu & món bán', children: revenueTab }, { key: 'customers', label: 'Khách hàng', children: customerTab }, ...(isManager ? [{ key: 'inventory', label: 'Nhập · xuất · tồn', children: inventoryTab }, { key: 'hr', label: 'Nhân sự & tiền lương', children: hrTab }] : [])]} />
   </>;

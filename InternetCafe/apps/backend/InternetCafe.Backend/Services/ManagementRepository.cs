@@ -21,7 +21,10 @@ public sealed class ManagementRepository(SqlConnectionFactory connections)
         await LeavesAsync(identity, ct),
         await AttendanceAsync(identity, ct),
         await PayrollAsync(identity, ct),
-        await AccountsAsync(identity, ct));
+        await AccountsAsync(identity, ct),
+        await MaterialsAsync(identity, ct),
+        await BomAsync(identity, ct),
+        await MaterialRequestsAsync(identity, ct));
 
     public Task<IReadOnlyList<SupplierReadDto>> SuppliersAsync(IdentityContext identity, CancellationToken ct) =>
         CanManage(identity)
@@ -202,6 +205,64 @@ public sealed class ManagementRepository(SqlConnectionFactory connections)
                     AccountStatus(Text(r, 4)), NullableId("e", r, 5)), ct)
             : EmptyAsync<AccountReadDto>();
 
+    public Task<IReadOnlyList<MaterialReadDto>> MaterialsAsync(IdentityContext identity, CancellationToken ct) =>
+        CanManage(identity) || identity.Role == Roles.Staff
+            ? QueryAsync("""
+                SELECT m.Material_ID, m.Material_Code, m.Material_Name, m.Unit, m.Stock_Quantity, m.Reorder_Level, m.Unit_Cost, m.Status, COALESCE(s.Name, '') AS SupplierName
+                FROM dbo.Materials m
+                LEFT JOIN dbo.Suppliers s ON s.Supplier_ID = m.Supplier_ID
+                ORDER BY m.Material_Name, m.Material_ID
+                """, r => new MaterialReadDto(
+                    Id("mat", r.GetInt32(0)), r.GetString(1), r.GetString(2), r.GetString(3),
+                    DecimalValue(r, 4), DecimalValue(r, 5), DecimalValue(r, 6),
+                    r.GetString(7), Text(r, 8)), ct)
+            : EmptyAsync<MaterialReadDto>();
+
+    public Task<IReadOnlyList<BomReadDto>> BomAsync(IdentityContext identity, CancellationToken ct) =>
+        CanManage(identity) || identity.Role == Roles.Staff
+            ? QueryAsync("""
+                SELECT pm.Product_ID, p.Product_Name, pm.Material_ID, m.Material_Name, pm.Quantity, m.Unit
+                FROM dbo.Product_Materials pm
+                JOIN dbo.Products p ON p.Product_ID = pm.Product_ID
+                JOIN dbo.Materials m ON m.Material_ID = pm.Material_ID
+                ORDER BY p.Product_Name, m.Material_Name
+                """, r => new BomReadDto(
+                    $"{r.GetInt32(0)}-{r.GetInt32(2)}",
+                    Id("p", r.GetInt32(0)), r.GetString(1),
+                    Id("mat", r.GetInt32(2)), r.GetString(3),
+                    DecimalValue(r, 4), r.GetString(5)), ct)
+            : EmptyAsync<BomReadDto>();
+
+    public Task<IReadOnlyList<MaterialRequestReadDto>> MaterialRequestsAsync(IdentityContext identity, CancellationToken ct) =>
+        CanManage(identity) || identity.Role == Roles.Staff
+            ? QueryAsync("""
+                SELECT r.Request_ID, r.Item_Type, r.Material_ID, m.Material_Name, r.Product_ID, p.Product_Name,
+                       r.Quantity, r.Status, r.Note,
+                       COALESCE(eReq.Full_Name, aReq.Full_Name, 'Nhân viên') AS RequesterName,
+                       COALESCE(eDec.Full_Name, aDec.Full_Name, '') AS DeciderName,
+                       r.Decided_At, r.Created_At
+                FROM dbo.Material_Requests r
+                LEFT JOIN dbo.Materials m ON m.Material_ID = r.Material_ID
+                LEFT JOIN dbo.Products p ON p.Product_ID = r.Product_ID
+                LEFT JOIN dbo.App_Accounts aReq ON aReq.Account_ID = r.Requested_By_Account_ID
+                LEFT JOIN dbo.Employees eReq ON eReq.Employee_ID = aReq.Employee_ID OR eReq.Employee_ID = r.Requested_By_Account_ID
+                LEFT JOIN dbo.App_Accounts aDec ON aDec.Account_ID = r.Decided_By_Account_ID
+                LEFT JOIN dbo.Employees eDec ON eDec.Employee_ID = aDec.Employee_ID OR eDec.Employee_ID = r.Decided_By_Account_ID
+                ORDER BY r.Created_At DESC, r.Request_ID DESC
+                """, r => new MaterialRequestReadDto(
+                    Id("matreq", r.GetInt32(0)),
+                    r.GetString(1),
+                    NullableId("mat", r, 2), Text(r, 3),
+                    NullableId("p", r, 4), Text(r, 5),
+                    DecimalValue(r, 6),
+                    r.GetString(7),
+                    Text(r, 8),
+                    Text(r, 9),
+                    r.IsDBNull(10) ? null : r.GetString(10),
+                    NullableDateTimeValue(r, 11),
+                    DateTimeValue(r, 12)), ct)
+            : EmptyAsync<MaterialRequestReadDto>();
+
     private async Task<IReadOnlyList<T>> QueryAsync<T>(string sql, Func<SqlDataReader, T> map, CancellationToken ct, params (string Name, object Value)[] parameters)
     {
         await using var connection = await connections.OpenAsync(ct);
@@ -225,7 +286,11 @@ public sealed class ManagementRepository(SqlConnectionFactory connections)
     private static string TimeValue(SqlDataReader reader, int ordinal) => reader.GetFieldValue<TimeSpan>(ordinal).ToString(@"hh\:mm");
     private static string FeedbackStatus(string status) => status.Equals("Reviewed", StringComparison.OrdinalIgnoreCase) ? "Processing" : status is "Pending" or "Processing" or "Resolved" ? status : "Pending";
     private static string EmployeeStatus(string status) => status.Equals("Active", StringComparison.OrdinalIgnoreCase) ? "Active" : "Inactive";
-    private static string LeaveType(string type) => type.Equals("Sick", StringComparison.OrdinalIgnoreCase) ? "Sick" : type.Equals("Resignation", StringComparison.OrdinalIgnoreCase) ? "Resignation" : "Annual";
+    private static string LeaveType(string type) => 
+        type.Equals("Sick", StringComparison.OrdinalIgnoreCase) ? "Sick" : 
+        type.Equals("Resignation", StringComparison.OrdinalIgnoreCase) ? "Resignation" : 
+        type.Equals("Maternity", StringComparison.OrdinalIgnoreCase) ? "Maternity" : 
+        "Annual";
     private static string PayrollStatus(string status) => status.Equals("Paid", StringComparison.OrdinalIgnoreCase) ? "Paid" : status.Equals("Approved", StringComparison.OrdinalIgnoreCase) ? "Approved" : "Draft";
     private static string AccountStatus(string status) => status.Equals("Banned", StringComparison.OrdinalIgnoreCase) ? "Banned" : "Active";
 
@@ -246,7 +311,10 @@ public sealed record ManagementWorkspaceDto(
     IReadOnlyList<LeaveReadDto> Leaves,
     IReadOnlyList<AttendanceReadDto> Attendance,
     IReadOnlyList<PayrollReadDto> Payroll,
-    IReadOnlyList<AccountReadDto> Accounts);
+    IReadOnlyList<AccountReadDto> Accounts,
+    IReadOnlyList<MaterialReadDto> Materials,
+    IReadOnlyList<BomReadDto> Bom,
+    IReadOnlyList<MaterialRequestReadDto> MaterialRequests);
 
 public sealed record SupplierReadDto(string Id, string Name, string Phone, string Email, string Address, bool Active);
 public sealed record InventoryReadDto(string Id, string ProductId, string? SupplierId, string Type, int Quantity, string Note, DateTime CreatedAt);
@@ -261,3 +329,6 @@ public sealed record LeaveReadDto(string Id, string EmployeeId, string Type, str
 public sealed record AttendanceReadDto(string Id, string EmployeeId, string ScheduleId, DateTime? CheckIn, DateTime? CheckOut);
 public sealed record PayrollReadDto(string Id, string EmployeeId, string Month, decimal BaseSalary, decimal Bonus, decimal Deduction, decimal Total, string Status);
 public sealed record AccountReadDto(string Id, string Username, string FullName, string Role, string Status, string? EmployeeId);
+public sealed record MaterialReadDto(string Id, string Code, string Name, string Unit, decimal StockQuantity, decimal ReorderLevel, decimal UnitCost, string Status, string SupplierName);
+public sealed record BomReadDto(string Id, string ProductId, string ProductName, string MaterialId, string MaterialName, decimal Quantity, string Unit);
+public sealed record MaterialRequestReadDto(string Id, string ItemType, string? MaterialId, string? MaterialName, string? ProductId, string? ProductName, decimal Quantity, string Status, string Note, string RequesterName, string? DeciderName, DateTime? DecidedAt, DateTime CreatedAt);

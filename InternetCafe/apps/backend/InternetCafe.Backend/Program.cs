@@ -108,6 +108,12 @@ api.MapGet("/attendance", [Authorize] async (HttpContext context, ManagementRepo
     Results.Ok(Api.List(await repository.AttendanceAsync(context.User.IdentityContext(), ct), context.Request)));
 api.MapGet("/payroll", [Authorize] async (HttpContext context, ManagementRepository repository, CancellationToken ct) =>
     Results.Ok(Api.List(await repository.PayrollAsync(context.User.IdentityContext(), ct), context.Request)));
+api.MapGet("/materials", [Authorize] async (HttpContext context, ManagementRepository repository, CancellationToken ct) =>
+    Results.Ok(Api.List(await repository.MaterialsAsync(context.User.IdentityContext(), ct), context.Request)));
+api.MapGet("/bom", [Authorize] async (HttpContext context, ManagementRepository repository, CancellationToken ct) =>
+    Results.Ok(Api.List(await repository.BomAsync(context.User.IdentityContext(), ct), context.Request)));
+api.MapGet("/material-requests", [Authorize] async (HttpContext context, ManagementRepository repository, CancellationToken ct) =>
+    Results.Ok(Api.List(await repository.MaterialRequestsAsync(context.User.IdentityContext(), ct), context.Request)));
 api.MapGet("/accounts", [Authorize(Roles = Roles.Admin)] async (HttpContext context, ManagementRepository repository, CancellationToken ct) =>
     Results.Ok(Api.List(await repository.AccountsAsync(context.User.IdentityContext(), ct), context.Request)));
 api.MapGet("/combos", [Authorize] async (HttpContext context, CafeRepository repository, CancellationToken ct) =>
@@ -177,6 +183,8 @@ api.MapDelete("/{resource}/{id}", [Authorize] async (HttpContext context, string
     (await service.DeleteAsync(context.User.IdentityContext(), resource, id, ct)).ToResult());
 api.MapPost("/leaves/{id}/decision", [Authorize] async (HttpContext context, string id, DecisionRequest request, ManagementService service, CancellationToken ct) =>
     (await service.DecideLeaveAsync(context.User.IdentityContext(), id, request, ct)).ToResult());
+api.MapPost("/material-requests/{id}/decision", [Authorize] async (HttpContext context, string id, DecisionRequest request, ManagementService service, CancellationToken ct) =>
+    (await service.DecideMaterialRequestAsync(context.User.IdentityContext(), id, request, ct)).ToResult());
 api.MapPost("/attendance/check-in", [Authorize] async (HttpContext context, JsonElement body, ManagementService service, CancellationToken ct) =>
     (await service.CheckInAsync(context.User.IdentityContext(), body, ct)).ToResult());
 api.MapPost("/attendance/{id}/check-out", [Authorize] async (HttpContext context, string id, JsonElement body, ManagementService service, CancellationToken ct) =>

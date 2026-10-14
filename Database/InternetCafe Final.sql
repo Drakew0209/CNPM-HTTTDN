@@ -26,6 +26,10 @@ GO
 -- =============================================
 -- 1. Drop existing tables (strict child-before-parent order)
 -- =============================================
+IF OBJECT_ID('dbo.Material_Requests', 'U') IS NOT NULL DROP TABLE dbo.Material_Requests;
+IF OBJECT_ID('dbo.Product_Materials', 'U') IS NOT NULL DROP TABLE dbo.Product_Materials;
+IF OBJECT_ID('dbo.Materials', 'U') IS NOT NULL DROP TABLE dbo.Materials;
+IF OBJECT_ID('dbo.Suppliers', 'U') IS NOT NULL DROP TABLE dbo.Suppliers;
 IF OBJECT_ID('dbo.Games', 'U') IS NOT NULL DROP TABLE dbo.Games;
 IF OBJECT_ID('dbo.Attendance', 'U') IS NOT NULL DROP TABLE dbo.Attendance;
 IF OBJECT_ID('dbo.Leave_Requests', 'U') IS NOT NULL DROP TABLE dbo.Leave_Requests;
@@ -888,3 +892,105 @@ LEFT JOIN dbo.Combos    cb ON r.Combo_ID     = cb.Combo_ID
 WHERE c.Username = 'user01'
 ORDER BY r.Trans_Date DESC;
 */
+
+-- =============================================
+-- 6. MRP Module (Material Requirements Planning & BOM)
+-- =============================================
+
+IF OBJECT_ID('dbo.Suppliers', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Suppliers (
+        Supplier_ID INT IDENTITY(1,1) NOT NULL,
+        Name NVARCHAR(100) NOT NULL,
+        Phone VARCHAR(20) NULL,
+        Email VARCHAR(100) NULL,
+        Address NVARCHAR(255) NULL,
+        Status VARCHAR(20) NOT NULL DEFAULT 'Active',
+        Created_At DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        Updated_At DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT PK_Suppliers PRIMARY KEY (Supplier_ID)
+    );
+END
+GO
+
+IF OBJECT_ID('dbo.Materials', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Materials (
+        Material_ID INT IDENTITY(1,1) NOT NULL,
+        Material_Code NVARCHAR(50) NOT NULL,
+        Material_Name NVARCHAR(100) NOT NULL,
+        Unit NVARCHAR(30) NOT NULL,
+        Stock_Quantity DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        Reorder_Level DECIMAL(12,2) NOT NULL DEFAULT 10.00,
+        Unit_Cost DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        Supplier_ID INT NULL,
+        Status VARCHAR(20) NOT NULL DEFAULT 'Active',
+        Created_At DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        Updated_At DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT PK_Materials PRIMARY KEY (Material_ID),
+        CONSTRAINT UQ_Materials_Code UNIQUE (Material_Code),
+        CONSTRAINT FK_Materials_Supplier FOREIGN KEY (Supplier_ID) REFERENCES dbo.Suppliers (Supplier_ID)
+    );
+END
+GO
+
+IF OBJECT_ID('dbo.Product_Materials', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Product_Materials (
+        Product_ID INT NOT NULL,
+        Material_ID INT NOT NULL,
+        Quantity DECIMAL(10,2) NOT NULL,
+        CONSTRAINT PK_Product_Materials PRIMARY KEY (Product_ID, Material_ID),
+        CONSTRAINT FK_Product_Materials_Product FOREIGN KEY (Product_ID) REFERENCES dbo.Products (Product_ID) ON DELETE CASCADE,
+        CONSTRAINT FK_Product_Materials_Material FOREIGN KEY (Material_ID) REFERENCES dbo.Materials (Material_ID) ON DELETE CASCADE
+    );
+END
+GO
+
+IF OBJECT_ID('dbo.Material_Requests', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Material_Requests (
+        Request_ID INT IDENTITY(1,1) NOT NULL,
+        Item_Type VARCHAR(20) NOT NULL, -- 'Material' | 'Product'
+        Material_ID INT NULL,
+        Product_ID INT NULL,
+        Quantity DECIMAL(12,2) NOT NULL,
+        Status VARCHAR(20) NOT NULL DEFAULT 'Pending', -- 'Pending' | 'Approved' | 'Rejected'
+        Note NVARCHAR(500) NULL,
+        Requested_By_Account_ID INT NOT NULL,
+        Decided_By_Account_ID INT NULL,
+        Decided_At DATETIME2 NULL,
+        Created_At DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT PK_Material_Requests PRIMARY KEY (Request_ID),
+        CONSTRAINT FK_Material_Requests_Material FOREIGN KEY (Material_ID) REFERENCES dbo.Materials (Material_ID),
+        CONSTRAINT FK_Material_Requests_Product FOREIGN KEY (Product_ID) REFERENCES dbo.Products (Product_ID)
+    );
+END
+GO
+
+-- Seed Suppliers
+IF NOT EXISTS (SELECT 1 FROM dbo.Suppliers)
+BEGIN
+    INSERT INTO dbo.Suppliers (Name, Phone, Email, Address, Status) VALUES
+    (N'Công ty TNHH Thực phẩm Á Châu', '0901234567', 'contact@asiafood.vn', N'KCN Tân Bình, TP.HCM', 'Active'),
+    (N'Đại lý Cà phê & Nông sản Trung Nguyên', '0912345678', 'order@trungnguyen.vn', N'Quận 1, TP.HCM', 'Active'),
+    (N'Nhà phân phối Nước giải khát Suntory PepsiCo', '0987654321', 'sales@pepsico.vn', N'Quận Bình Thạnh, TP.HCM', 'Active');
+END
+GO
+
+-- Seed Materials
+IF NOT EXISTS (SELECT 1 FROM dbo.Materials)
+BEGIN
+    INSERT INTO dbo.Materials (Material_Code, Material_Name, Unit, Stock_Quantity, Reorder_Level, Unit_Cost, Supplier_ID, Status) VALUES
+    ('MAT-MIGOI', N'Mì gói Hảo Hảo', N'gói', 120.00, 30.00, 4500.00, 1, 'Active'),
+    ('MAT-TRUNG', N'Trứng gà', N'quả', 85.00, 20.00, 3000.00, 1, 'Active'),
+    ('MAT-XUCXICH', N'Xúc xích Đức', N'cây', 60.00, 15.00, 5000.00, 1, 'Active'),
+    ('MAT-CAPHE', N'Bột cà phê Robusta', N'g', 2500.00, 500.00, 250.00, 2, 'Active'),
+    ('MAT-SUADAC', N'Sữa đặc Ngôi Sao', N'g', 1800.00, 400.00, 80.00, 2, 'Active'),
+    ('MAT-TRADEN', N'Trà đen Lộc Phát', N'g', 1500.00, 300.00, 150.00, 2, 'Active'),
+    ('MAT-DAVEN', N'Đá viên sạch', N'kg', 50.00, 10.00, 2000.00, 1, 'Active'),
+    ('MAT-BANHMI', N'Bánh mì ổ', N'ổ', 35.00, 10.00, 4000.00, 1, 'Active'),
+    ('MAT-PEPSI', N'Lon Pepsi 330ml (nhập thô)', N'lon', 96.00, 24.00, 8000.00, 3, 'Active'),
+    ('MAT-STING', N'Chai Sting dâu 330ml', N'chai', 120.00, 24.00, 8500.00, 3, 'Active');
+END
+GO

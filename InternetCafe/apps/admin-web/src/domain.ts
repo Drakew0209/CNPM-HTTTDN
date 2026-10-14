@@ -15,7 +15,7 @@ export const labels: Record<string, string> = {
   Processing: 'Đang xử lý', Resolved: 'Đã giải quyết', Published: 'Đang phát hành', Draft: 'Bản nháp', Closed: 'Đã đóng', Completed: 'Hoàn tất',
   Scheduled: 'Đã xếp lịch', Absent: 'Vắng', OnLeave: 'Nghỉ phép', Paid: 'Đã trả', Silver: 'Bạc', Gold: 'Vàng', Diamond: 'Kim cương',
   Standard: 'Tiêu chuẩn', VIP: 'VIP', TopUp: 'Nạp tiền', FoodOrder: 'Dịch vụ F&B', Rental: 'Giờ chơi', Refund: 'Hoàn tiền', Withdraw: 'Rút tiền / Hoàn số dư',
-  Import: 'Nhập kho', Export: 'Xuất kho', Annual: 'Nghỉ phép', Sick: 'Nghỉ ốm', Resignation: 'Nghỉ việc', ...roleLabel,
+  Import: 'Nhập kho', Export: 'Xuất kho', Annual: 'Nghỉ phép', Sick: 'Nghỉ ốm', Maternity: 'Nghỉ thai sản', Resignation: 'Nghỉ việc', Material: 'Nguyên vật liệu', Product: 'Thành phẩm', ...roleLabel,
 };
 export function revenue(rows: Row[]) {
   const sum = (type: string) => rows.filter(r => r.type === type).reduce((s, r) => s + Math.abs(Number(r.amount) || 0), 0);

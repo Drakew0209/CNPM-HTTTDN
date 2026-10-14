@@ -31,6 +31,9 @@ public sealed class ManagementService(SqlConnectionFactory connections)
             "leaves" => await CreateLeaveAsync(actor, body, ct),
             "payroll" => await CreatePayrollAsync(actor, body, ct),
             "accounts" => await CreateAccountAsync(actor, body, ct),
+            "materials" => await CreateMaterialAsync(actor, body, ct),
+            "bom" => await CreateBomAsync(actor, body, ct),
+            "material-requests" => await CreateMaterialRequestAsync(actor, body, ct),
             _ => OperationResult<object>.Fail("NOT_FOUND", "Không hỗ trợ loại dữ liệu này.", StatusCodes.Status404NotFound)
         });
 
@@ -51,6 +54,7 @@ public sealed class ManagementService(SqlConnectionFactory connections)
             "leaves" => await UpdateLeaveAsync(actor, id, body, ct),
             "payroll" => await UpdatePayrollAsync(actor, id, body, ct),
             "accounts" => await UpdateAccountAsync(actor, id, body, ct),
+            "materials" => await UpdateMaterialAsync(actor, id, body, ct),
             _ => OperationResult<object>.Fail("NOT_FOUND", "Không hỗ trợ loại dữ liệu này.", StatusCodes.Status404NotFound)
         });
 
@@ -63,6 +67,8 @@ public sealed class ManagementService(SqlConnectionFactory connections)
             "suppliers" => await SetStatusAsync(actor, "suppliers", id, "Inactive", ct),
             "employees" => await SetStatusAsync(actor, "employees", id, "Resigned", ct),
             "accounts" => await SetStatusAsync(actor, "accounts", id, "Banned", ct),
+            "materials" => await SetStatusAsync(actor, "materials", id, "Inactive", ct),
+            "bom" => await DeleteBomAsync(actor, id, ct),
             "categories" => await DeleteCategoryAsync(actor, id, ct),
             "computers" => await DeleteComputerAsync(actor, id, ct),
             "shifts" => await DeleteRowAsync(actor, "shifts", id, ct),
@@ -73,6 +79,9 @@ public sealed class ManagementService(SqlConnectionFactory connections)
 
     public Task<OperationResult<object>> DecideLeaveAsync(IdentityContext actor, string id, DecisionRequest request, CancellationToken ct) =>
         ExecuteAsync(() => DecideLeaveCoreAsync(actor, id, request, ct));
+
+    public Task<OperationResult<object>> DecideMaterialRequestAsync(IdentityContext actor, string id, DecisionRequest request, CancellationToken ct) =>
+        ExecuteAsync(() => DecideMaterialRequestCoreAsync(actor, id, request, ct));
 
     public Task<OperationResult<object>> CheckInAsync(IdentityContext actor, JsonElement body, CancellationToken ct) =>
         ExecuteAsync(() => CheckInCoreAsync(actor, body, ct));
@@ -242,7 +251,7 @@ public sealed class ManagementService(SqlConnectionFactory connections)
     private async Task<OperationResult<object>> CreateLeaveAsync(IdentityContext actor, JsonElement body, CancellationToken ct)
     {
         var employee = ParseId(Value(body, "employeeId"), "e") ?? actor.EmployeeId; var type = Value(body, "type"); var start = Date(body, "startDate"); var end = Date(body, "endDate"); var reason = Required(body, "reason");
-        if (employee is null || type is not ("Annual" or "Sick" or "Resignation") || start is null || end is null || end < start || reason is null) return Validation("Đơn nghỉ không hợp lệ.");
+        if (employee is null || type is not ("Annual" or "Sick" or "Maternity" or "Resignation") || start is null || end is null || end < start || reason is null) return Validation("Đơn nghỉ không hợp lệ.");
         if (!actor.IsManagement && actor.EmployeeId != employee) return Forbidden();
         await using var c = await connections.OpenAsync(ct);
         if (await ScalarIntAsync(c, "SELECT COUNT(*) FROM dbo.Leave_Requests WHERE Employee_ID=@e AND Status IN ('Pending','Approved') AND NOT (End_Date < @start OR Start_Date > @end)", ct, ("@e", employee.Value), ("@start", start.Value), ("@end", end.Value)) > 0)
@@ -633,6 +642,7 @@ public sealed class ManagementService(SqlConnectionFactory connections)
             "customers" => ("dbo.Customers", "Customer_ID", "c"), "products" => ("dbo.Products", "Product_ID", "p"),
             "suppliers" => ("dbo.Suppliers", "Supplier_ID", "supplier"), "employees" => ("dbo.Employees", "Employee_ID", "e"),
             "accounts" => ("dbo.App_Accounts", "Account_ID", "a"), "games" => ("dbo.Games", "Game_ID", "g"),
+            "materials" => ("dbo.Materials", "Material_ID", "mat"),
             _ => throw new InvalidOperationException()
         };
         var key = ParseId(id, prefix); if (key is null) return NotFound();
@@ -640,7 +650,7 @@ public sealed class ManagementService(SqlConnectionFactory connections)
         await using var c = await connections.OpenAsync(ct);
         var n = resource == "games"
             ? await ExecuteNonQueryAsync(c, "UPDATE dbo.Games SET Is_Active=0 WHERE Game_ID=@id", ct, ("@id", key.Value))
-            : await ExecuteNonQueryAsync(c, $"UPDATE {table} SET Status=@status{(resource == "accounts" ? ", Updated_At=SYSUTCDATETIME()" : "")} WHERE {column}=@id", ct, ("@status", status), ("@id", key.Value));
+            : await ExecuteNonQueryAsync(c, $"UPDATE {table} SET Status=@status{(resource is "accounts" or "materials" ? ", Updated_At=SYSUTCDATETIME()" : "")} WHERE {column}=@id", ct, ("@status", status), ("@id", key.Value));
         return n == 0 ? NotFound() : OperationResult<object>.Ok(new { id, deleted = true, status = resource is "employees" or "games" ? "Inactive" : status });
     }
 
@@ -749,6 +759,219 @@ public sealed class ManagementService(SqlConnectionFactory connections)
                 return OperationResult<object>.Fail("SCHEDULE_CONFLICT", $"Khung giờ ca làm bị trùng hoặc giao thoa với ca '{otherName}' ({otherStart:hh\\:mm}-{otherEnd:hh\\:mm}) trong ngày.", StatusCodes.Status409Conflict);
         }
         return null;
+    }
+
+    private async Task<OperationResult<object>> CreateMaterialAsync(IdentityContext actor, JsonElement body, CancellationToken ct)
+    {
+        if (!actor.IsManagement) return Forbidden();
+        var code = Value(body, "code") ?? $"MAT-{Random.Shared.Next(1000, 9999)}";
+        var name = Required(body, "name");
+        var unit = Value(body, "unit") ?? "g";
+        var stock = Decimal(body, "stockQuantity") ?? 0m;
+        var reorder = Decimal(body, "reorderLevel") ?? 0m;
+        var cost = Decimal(body, "unitCost") ?? 0m;
+        var supplierId = Has(body, "supplierId") ? ParseId(Value(body, "supplierId"), "supplier") : null;
+        var status = Value(body, "status") ?? "Active";
+
+        if (name is null) return Validation("Tên nguyên vật liệu là bắt buộc.");
+
+        await using var c = await connections.OpenAsync(ct);
+        var id = await ScalarIntAsync(c, """
+            INSERT INTO dbo.Materials (Material_Code, Material_Name, Unit, Stock_Quantity, Reorder_Level, Unit_Cost, Supplier_ID, Status)
+            VALUES (@code, @name, @unit, @stock, @reorder, @cost, @supplier, @status);
+            SELECT CAST(SCOPE_IDENTITY() AS int);
+            """, ct,
+            ("@code", code), ("@name", name), ("@unit", unit),
+            ("@stock", stock), ("@reorder", reorder), ("@cost", cost),
+            ("@supplier", Db(supplierId)), ("@status", status));
+
+        return OperationResult<object>.Ok(new { id = Id("mat", id), code, name, unit, stockQuantity = stock, reorderLevel = reorder, unitCost = cost, supplierId = supplierId is null ? null : Id("supplier", supplierId.Value), status });
+    }
+
+    private async Task<OperationResult<object>> UpdateMaterialAsync(IdentityContext actor, string id, JsonElement body, CancellationToken ct)
+    {
+        if (!actor.IsManagement) return Forbidden();
+        var key = ParseId(id, "mat");
+        if (key is null) return NotFound();
+        await using var c = await connections.OpenAsync(ct);
+        var changes = new List<string>();
+        var p = new List<(string, object)> { ("@id", key.Value) };
+        Add(changes, p, "Material_Code", "@code", Value(body, "code"));
+        Add(changes, p, "Material_Name", "@name", Value(body, "name"));
+        Add(changes, p, "Unit", "@unit", Value(body, "unit"));
+        Add(changes, p, "Stock_Quantity", "@stock", Decimal(body, "stockQuantity"));
+        Add(changes, p, "Reorder_Level", "@reorder", Decimal(body, "reorderLevel"));
+        Add(changes, p, "Unit_Cost", "@cost", Decimal(body, "unitCost"));
+        if (Has(body, "supplierId")) Add(changes, p, "Supplier_ID", "@supplier", Db(ParseId(Value(body, "supplierId"), "supplier")));
+        Add(changes, p, "Status", "@status", Value(body, "status"));
+        if (changes.Count > 0) changes.Add("Updated_At = SYSUTCDATETIME()");
+        return await UpdatedAsync(c, "dbo.Materials", changes, p, ct, () => new { id });
+    }
+
+    private async Task<OperationResult<object>> CreateBomAsync(IdentityContext actor, JsonElement body, CancellationToken ct)
+    {
+        if (!actor.IsManagement) return Forbidden();
+        var productId = ParseId(Value(body, "productId"), "p");
+        var materialId = ParseId(Value(body, "materialId"), "mat");
+        var quantity = Decimal(body, "quantity");
+
+        if (productId is null || materialId is null || quantity is null || quantity <= 0)
+            return Validation("Thông tin định mức BOM không hợp lệ.");
+
+        await using var c = await connections.OpenAsync(ct);
+        await ExecuteNonQueryAsync(c, """
+            IF EXISTS (SELECT 1 FROM dbo.Product_Materials WHERE Product_ID=@pid AND Material_ID=@mid)
+                UPDATE dbo.Product_Materials SET Quantity=@qty WHERE Product_ID=@pid AND Material_ID=@mid
+            ELSE
+                INSERT INTO dbo.Product_Materials (Product_ID, Material_ID, Quantity) VALUES (@pid, @mid, @qty)
+            """, ct, ("@pid", productId.Value), ("@mid", materialId.Value), ("@qty", quantity.Value));
+
+        return OperationResult<object>.Ok(new { id = $"{productId.Value}-{materialId.Value}", productId = Id("p", productId.Value), materialId = Id("mat", materialId.Value), quantity = quantity.Value });
+    }
+
+    private async Task<OperationResult<object>> DeleteBomAsync(IdentityContext actor, string id, CancellationToken ct)
+    {
+        if (!actor.IsManagement) return Forbidden();
+        int? pid = null; int? mid = null;
+        var parts = id.Split('-');
+        if (parts.Length == 2 && int.TryParse(parts[0], out var p1) && int.TryParse(parts[1], out var m1))
+        {
+            pid = p1; mid = m1;
+        }
+        else if (parts.Length >= 4 && parts[0] == "p" && int.TryParse(parts[1], out var p2) && parts[2] == "mat" && int.TryParse(parts[3], out var m2))
+        {
+            pid = p2; mid = m2;
+        }
+
+        if (pid is null || mid is null) return NotFound("Không xác định được định mức BOM cần xóa.");
+
+        await using var c = await connections.OpenAsync(ct);
+        var n = await ExecuteNonQueryAsync(c, "DELETE FROM dbo.Product_Materials WHERE Product_ID=@pid AND Material_ID=@mid", ct, ("@pid", pid.Value), ("@mid", mid.Value));
+        return n == 0 ? NotFound() : OperationResult<object>.Ok(new { id, deleted = true });
+    }
+
+    private async Task<OperationResult<object>> CreateMaterialRequestAsync(IdentityContext actor, JsonElement body, CancellationToken ct)
+    {
+        var itemType = Value(body, "itemType") ?? (Has(body, "productId") ? "Product" : "Material");
+        if (itemType is not ("Material" or "Product")) return Validation("Loại yêu cầu phải là Material hoặc Product.");
+        var materialId = Has(body, "materialId") ? ParseId(Value(body, "materialId"), "mat") : null;
+        var productId = Has(body, "productId") ? ParseId(Value(body, "productId"), "p") : null;
+        var quantity = Decimal(body, "quantity");
+        var note = Value(body, "note") ?? "";
+
+        if (quantity is null or <= 0) return Validation("Số lượng yêu cầu phải lớn hơn 0.");
+        if (itemType == "Material" && materialId is null) return Validation("Vui lòng chọn nguyên vật liệu cần xuất.");
+        if (itemType == "Product" && productId is null) return Validation("Vui lòng chọn sản phẩm cần pha chế/chế biến.");
+
+        await using var c = await connections.OpenAsync(ct);
+        var id = await ScalarIntAsync(c, """
+            INSERT INTO dbo.Material_Requests (Item_Type, Material_ID, Product_ID, Quantity, Status, Note, Requested_By_Account_ID)
+            VALUES (@type, @mid, @pid, @qty, 'Pending', @note, @reqBy);
+            SELECT CAST(SCOPE_IDENTITY() AS int);
+            """, ct,
+            ("@type", itemType),
+            ("@mid", Db(materialId)),
+            ("@pid", Db(productId)),
+            ("@qty", quantity.Value),
+            ("@note", note),
+            ("@reqBy", actor.AccountId));
+
+        return OperationResult<object>.Ok(new { id = Id("matreq", id), itemType, materialId = materialId is null ? null : Id("mat", materialId.Value), productId = productId is null ? null : Id("p", productId.Value), quantity = quantity.Value, note, status = "Pending" });
+    }
+
+    private async Task<OperationResult<object>> DecideMaterialRequestCoreAsync(IdentityContext actor, string id, DecisionRequest request, CancellationToken ct)
+    {
+        if (!actor.IsManagement && actor.Role != Roles.Cashier) return Forbidden();
+        var key = ParseId(id, "matreq");
+        if (key is null) return NotFound();
+        if (request.Status is not ("Approved" or "Rejected")) return Validation("Trạng thái phải là Approved hoặc Rejected.");
+        await using var c = await connections.OpenAsync(ct);
+        await using var tx = (SqlTransaction)await c.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        try
+        {
+            await using var find = new SqlCommand("SELECT Item_Type, Material_ID, Product_ID, Quantity, Status FROM dbo.Material_Requests WITH (UPDLOCK,HOLDLOCK) WHERE Request_ID=@id", c, tx);
+            find.Parameters.AddWithValue("@id", key.Value);
+            await using var reader = await find.ExecuteReaderAsync(ct);
+            if (!await reader.ReadAsync(ct)) { await tx.RollbackAsync(ct); return NotFound(); }
+            var itemType = reader.GetString(0);
+            var materialId = reader.IsDBNull(1) ? (int?)null : reader.GetInt32(1);
+            var productId = reader.IsDBNull(2) ? (int?)null : reader.GetInt32(2);
+            var quantity = reader.GetDecimal(3);
+            var status = reader.GetString(4);
+            await reader.CloseAsync();
+
+            if (status != "Pending") { await tx.RollbackAsync(ct); return OperationResult<object>.Fail("ALREADY_PROCESSED", "Yêu cầu xuất kho không tồn tại hoặc đã được xử lý.", StatusCodes.Status409Conflict); }
+
+            if (request.Status == "Approved")
+            {
+                if (itemType == "Material")
+                {
+                    if (materialId is null) { await tx.RollbackAsync(ct); return Validation("Yêu cầu xuất vật tư thiếu mã nguyên vật liệu."); }
+                    await using var matCmd = new SqlCommand("SELECT Material_Name, Stock_Quantity FROM dbo.Materials WITH (UPDLOCK,HOLDLOCK) WHERE Material_ID=@id", c, tx);
+                    matCmd.Parameters.AddWithValue("@id", materialId.Value);
+                    await using var matReader = await matCmd.ExecuteReaderAsync(ct);
+                    if (!await matReader.ReadAsync(ct)) { await tx.RollbackAsync(ct); return NotFound("Không tìm thấy nguyên vật liệu."); }
+                    var matName = matReader.GetString(0);
+                    var currentStock = matReader.GetDecimal(1);
+                    await matReader.CloseAsync();
+
+                    if (currentStock < quantity)
+                    {
+                        await tx.RollbackAsync(ct);
+                        return OperationResult<object>.Fail("OUT_OF_STOCK", $"Tồn kho nguyên vật liệu '{matName}' không đủ để xuất ({currentStock:N2} < {quantity:N2}).", StatusCodes.Status409Conflict);
+                    }
+
+                    await ExecuteNonQueryAsync(c, "UPDATE dbo.Materials SET Stock_Quantity = Stock_Quantity - @qty, Updated_At=SYSUTCDATETIME() WHERE Material_ID=@id", ct, tx, ("@qty", quantity), ("@id", materialId.Value));
+                }
+                else if (itemType == "Product")
+                {
+                    if (productId is null) { await tx.RollbackAsync(ct); return Validation("Yêu cầu pha chế/sản xuất thiếu mã sản phẩm."); }
+                    var bomItems = new List<(int MaterialId, string MaterialName, decimal BomQty)>();
+                    await using var bomCmd = new SqlCommand("""
+                        SELECT pm.Material_ID, m.Material_Name, pm.Quantity
+                        FROM dbo.Product_Materials pm
+                        JOIN dbo.Materials m ON m.Material_ID = pm.Material_ID
+                        WHERE pm.Product_ID = @pid
+                        """, c, tx);
+                    bomCmd.Parameters.AddWithValue("@pid", productId.Value);
+                    await using var bomReader = await bomCmd.ExecuteReaderAsync(ct);
+                    while (await bomReader.ReadAsync(ct))
+                    {
+                        bomItems.Add((bomReader.GetInt32(0), bomReader.GetString(1), bomReader.GetDecimal(2)));
+                    }
+                    await bomReader.CloseAsync();
+
+                    if (bomItems.Count == 0)
+                    {
+                        await tx.RollbackAsync(ct);
+                        return OperationResult<object>.Fail("NO_BOM", "Sản phẩm chưa được định nghĩa định mức nguyên vật liệu (BOM).", StatusCodes.Status400BadRequest);
+                    }
+
+                    foreach (var item in bomItems)
+                    {
+                        var needed = item.BomQty * quantity;
+                        await using var chkCmd = new SqlCommand("SELECT Stock_Quantity FROM dbo.Materials WITH (UPDLOCK,HOLDLOCK) WHERE Material_ID=@id", c, tx);
+                        chkCmd.Parameters.AddWithValue("@id", item.MaterialId);
+                        var curStock = (decimal?)await chkCmd.ExecuteScalarAsync(ct) ?? 0m;
+                        if (curStock < needed)
+                        {
+                            await tx.RollbackAsync(ct);
+                            return OperationResult<object>.Fail("OUT_OF_STOCK", $"Nguyên vật liệu '{item.MaterialName}' không đủ để sản xuất {quantity} món (cần {needed:N2}, hiện có {curStock:N2}).", StatusCodes.Status409Conflict);
+                        }
+
+                        await ExecuteNonQueryAsync(c, "UPDATE dbo.Materials SET Stock_Quantity = Stock_Quantity - @needed, Updated_At=SYSUTCDATETIME() WHERE Material_ID=@id", ct, tx, ("@needed", needed), ("@id", item.MaterialId));
+                    }
+
+                    await ExecuteNonQueryAsync(c, "UPDATE dbo.Products SET Stock_Quantity = Stock_Quantity + @qty WHERE Product_ID=@pid", ct, tx, ("@qty", (int)Math.Round(quantity)), ("@pid", productId.Value));
+                }
+            }
+
+            await ExecuteNonQueryAsync(c, "UPDATE dbo.Material_Requests SET Status=@status, Decided_By_Account_ID=@decidedBy, Decided_At=SYSUTCDATETIME() WHERE Request_ID=@id", ct, tx, ("@status", request.Status), ("@decidedBy", actor.AccountId), ("@id", key.Value));
+
+            await tx.CommitAsync(ct);
+            return OperationResult<object>.Ok(new { id, status = request.Status });
+        }
+        catch { await tx.RollbackAsync(ct); throw; }
     }
     private static string? Value(JsonElement body, string name) => body.ValueKind == JsonValueKind.Object && body.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString()?.Trim() : null;
     private static string? Required(JsonElement body, string name) => string.IsNullOrWhiteSpace(Value(body, name)) ? null : Value(body, name);

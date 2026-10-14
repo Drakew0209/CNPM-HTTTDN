@@ -13,9 +13,9 @@ export function StatusTag({ value }: { value: unknown }) {
 }
 export function displayValue(key: string, value: unknown, workspace: Workspace): string {
   if (value === null || value === undefined || value === '') return '—';
-  const lookup: Record<string,string> = { customerId:'customers',employeeId:'employees',productId:'products',computerId:'computers',supplierId:'suppliers',categoryId:'categories',shiftId:'shifts' };
+  const lookup: Record<string,string> = { customerId:'customers',employeeId:'employees',productId:'products',computerId:'computers',supplierId:'suppliers',categoryId:'categories',shiftId:'shifts',materialId:'materials' };
   if (lookup[key]) { const row = workspace[lookup[key]]?.find(r => r.id === value); return String(row?.fullName || row?.name || value); }
-  if (['balance','amount','total','price','baseSalary','bonus','deduction','hourlyRate','startBalance'].includes(key)) return money(value);
+  if (['balance','amount','total','price','baseSalary','bonus','deduction','hourlyRate','startBalance','unitCost'].includes(key)) return money(value);
   if (['createdAt','checkIn','checkOut'].includes(key) || (['startTime','endTime'].includes(key) && String(value).includes('T'))) return dateTime(value);
   if (typeof value === 'boolean') return value ? 'Có' : 'Không';
   if (Array.isArray(value)) return `${value.length}`;
@@ -25,7 +25,7 @@ export function displayValue(key: string, value: unknown, workspace: Workspace):
 export function Value({ k, value, workspace }: { k: string; value: unknown; workspace: Workspace }) {
   if (k === 'status') return <StatusTag value={value}/>;
   if (k === 'active' || k === 'online') return <Tag color={value ? 'green' : 'default'}>{k === 'online' ? (value ? 'Trực tuyến' : 'Mất kết nối') : (value ? 'Hoạt động' : 'Tạm ngừng')}</Tag>;
-  return <span className={['balance','amount','total','price','stock'].includes(k) ? 'numeric' : undefined}>{displayValue(k,value,workspace)}</span>;
+  return <span className={['balance','amount','total','price','stock','stockQuantity','reorderLevel','unitCost'].includes(k) ? 'numeric' : undefined}>{displayValue(k,value,workspace)}</span>;
 }
 export function PageTitle({ eyebrow, title, description, actions }: { eyebrow?: string; title: string; description: string; actions?: ReactNode }) {
   return <div className="page-title"><div><div className="eyebrow">{eyebrow || 'INTERNETCAFE / VẬN HÀNH'}</div><h1>{title}</h1><p>{description}</p></div><div className="page-actions">{actions}</div></div>;

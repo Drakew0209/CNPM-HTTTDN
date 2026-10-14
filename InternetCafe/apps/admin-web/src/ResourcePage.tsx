@@ -22,6 +22,7 @@ export function ResourcePage({ module, readonly = false }: { module: Module; rea
   const dateField=module.key==='sessions'?'startTime':module.key==='attendance'?'checkIn':'createdAt';
   const rows=filterDates(all,from,to,dateField).filter(row=>(!status||row.status===status)&&(!search||[row.id,...module.columns.map(k=>displayValue(k,row[k],workspace))].join(' ').toLocaleLowerCase('vi').includes(search.toLocaleLowerCase('vi'))));
   const lowStockItems=(workspace.products||[]).filter(p=>Number(p.stock)<=5);
+  const lowStockMaterials=(workspace.materials||[]).filter(m=>Number(m.stockQuantity)<=Number(m.reorderLevel));
   useEffect(()=>{
     if(!topupCustomer && !directTopupOpen) return;
     api<{data?:any[]}|any[]>('/combos','GET')
@@ -81,12 +82,23 @@ export function ResourcePage({ module, readonly = false }: { module: Module; rea
     qualification: 110,
     baseSalary: 115,
     month: 100,
+    code: 110,
+    unit: 80,
+    stockQuantity: 110,
+    reorderLevel: 115,
+    unitCost: 115,
+    supplierName: 140,
+    itemType: 110,
+    materialName: 140,
+    productName: 140,
+    requesterName: 130,
+    deciderName: 130,
   };
   const columns=[...module.columns.map(k=>({title:columnLabels[k]||k,dataIndex:k,key:k,width:columnWidths[k],sorter:(a:Row,b:Row)=>typeof a[k]==='number'?Number(a[k])-Number(b[k]):displayValue(k,a[k],workspace).localeCompare(displayValue(k,b[k],workspace),'vi'),render:(v:unknown)=><Value k={k} value={v} workspace={workspace}/>})),{
     title:'Thao tác',
     key:'actions',
     fixed:'right' as const,
-    width:module.key==='customers'?290:module.key==='orders'?230:['topups','leaves'].includes(module.key)?200:160,
+    width:module.key==='customers'?290:module.key==='orders'?230:['topups','leaves','material-requests'].includes(module.key)?200:160,
     render:(_:unknown,row:Row)=><div className="table-actions">
       {canEdit&&module.key==='customers'&&row.status!=='Inactive'&&(
         <>
@@ -94,9 +106,9 @@ export function ResourcePage({ module, readonly = false }: { module: Module; rea
           <Button size="small" onClick={()=>{setWithdrawCustomer(row);setWithdrawAmount(Math.min(Number(row.balance||0),50000));setWithdrawNote('');}}>Rút tiền</Button>
         </>
       )}
-      {canEdit&&['topups','leaves'].includes(module.key)&&row.status==='Pending'&&(
+      {canEdit&&['topups','leaves','material-requests'].includes(module.key)&&row.status==='Pending'&&(
         <>
-          <Button type="primary" size="small" loading={busy} onClick={()=>confirm(module.key==='topups'?'Đã nhận đủ tiền tại quầy?':'Duyệt đơn nghỉ này?',`/${module.key}/${row.id}/decision`,{status:'Approved'})}>Duyệt</Button>
+          <Button type="primary" size="small" loading={busy} onClick={()=>confirm(module.key==='topups'?'Đã nhận đủ tiền tại quầy?':module.key==='leaves'?'Duyệt đơn nghỉ này?':'Duyệt xuất kho / trừ định mức BOM?',`/${module.key}/${row.id}/decision`,{status:'Approved'})}>Duyệt</Button>
           <Button size="small" danger onClick={()=>confirm('Từ chối yêu cầu?',`/${module.key}/${row.id}/decision`,{status:'Rejected'})}>Từ chối</Button>
         </>
       )}
@@ -131,6 +143,8 @@ export function ResourcePage({ module, readonly = false }: { module: Module; rea
   return <>
     <PageTitle eyebrow={readonly?'INTERNETCAFE / TRA CỨU HỆ THỐNG':module.section.toLocaleUpperCase('vi')} title={module.title} description={module.description} actions={<Space wrap>{canEdit&&(module.key==='topups'||module.key==='customers')&&<Button type="primary" icon={<WalletOutlined/>} style={{background:'linear-gradient(135deg, #10b981, #059669)',borderColor:'#10b981'}} onClick={()=>{setDirectCustomerId('');setTopupAmount(50000);setSelectedCombo(null);setDirectTopupOpen(true);}}>Nạp tiền tại quầy</Button>}<Button icon={<DownloadOutlined/>} onClick={()=>downloadCsv(module.key,rows,module.columns.map(key=>({key,label:columnLabels[key]||key})))}>Xuất CSV</Button>{canEdit&&module.create&&<Button type="primary" icon={<PlusOutlined/>} onClick={()=>openEditor('new')}>Thêm {module.singular}</Button>}</Space>}/>
     {module.key==='inventory'&&(lowStockItems.length>0?<Alert className="section-alert" type="warning" showIcon title={`Cảnh báo: Có ${lowStockItems.length} món tồn kho thấp (≤ 5) hoặc đã hết hàng!`} description={`Các món cần nhập thêm: ${lowStockItems.slice(0, 5).map(p=>`${p.name} (còn ${p.stock})`).join(', ')}${lowStockItems.length>5?'...':''}. Vui lòng liên hệ nhà cung cấp để lập phiếu nhập kho.`}/>:<Alert className="section-alert" type="success" showIcon title="Tồn kho an toàn" description="Tất cả các món đều có số lượng tồn kho đảm bảo sẵn sàng phục vụ khách hàng."/>)}
+    {module.key==='materials'&&(lowStockMaterials.length>0?<Alert className="section-alert" type="warning" showIcon title={`Cảnh báo định mức MRP: Có ${lowStockMaterials.length} nguyên vật liệu chạm hoặc dưới mức tồn tối thiểu!`} description={`Các nguyên vật liệu cần nhập: ${lowStockMaterials.slice(0, 5).map(m=>`${m.name} (hiện có ${m.stockQuantity} ${m.unit}, mức tối thiểu: ${m.reorderLevel})`).join(', ')}${lowStockMaterials.length>5?'...':''}. Vui lòng đề xuất nhập vật tư.`}/>:<Alert className="section-alert" type="success" showIcon title="Định mức tồn kho an toàn" description="Tất cả nguyên vật liệu đều ở trên mức định mức tối thiểu."/>)}
+    {module.key==='material-requests'&&<Alert className="section-alert" type="info" showIcon title="Quy trình hoạch định MRP & Sản xuất" description="Duyệt xuất kho NVL: hệ thống tự động kiểm tra tồn kho và trừ trực tiếp. Duyệt sản xuất thành phẩm: hệ thống tự động kiểm tra đủ tất cả NVL theo công thức định mức BOM, trừ kho NVL và cộng thành phẩm vào thực đơn."/>}
     {module.key==='accounts'&&<Alert className="section-alert" type="info" showIcon title="Admin quản lý truy cập. Owner/Manager vận hành quán. Staff chỉ xem dữ liệu cá nhân."/>}
     <Card className="data-card"><div className="table-toolbar"><Input prefix={<SearchOutlined/>} placeholder={`Tìm trong ${module.title.toLocaleLowerCase('vi')}…`} aria-label="Tìm kiếm" allowClear value={search} onChange={e=>setSearch(e.target.value)} className="search-input"/>{module.statuses&&<Select placeholder="Tất cả trạng thái" aria-label="Lọc trạng thái" allowClear value={status} onChange={setStatus} style={{minWidth:165}} options={module.statuses.map(value=>({value,label:labels[value]}))}/>}<Tag>{rows.length} bản ghi</Tag></div>{module.dates&&<DateFilter from={from} to={to} onFrom={setFrom} onTo={setTo}/>}<Table rowKey="id" columns={columns} dataSource={rows} scroll={{x:'max-content'}} pagination={{pageSize:8,showSizeChanger:true,pageSizeOptions:[8,20,50],showTotal:total=>`${total} bản ghi`}} locale={{emptyText:<EmptyState/>}}/></Card>
     <Modal open={editor!==null} onCancel={()=>setEditor(null)} title={`${editor==='new'?'Thêm':'Cập nhật'} ${module.singular}`} width={680} destroyOnHidden footer={<Space><Button onClick={()=>setEditor(null)}>Hủy</Button><Button type="primary" loading={busy} onClick={()=>form.submit()}>Lưu thông tin</Button></Space>}>

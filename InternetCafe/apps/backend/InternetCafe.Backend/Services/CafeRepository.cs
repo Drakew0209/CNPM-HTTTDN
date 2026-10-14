@@ -25,7 +25,8 @@ public sealed class CafeRepository(SqlConnectionFactory connections, ManagementR
             computers, customers, products, categories, orders, topups, transactions, games, combos,
             suppliers = managementWorkspace.Suppliers, inventory = managementWorkspace.Inventory, feedback = managementWorkspace.Feedback, surveys = managementWorkspace.Surveys,
             employees = managementWorkspace.Employees, shifts = managementWorkspace.Shifts, schedules = managementWorkspace.Schedules, leaves = managementWorkspace.Leaves,
-            attendance = managementWorkspace.Attendance, payroll = managementWorkspace.Payroll, accounts = managementWorkspace.Accounts, sessions
+            attendance = managementWorkspace.Attendance, payroll = managementWorkspace.Payroll, accounts = managementWorkspace.Accounts, sessions,
+            materials = managementWorkspace.Materials, bom = managementWorkspace.Bom, materialRequests = managementWorkspace.MaterialRequests
         };
     }
 

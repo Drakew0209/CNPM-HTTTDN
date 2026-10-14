@@ -124,7 +124,7 @@ export function StaffPage() {
           <Form.Item name="qualification" label="Trình độ"><Input maxLength={180} /></Form.Item>
         </>}
         {dialog === 'leave' && <>
-          <Form.Item name="type" label="Loại đơn" rules={[{ required: true }]}><Select options={['Annual', 'Sick', 'Resignation'].map(value => ({ value, label: labels[value] }))} /></Form.Item>
+          <Form.Item name="type" label="Loại đơn" rules={[{ required: true }]}><Select options={['Annual', 'Sick', 'Maternity', 'Resignation'].map(value => ({ value, label: labels[value] || value }))} /></Form.Item>
           <Form.Item name="startDate" label="Từ ngày" rules={[{ required: true, message: 'Chọn ngày bắt đầu.' }]}><Input type="date" /></Form.Item>
           <Form.Item name="endDate" label="Đến ngày" dependencies={['startDate']} rules={[{ required: true, message: 'Chọn ngày kết thúc.' }, ({ getFieldValue }) => ({ validator: async (_, value) => { if (value && value < getFieldValue('startDate')) throw new Error('Ngày kết thúc phải từ ngày bắt đầu trở đi.'); } })]}><Input type="date" /></Form.Item>
           <Form.Item name="reason" label="Lý do" rules={[{ required: true, whitespace: true, message: 'Nhập lý do nghỉ.' }]}><Input.TextArea rows={4} maxLength={2000} showCount /></Form.Item>
