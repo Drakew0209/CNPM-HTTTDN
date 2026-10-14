@@ -38,6 +38,13 @@ Tài liệu này được sử dụng để đồng bộ luồng làm việc gi�
 ### 🚀 Đang thực thi (Giao cho OpenCode)
 *(Trống)*
 
+### 📋 Tài liệu rà soát
+- **[14/10/2026] Đối chiếu yêu cầu & ghi chú trạng thái**: [`docs/DoiChieuYeuCau.md`](docs/DoiChieuYeuCau.md)
+  - Phần A: 12 ghi chú trạng thái (tài liệu lỗi thời, sai phiên bản, không có bảng Accounts, MRP trống…).
+  - Phần B: đối chiếu từng mục của yêu cầu 2 (Admin), 3 (HRM), 4 (CRM), 5 (MRP) và 14 chức năng bắt buộc.
+  - Phần C: danh sách khoảng trống xếp theo P0/P1/P2, kèm C.3 liệt kê mã nguồn payroll còn thừa.
+  - **Phạm vi đã điều chỉnh**: chức năng quản lý lương (payroll) đã được yêu cầu bỏ → đánh dấu NGOÀI PHẠM VI, không tính là khoảng trống. **Khoảng trống P0 còn lại: toàn bộ hệ thống MRP + loại đơn nghỉ thai sản.**
+
 ### ✅ Đã hoàn thành
 1. **[Hoàn thành 07/10/2026] Tính năng**: Nạp tiền trực tiếp vào tài khoản Khách hàng từ Admin.
    - Thêm `POST /customers/{id}/topup`.
