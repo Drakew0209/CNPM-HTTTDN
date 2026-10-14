@@ -541,6 +541,61 @@ public sealed class DatabaseBootstrapper(SqlConnectionFactory connections)
                     N''Game bắn súng chiến thuật 5v5 của Riot Games.'');
         ');
 
+        EXEC(N'
+            IF OBJECT_ID(''dbo.Materials'', ''U'') IS NULL
+            CREATE TABLE dbo.Materials (
+                Material_ID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Materials PRIMARY KEY,
+                Material_Code NVARCHAR(50) NOT NULL CONSTRAINT UQ_Materials_Code UNIQUE,
+                Material_Name NVARCHAR(100) NOT NULL,
+                Unit NVARCHAR(30) NOT NULL,
+                Stock_Quantity DECIMAL(12,2) NOT NULL CONSTRAINT DF_Materials_Stock DEFAULT 0.00,
+                Reorder_Level DECIMAL(12,2) NOT NULL CONSTRAINT DF_Materials_Reorder DEFAULT 10.00,
+                Unit_Cost DECIMAL(12,2) NOT NULL CONSTRAINT DF_Materials_Cost DEFAULT 0.00,
+                Supplier_ID INT NULL CONSTRAINT FK_Materials_Supplier REFERENCES dbo.Suppliers(Supplier_ID),
+                Status VARCHAR(20) NOT NULL CONSTRAINT DF_Materials_Status DEFAULT ''Active'',
+                Created_At DATETIME2 NOT NULL CONSTRAINT DF_Materials_Created_At DEFAULT SYSUTCDATETIME(),
+                Updated_At DATETIME2 NOT NULL CONSTRAINT DF_Materials_Updated_At DEFAULT SYSUTCDATETIME()
+            );
+
+            IF OBJECT_ID(''dbo.Product_Materials'', ''U'') IS NULL
+            CREATE TABLE dbo.Product_Materials (
+                Product_ID INT NOT NULL CONSTRAINT FK_Product_Materials_Product REFERENCES dbo.Products(Product_ID) ON DELETE CASCADE,
+                Material_ID INT NOT NULL CONSTRAINT FK_Product_Materials_Material REFERENCES dbo.Materials(Material_ID) ON DELETE CASCADE,
+                Quantity DECIMAL(10,2) NOT NULL,
+                CONSTRAINT PK_Product_Materials PRIMARY KEY (Product_ID, Material_ID)
+            );
+
+            IF OBJECT_ID(''dbo.Material_Requests'', ''U'') IS NULL
+            CREATE TABLE dbo.Material_Requests (
+                Request_ID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Material_Requests PRIMARY KEY,
+                Item_Type VARCHAR(20) NOT NULL,
+                Material_ID INT NULL CONSTRAINT FK_Material_Requests_Material REFERENCES dbo.Materials(Material_ID),
+                Product_ID INT NULL CONSTRAINT FK_Material_Requests_Product REFERENCES dbo.Products(Product_ID),
+                Quantity DECIMAL(12,2) NOT NULL,
+                Status VARCHAR(20) NOT NULL CONSTRAINT DF_Material_Requests_Status DEFAULT ''Pending'',
+                Note NVARCHAR(500) NULL,
+                Requested_By_Account_ID INT NOT NULL CONSTRAINT FK_Material_Requests_Requester REFERENCES dbo.App_Accounts(Account_ID),
+                Decided_By_Account_ID INT NULL CONSTRAINT FK_Material_Requests_Decider REFERENCES dbo.App_Accounts(Account_ID),
+                Decided_At DATETIME2 NULL,
+                Created_At DATETIME2 NOT NULL CONSTRAINT DF_Material_Requests_Created_At DEFAULT SYSUTCDATETIME()
+            );
+
+            IF NOT EXISTS (SELECT 1 FROM dbo.Materials)
+            BEGIN
+                INSERT INTO dbo.Materials (Material_Code, Material_Name, Unit, Stock_Quantity, Reorder_Level, Unit_Cost, Status) VALUES
+                (N''MAT-MIGOI'', N''Mì gói Hảo Hảo'', N''gói'', 120.00, 30.00, 4500.00, ''Active''),
+                (N''MAT-TRUNG'', N''Trứng gà'', N''quả'', 85.00, 20.00, 3000.00, ''Active''),
+                (N''MAT-XUCXICH'', N''Xúc xích Đức'', N''cây'', 60.00, 15.00, 5000.00, ''Active''),
+                (N''MAT-CAPHE'', N''Bột cà phê Robusta'', N''g'', 2500.00, 500.00, 250.00, ''Active''),
+                (N''MAT-SUADAC'', N''Sữa đặc Ngôi Sao'', N''g'', 1800.00, 400.00, 80.00, ''Active''),
+                (N''MAT-TRADEN'', N''Trà đen Lộc Phát'', N''g'', 1500.00, 300.00, 150.00, ''Active''),
+                (N''MAT-DAVEN'', N''Đá viên sạch'', N''kg'', 50.00, 10.00, 2000.00, ''Active''),
+                (N''MAT-BANHMI'', N''Bánh mì ổ'', N''ổ'', 35.00, 10.00, 4000.00, ''Active''),
+                (N''MAT-PEPSI'', N''Lon Pepsi 330ml (nhập thô)'', N''lon'', 96.00, 24.00, 8000.00, ''Active''),
+                (N''MAT-STING'', N''Chai Sting dâu 330ml'', N''chai'', 120.00, 24.00, 8500.00, ''Active'');
+            END;
+        ');
+
         COMMIT TRANSACTION;
         """;
 
