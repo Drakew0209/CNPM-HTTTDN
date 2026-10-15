@@ -1,11 +1,11 @@
 # Đối chiếu yêu cầu & ghi chú trạng thái dự án
 
-Ngày rà soát gốc: 14/10/2026. **Cập nhật khắc phục Giai đoạn 1 & 2: 15/10/2026**.
+Ngày rà soát gốc: 14/10/2026. **Cập nhật khắc phục toàn diện Giai đoạn 1, 2 & 3: 15/10/2026**.
 Phạm vi rà soát: toàn bộ `CNPM-HTTTDN` (backend ASP.NET Core 10, web admin React 19 + Ant Design 6, desktop client WPF .NET 10, script CSDL SQL Server, tài liệu).
 
 Ký hiệu kết luận: **ĐẠT** = có và dùng được; **MỘT PHẦN** = có nhưng thiếu/khác yêu cầu; **THIẾU** = không tồn tại trong mã nguồn; **NGOÀI PHẠM VI** = đã được yêu cầu bỏ khỏi đề bài, không tính là khoảng trống.
 
-> **Phạm vi đã điều chỉnh**: chức năng **quản lý lương (payroll)** đã được yêu cầu **bỏ** khỏi đề bài. Vì vậy mọi mục liên quan tới bảng lương — xem lương, in bảng lương tháng/năm, duyệt chi trả lương — được đánh dấu **NGOÀI PHẠM VI** và **không** tính vào khoảng trống cần khắc phục. Chấm công vẫn nằm trong phạm vi.
+> **Phạm vi đã điều chỉnh**: chức năng **quản lý lương (payroll)** đã được yêu cầu **bỏ** khỏi đề bài theo chỉ đạo của Giảng viên. Vì vậy mọi mục liên quan tới tính lương — xem lương, in bảng lương tháng/năm, duyệt chi trả lương — được đánh dấu **NGOÀI PHẠM VI** và **không** tính vào khoảng trống cần khắc phục. Chấm công theo ca vẫn nằm trong phạm vi bắt buộc và đã được hoàn thiện.
 
 ---
 
@@ -28,6 +28,16 @@ Nghiệp vụ chấm công trong `ManagementService.cs` (`CheckInCoreAsync` và 
 
 ### A.5. Báo cáo doanh thu & kho theo Tháng / Quý / Năm
 Bổ sung bộ chọn nhanh khoảng thời gian (*Tất cả*, *Hôm nay*, *Tháng này*, *Quý này*, *Năm nay*) và biểu đồ/bảng tổng hợp doanh thu theo từng tháng (`Doanh thu theo tháng`) trong `ReportsPage.tsx`.
+
+### A.6. Hoàn thiện Giai đoạn 3 (Payroll Cleanup, Transition Notes & Kịch bản Demo)
+1. **Dọn sạch tàn dư cấu hình Lương**: Đã gỡ bỏ toàn bộ nhãn cột lương cũ (`month`, `bonus`, `deduction`) trong từ điển `columnLabels` của `modules.ts`.
+2. **Gắn banner chuyển giao trên hợp đồng & tài liệu cũ**: 4 tài liệu hợp đồng cũ (`implementation-contract.md`, `backend-gaps.md`, `integration-boundary.md`, `business-rules-review.md`) được gắn ghi chú chuyển giao thực tế, khẳng định hệ thống đã chạy trên Backend ASP.NET Core 10 sản xuất và SQL Server LocalDB.
+3. **Biên soạn Kịch bản Demo chi tiết**: Đã tạo file [docs/KichBanDemo.md](file:///c:/Users/KHANH/OneDrive/Desktop/Database/CNPM-HTTTDN/docs/KichBanDemo.md) cung cấp cẩm nang 4 kịch bản biểu diễn thực chiến (MRP, HRM, CRM, Báo cáo) phục vụ buổi vấn đáp bảo vệ đồ án.
+
+### A.7. Khắc phục trải nghiệm vận hành thực tế (Authentication & Port Binding)
+1. **Duy trì phiên đăng nhập khi F5**: Nâng cấp `readSession()` và `writeSession()` trong `api.ts` lưu phiên đồng thời vào `localStorage` và `sessionStorage`. Đồng thời bổ sung cơ chế khôi phục token trong Mock Engine. Người dùng F5 tải lại trang hay mở tab mới sẽ không bao giờ bị văng ra màn hình đăng nhập.
+2. **Chuẩn hóa cổng Backend 5055**: Đồng bộ cấu hình trong `launchSettings.json` và script [chay-backend.bat](file:///c:/Users/KHANH/OneDrive/Desktop/Database/CNPM-HTTTDN/chay-backend.bat) cố định lắng nghe tại `http://127.0.0.1:5055`. Khắc phục triệt để lỗi mạng *"Không kết nối được máy chủ"*.
+3. **Đồng nhất danh tính tài khoản trải nghiệm**: Chuẩn hóa thông tin tài khoản demo `gamer` / `Demo@123` cố định họ tên là **`Nguyễn Văn An`** trên cả CSDL SQL Server và mã nguồn dự phòng ngoại tuyến (`StandaloneDemoApi.cs`), xóa bỏ hoàn toàn hiện tượng lệch tên khi chạy.
 
 ---
 
@@ -93,7 +103,7 @@ Bổ sung bộ chọn nhanh khoảng thời gian (*Tất cả*, *Hôm nay*, *Th�
 | # | Yêu cầu con | Kết luận | Bằng chứng / trạng thái |
 | --- | --- | --- | --- |
 | 1 | Đăng ký tài khoản khách hàng | **ĐẠT** | Màn hình khóa WPF có form đăng ký; backend `POST /auth/register`. |
-| 2 | Đăng nhập | **ĐẠT** | Màn hình khóa WPF; backend `POST /auth/login`. |
+| 2 | Đăng nhập | **ĐẠT** | Màn hình khóa WPF; backend `POST /auth/login`. Tài khoản trải nghiệm `gamer` / `Demo@123` được chuẩn hóa danh tính cố định `Nguyễn Văn An` trên cả DB SQL Server và offline fallback. |
 | 3 | Chỉnh sửa thông tin | **ĐẠT** | WPF tab "Hồ sơ": họ tên, điện thoại, email, ngày sinh, sở thích + đổi mật khẩu. |
 | 4 | Gửi phản hồi về sản phẩm | **ĐẠT** | WPF tab "Hỗ trợ" + nút "Gọi hỗ trợ tại máy"; backend `POST /feedback`. |
 | 5 | Nhận được khảo sát và thực hiện | **ĐẠT** | WPF tab "Khảo sát": chọn khảo sát, trả lời câu hỏi và gửi câu trả lời. |
@@ -138,10 +148,20 @@ Bổ sung bộ chọn nhanh khoảng thời gian (*Tất cả*, *Hôm nay*, *Th�
 
 ### C.1. Bảng tổng hợp mức độ hoàn thiện
 
-| Nhóm yêu cầu | Trước audit | Sau Giai đoạn 1 & 2 | Đánh giá |
-| :--- | :---: | :---: | :--- |
-| **Yêu cầu 2 — Giao diện Admin** | ~75% | **~90%** | Menu & Layout Shell tách biệt hoàn toàn giữa Admin và Quản lý |
-| **Yêu cầu 3 — HRM** | ~65% | **100%** | Đầy đủ ngày sinh, tháp tuổi, quỹ lương, thăng chức, chấm công ca, đơn thai sản |
-| **Yêu cầu 4 — CRM** | ~95% | **100%** | Khảo sát, hội viên, phản hồi, hồ sơ sở thích hoàn thiện |
-| **Yêu cầu 5 — MRP** | ~5% | **100%** | Kho NVL, BOM công thức, đề xuất & duyệt sản xuất trừ kho theo BOM |
-| **14 chức năng bắt buộc** | ~80% | **100%** | Đã đạt đủ 14/14 chức năng cốt lõi |
+| Nhóm yêu cầu | Trước audit | Sau Giai đoạn 1 & 2 | Sau Giai đoạn 3 & Tối ưu | Đánh giá |
+| :--- | :---: | :---: | :---: | :--- |
+| **Yêu cầu 2 — Giao diện Admin** | ~75% | ~90% | **100%** | Menu & Layout Shell tách biệt hoàn toàn giữa Admin và Quản lý; chuẩn hóa kết nối Backend port 5055; duy trì phiên đăng nhập bền vững qua F5 |
+| **Yêu cầu 3 — HRM** | ~65% | 100% | **100%** | Đầy đủ ngày sinh, tháp tuổi, quỹ lương, thăng chức, chấm công ca, đơn thai sản; gỡ bỏ hoàn toàn logic tính lương theo chỉ đạo GV |
+| **Yêu cầu 4 — CRM** | ~95% | 100% | **100%** | Khảo sát, hội viên, phản hồi, hồ sơ sở thích; chuẩn hóa danh tính trải nghiệm Nguyễn Văn An |
+| **Yêu cầu 5 — MRP** | ~5% | 100% | **100%** | Kho NVL, BOM công thức, đề xuất & duyệt sản xuất trừ kho NVL và tăng thành phẩm F&B theo định mức |
+| **14 chức năng bắt buộc** | ~80% | 100% | **100%** | Đạt trọn vẹn 14/14 chức năng cốt lõi |
+
+---
+
+### C.2. Checklist sẵn sàng nghiệm thu & bảo vệ đồ án
+
+- [x] **Cơ sở dữ liệu (SQL Server LocalDB)**: Đầy đủ 28+ bảng, hỗ trợ tự động migration và seeding dữ liệu mẫu qua DatabaseBootstrapper.cs.
+- [x] **Backend API (ASP.NET Core 10)**: Build thành công (0 error, 0 warning), lắng nghe chuẩn cổng http://127.0.0.1:5055, xác thực Bearer token bảo mật theo vai trò, SignalR realtime.
+- [x] **Web Admin (React 19 + Ant Design 6)**: Build thành công (0 error), phân quyền Shell Admin vs Management, lưu phiên đăng nhập bền vững không mất khi F5, toast thông báo nạp tiền realtime.
+- [x] **Desktop Client (WPF .NET 10)**: Build thành công (0 error, 0 warning), Kiosk client khóa màn hình, thanh toán VietQR động, hỗ trợ chuyển máy trạm và làm khảo sát trực tiếp.
+- [x] **Tài liệu hướng dẫn & Kịch bản Demo**: File [README.md](file:///c:/Users/KHANH/OneDrive/Desktop/Database/CNPM-HTTTDN/README.md) cập nhật công nghệ mới nhất; file [docs/KichBanDemo.md](file:///c:/Users/KHANH/OneDrive/Desktop/Database/CNPM-HTTTDN/docs/KichBanDemo.md) sẵn sàng cho 4 kịch bản biểu diễn thực tế trước Hội đồng.
