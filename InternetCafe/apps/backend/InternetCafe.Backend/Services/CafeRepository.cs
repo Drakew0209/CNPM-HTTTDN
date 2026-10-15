@@ -54,7 +54,7 @@ public sealed class CafeRepository(SqlConnectionFactory connections, ManagementR
         {
             await using var employee = new SqlCommand("""
                 UPDATE dbo.Employees SET Full_Name = COALESCE(@fullName, Full_Name), Phone_Number = COALESCE(@phone, Phone_Number),
-                    Email = COALESCE(@email, Email), Qualification = COALESCE(@qualification, Qualification)
+                    Email = COALESCE(@email, Email), Qualification = COALESCE(@qualification, Qualification), Date_Of_Birth = COALESCE(@dateOfBirth, Date_Of_Birth)
                 WHERE Employee_ID = @id
                 """, connection);
             employee.Parameters.AddWithValue("@id", identity.EmployeeId.Value);
@@ -62,6 +62,7 @@ public sealed class CafeRepository(SqlConnectionFactory connections, ManagementR
             employee.Parameters.AddWithValue("@phone", ReadString(body, "phone") ?? (object)DBNull.Value);
             employee.Parameters.AddWithValue("@email", ReadString(body, "email") ?? (object)DBNull.Value);
             employee.Parameters.AddWithValue("@qualification", ReadString(body, "qualification") ?? (object)DBNull.Value);
+            employee.Parameters.AddWithValue("@dateOfBirth", DateOnly.TryParse(ReadString(body, "dateOfBirth"), out var empDob) ? empDob : (object)DBNull.Value);
             await employee.ExecuteNonQueryAsync(ct);
             return OperationResult<object>.Ok(await MeAsync(identity, ct));
         }

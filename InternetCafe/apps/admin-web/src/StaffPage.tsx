@@ -85,6 +85,14 @@ export function StaffPage() {
     } },
     { title: 'Giờ vào', dataIndex: 'checkIn', key: 'checkIn', render: dateTime },
     { title: 'Giờ ra', dataIndex: 'checkOut', key: 'checkOut', render: (value: unknown) => value ? dateTime(value) : <Tag color="blue">Đang trong ca</Tag> },
+    { title: 'Tình trạng / Tuân thủ ca', dataIndex: 'note', key: 'note', render: (note: unknown) => {
+      if (!note) return '—';
+      const text = String(note);
+      const isLate = text.includes('Đi trễ');
+      const isEarly = text.includes('Về sớm');
+      const isOnTime = text.includes('Đúng giờ');
+      return <Tag color={isLate ? 'volcano' : isEarly ? 'warning' : isOnTime ? 'green' : 'default'}>{text}</Tag>;
+    } },
   ];
 
   return <>
@@ -108,9 +116,10 @@ export function StaffPage() {
       { key: 'profile', label: 'Hồ sơ & bảo mật', children: <Card title="Thông tin cá nhân" extra={<Space><Button onClick={() => openDialog('profile')}>Sửa hồ sơ</Button><Button onClick={() => openDialog('password')}>Đổi mật khẩu</Button></Space>}>
         {employee ? <Descriptions bordered column={{ xs: 1, sm: 2 }} items={[
           { key: 'name', label: 'Họ tên', children: String(employee.fullName) }, { key: 'phone', label: 'Điện thoại', children: String(employee.phone || '—') },
-          { key: 'email', label: 'Email', children: String(employee.email || '—') }, { key: 'department', label: 'Bộ phận', children: String(employee.department || '—') },
-          { key: 'position', label: 'Chức vụ', children: String(employee.position || '—') }, { key: 'qualification', label: 'Trình độ', children: String(employee.qualification || '—') },
-          { key: 'joined', label: 'Ngày vào làm', children: String(employee.joinedAt || '—') }, { key: 'status', label: 'Trạng thái', children: <StatusTag value={employee.status} /> },
+          { key: 'email', label: 'Email', children: String(employee.email || '—') }, { key: 'dob', label: 'Ngày sinh', children: String(employee.dateOfBirth || '—') },
+          { key: 'department', label: 'Bộ phận', children: String(employee.department || '—') }, { key: 'position', label: 'Chức vụ', children: String(employee.position || '—') },
+          { key: 'qualification', label: 'Trình độ', children: String(employee.qualification || '—') }, { key: 'joined', label: 'Ngày vào làm', children: String(employee.joinedAt || '—') },
+          { key: 'status', label: 'Trạng thái', children: <StatusTag value={employee.status} /> },
         ]} /> : <EmptyState description="Chưa có hồ sơ nhân sự liên kết tài khoản." />}
       </Card> },
     ]} />
@@ -121,6 +130,7 @@ export function StaffPage() {
           <Form.Item name="fullName" label="Họ tên" rules={[{ required: true, whitespace: true, message: 'Nhập họ tên.' }]}><Input maxLength={180} /></Form.Item>
           <Form.Item name="phone" label="Điện thoại" rules={[{ required: true }, { pattern: /^[0-9+ ()-]{9,15}$/, message: 'Số điện thoại chưa hợp lệ.' }]}><Input /></Form.Item>
           <Form.Item name="email" label="Email" rules={[{ type: 'email', message: 'Email chưa đúng định dạng.' }]}><Input type="email" /></Form.Item>
+          <Form.Item name="dateOfBirth" label="Ngày sinh"><Input type="date" /></Form.Item>
           <Form.Item name="qualification" label="Trình độ"><Input maxLength={180} /></Form.Item>
         </>}
         {dialog === 'leave' && <>

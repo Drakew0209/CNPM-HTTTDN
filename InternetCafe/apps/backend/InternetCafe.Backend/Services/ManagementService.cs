@@ -220,10 +220,11 @@ public sealed class ManagementService(SqlConnectionFactory connections)
         {
             if (await UsernameTakenAsync(c, tx, username, ct)) { await tx.RollbackAsync(ct); return OperationResult<object>.Fail("USERNAME_EXISTS", "Tên đăng nhập đã được sử dụng.", StatusCodes.Status409Conflict); }
             var departmentId = await EnsureDepartmentAsync(c, tx, department, ct); var positionId = await EnsurePositionAsync(c, tx, position, departmentId, ct);
-            var role = position.Contains("Quản lý") ? Roles.Manager : position.Contains("Thu ngân") ? Roles.Cashier : Roles.Staff;
+            var role = position.Contains("Quản lý") || position.Contains("Trưởng nhóm") ? Roles.Manager : position.Contains("Thu ngân") ? Roles.Cashier : Roles.Staff;
             var employeeStatus = Value(body, "status") == "Inactive" ? "Suspended" : "Active";
             var hash = passwords.HashPassword(new object(), password);
-            var id = await ScalarIntAsync(c, "INSERT INTO dbo.Employees (Username,Password_Hash,Full_Name,Phone_Number,Email,Position_ID,Hire_Date,Base_Salary,Status,Qualification) VALUES (@username,@hash,@name,@phone,@email,@position,@joined,@salary,@status,@qualification); SELECT CAST(SCOPE_IDENTITY() AS int);", ct, tx, ("@username", username), ("@hash", hash), ("@name", fullName), ("@phone", Db(Value(body, "phone"))), ("@email", Db(Value(body, "email"))), ("@position", positionId), ("@joined", joinedAt.Value), ("@salary", salary.Value), ("@status", employeeStatus), ("@qualification", Db(Value(body, "qualification"))));
+            var birth = Date(body, "dateOfBirth");
+            var id = await ScalarIntAsync(c, "INSERT INTO dbo.Employees (Username,Password_Hash,Full_Name,Phone_Number,Email,Position_ID,Hire_Date,Base_Salary,Status,Qualification,Date_Of_Birth) VALUES (@username,@hash,@name,@phone,@email,@position,@joined,@salary,@status,@qualification,@birth); SELECT CAST(SCOPE_IDENTITY() AS int);", ct, tx, ("@username", username), ("@hash", hash), ("@name", fullName), ("@phone", Db(Value(body, "phone"))), ("@email", Db(Value(body, "email"))), ("@position", positionId), ("@joined", joinedAt.Value), ("@salary", salary.Value), ("@status", employeeStatus), ("@qualification", Db(Value(body, "qualification"))), ("@birth", (object?)birth ?? DBNull.Value));
             await ExecuteNonQueryAsync(c, "INSERT INTO dbo.App_Accounts (Username,Password_Hash,Role,Employee_ID,Full_Name,Status) VALUES (@u,@h,@role,@empId,@name,'Active')", ct, tx, ("@u", username), ("@h", hash), ("@role", role), ("@empId", id), ("@name", fullName));
             await tx.CommitAsync(ct); return OperationResult<object>.Ok(EmployeeObject(id, fullName, department, position, body, salary.Value, joinedAt.Value));
         }
@@ -385,8 +386,8 @@ public sealed class ManagementService(SqlConnectionFactory connections)
         await using var c = await connections.OpenAsync(ct); await using var tx = (SqlTransaction)await c.BeginTransactionAsync(ct);
         try
         {
-            var changes = new List<string>(); var p = new List<(string, object)> { ("@id", key.Value) }; Add(changes, p, "Full_Name", "@name", Value(body, "fullName")); Add(changes, p, "Phone_Number", "@phone", Value(body, "phone")); Add(changes, p, "Email", "@email", Value(body, "email")); Add(changes, p, "Qualification", "@qualification", Value(body, "qualification")); Add(changes, p, "Base_Salary", "@salary", Decimal(body, "baseSalary")); Add(changes, p, "Hire_Date", "@joined", Date(body, "joinedAt")); if (Has(body, "status")) Add(changes, p, "Status", "@status", Value(body, "status") == "Inactive" ? "Suspended" : Value(body, "status"));
-            if (Has(body, "department") || Has(body, "position")) { var department = Value(body, "department") ?? await StringScalarAsync(c, "SELECT d.Department_Name FROM dbo.Employees e JOIN dbo.Positions p ON p.Position_ID=e.Position_ID JOIN dbo.Departments d ON d.Department_ID=p.Department_ID WHERE e.Employee_ID=@id", ct, tx, ("@id", key.Value)); var position = Value(body, "position") ?? await StringScalarAsync(c, "SELECT p.Position_Name FROM dbo.Employees e JOIN dbo.Positions p ON p.Position_ID=e.Position_ID WHERE e.Employee_ID=@id", ct, tx, ("@id", key.Value)); if (department is null || position is null) { await tx.RollbackAsync(ct); return NotFound(); } var departmentId = await EnsureDepartmentAsync(c, tx, department, ct); var positionId = await EnsurePositionAsync(c, tx, position, departmentId, ct); Add(changes, p, "Position_ID", "@position", positionId); }
+            var changes = new List<string>(); var p = new List<(string, object)> { ("@id", key.Value) }; Add(changes, p, "Full_Name", "@name", Value(body, "fullName")); Add(changes, p, "Phone_Number", "@phone", Value(body, "phone")); Add(changes, p, "Email", "@email", Value(body, "email")); Add(changes, p, "Qualification", "@qualification", Value(body, "qualification")); Add(changes, p, "Base_Salary", "@salary", Decimal(body, "baseSalary")); Add(changes, p, "Hire_Date", "@joined", Date(body, "joinedAt")); if (Has(body, "dateOfBirth")) Add(changes, p, "Date_Of_Birth", "@birth", Date(body, "dateOfBirth")); if (Has(body, "status")) Add(changes, p, "Status", "@status", Value(body, "status") == "Inactive" ? "Suspended" : Value(body, "status"));
+            if (Has(body, "department") || Has(body, "position")) { var department = Value(body, "department") ?? await StringScalarAsync(c, "SELECT d.Department_Name FROM dbo.Employees e JOIN dbo.Positions p ON p.Position_ID=e.Position_ID JOIN dbo.Departments d ON d.Department_ID=p.Department_ID WHERE e.Employee_ID=@id", ct, tx, ("@id", key.Value)); var position = Value(body, "position") ?? await StringScalarAsync(c, "SELECT p.Position_Name FROM dbo.Employees e JOIN dbo.Positions p ON p.Position_ID=e.Position_ID WHERE e.Employee_ID=@id", ct, tx, ("@id", key.Value)); if (department is null || position is null) { await tx.RollbackAsync(ct); return NotFound(); } var departmentId = await EnsureDepartmentAsync(c, tx, department, ct); var positionId = await EnsurePositionAsync(c, tx, position, departmentId, ct); Add(changes, p, "Position_ID", "@position", positionId); var updatedRole = position.Contains("Quản lý") || position.Contains("Trưởng nhóm") ? Roles.Manager : position.Contains("Thu ngân") ? Roles.Cashier : Roles.Staff; await ExecuteNonQueryAsync(c, "UPDATE dbo.App_Accounts SET Role = @role WHERE Employee_ID = @id", ct, tx, ("@role", updatedRole), ("@id", key.Value)); }
             if (changes.Count == 0) { await tx.RollbackAsync(ct); return Validation("Không có dữ liệu để cập nhật."); }
             var n = await ExecuteNonQueryAsync(c, $"UPDATE dbo.Employees SET {string.Join(',', changes)} WHERE Employee_ID=@id", ct, tx, p.ToArray()); if (n == 0) { await tx.RollbackAsync(ct); return NotFound(); }
             if (Has(body, "fullName")) { await ExecuteNonQueryAsync(c, "UPDATE dbo.App_Accounts SET Full_Name = @name WHERE Employee_ID = @id", ct, tx, ("@name", Value(body, "fullName")!), ("@id", key.Value)); }
@@ -482,11 +483,21 @@ public sealed class ManagementService(SqlConnectionFactory connections)
     {
         var scheduleId = ParseId(Value(body, "scheduleId"), "schedule"); if (scheduleId is null) return Validation("Lịch làm không hợp lệ.");
         await using var c = await connections.OpenAsync(ct);
-        await using var find = new SqlCommand("SELECT Employee_ID, Work_Date, Status FROM dbo.Work_Schedules WHERE Schedule_ID=@id", c);
+        await using var find = new SqlCommand("""
+            SELECT s.Employee_ID, s.Work_Date, s.Status, ws.Start_Time, ws.End_Time
+            FROM dbo.Work_Schedules s
+            JOIN dbo.Work_Shifts ws ON ws.Shift_ID = s.Shift_ID
+            WHERE s.Schedule_ID = @id
+        """, c);
         find.Parameters.AddWithValue("@id", scheduleId.Value);
         await using var reader = await find.ExecuteReaderAsync(ct);
         if (!await reader.ReadAsync(ct)) return NotFound("Không tìm thấy lịch làm.");
-        var (owner, workDate, scheduleStatus) = (reader.GetInt32(0), DateOnly.FromDateTime(reader.GetDateTime(1)), reader.GetString(2));
+        var (owner, workDate, scheduleStatus, shiftStart, shiftEnd) = (
+            reader.GetInt32(0),
+            DateOnly.FromDateTime(reader.GetDateTime(1)),
+            reader.GetString(2),
+            reader.GetTimeSpan(3),
+            reader.GetTimeSpan(4));
         await reader.CloseAsync();
         if (!actor.IsManagement && actor.EmployeeId != owner) return Forbidden();
         if (scheduleStatus == "OnLeave") return OperationResult<object>.Fail("OUTSIDE_SCHEDULE", "Ca làm việc này đã được duyệt nghỉ phép (OnLeave), không được phép chấm công.", StatusCodes.Status409Conflict);
@@ -501,7 +512,29 @@ public sealed class ManagementService(SqlConnectionFactory connections)
         await using var open = new SqlCommand("SELECT COUNT(*) FROM dbo.Attendance a JOIN dbo.Work_Schedules s ON s.Schedule_ID=a.Schedule_ID WHERE s.Employee_ID=@e AND a.Check_Out_Time IS NULL", c);
         open.Parameters.AddWithValue("@e", owner);
         if (Convert.ToInt32(await open.ExecuteScalarAsync(ct)) > 0) return OperationResult<object>.Fail("OPEN_SHIFT_EXISTS", "Bạn đang có một ca làm việc khác chưa chấm công ra. Vui lòng kết thúc ca trước.", StatusCodes.Status409Conflict);
-        var id = await ScalarIntAsync(c, "INSERT INTO dbo.Attendance (Schedule_ID,Check_In_Time,Note) VALUES (@schedule,SYSUTCDATETIME(),@note); SELECT CAST(SCOPE_IDENTITY() AS int);", ct, ("@schedule", scheduleId.Value), ("@note", Db(Value(body, "note")))); return OperationResult<object>.Ok(new { id = Id("attendance", id), scheduleId = Id("schedule", scheduleId.Value), employeeId = Id("e", owner), checkIn = DateTime.UtcNow, checkOut = (DateTime?)null });
+
+        var nowVn = DateTime.UtcNow.AddHours(7);
+        var checkInTimeOfDay = nowVn.TimeOfDay;
+        string punctualityNote;
+        if (checkInTimeOfDay > shiftStart.Add(TimeSpan.FromMinutes(5)))
+        {
+            var lateMins = (int)(checkInTimeOfDay - shiftStart).TotalMinutes;
+            punctualityNote = $"Đi trễ {lateMins} phút";
+        }
+        else if (checkInTimeOfDay < shiftStart.Subtract(TimeSpan.FromMinutes(30)))
+        {
+            var earlyMins = (int)(shiftStart - checkInTimeOfDay).TotalMinutes;
+            punctualityNote = $"Vào sớm {earlyMins} phút";
+        }
+        else
+        {
+            punctualityNote = "Đúng giờ";
+        }
+        var userNote = Value(body, "note");
+        var finalNote = string.IsNullOrWhiteSpace(userNote) ? punctualityNote : $"{punctualityNote} | {userNote}";
+
+        var id = await ScalarIntAsync(c, "INSERT INTO dbo.Attendance (Schedule_ID,Check_In_Time,Note) VALUES (@schedule,SYSUTCDATETIME(),@note); SELECT CAST(SCOPE_IDENTITY() AS int);", ct, ("@schedule", scheduleId.Value), ("@note", (object?)finalNote ?? DBNull.Value));
+        return OperationResult<object>.Ok(new { id = Id("attendance", id), scheduleId = Id("schedule", scheduleId.Value), employeeId = Id("e", owner), checkIn = DateTime.UtcNow, checkOut = (DateTime?)null, note = finalNote });
     }
 
     private async Task<OperationResult<object>> CheckOutCoreAsync(IdentityContext actor, string id, JsonElement body, CancellationToken ct)
@@ -510,10 +543,45 @@ public sealed class ManagementService(SqlConnectionFactory connections)
         await using var tx = (SqlTransaction)await c.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         try
         {
-            var n = await ExecuteNonQueryAsync(c, "UPDATE dbo.Attendance SET Check_Out_Time=SYSUTCDATETIME(), Note=COALESCE(@note,Note) WHERE Attendance_ID=@id AND Check_Out_Time IS NULL", ct, tx, ("@note", Db(Value(body, "note"))), ("@id", key.Value));
+            await using var shiftCmd = new SqlCommand("""
+                SELECT ws.End_Time, a.Note
+                FROM dbo.Attendance a
+                JOIN dbo.Work_Schedules s ON s.Schedule_ID = a.Schedule_ID
+                JOIN dbo.Work_Shifts ws ON ws.Shift_ID = s.Shift_ID
+                WHERE a.Attendance_ID = @id
+            """, c, tx);
+            shiftCmd.Parameters.AddWithValue("@id", key.Value);
+            await using var shiftReader = await shiftCmd.ExecuteReaderAsync(ct);
+            TimeSpan? shiftEndTime = null;
+            string? currentNote = null;
+            if (await shiftReader.ReadAsync(ct))
+            {
+                shiftEndTime = shiftReader.GetTimeSpan(0);
+                currentNote = shiftReader.IsDBNull(1) ? null : shiftReader.GetString(1);
+            }
+            await shiftReader.CloseAsync();
+
+            string? earlyNote = null;
+            if (shiftEndTime.HasValue)
+            {
+                var nowTimeOut = DateTime.UtcNow.AddHours(7).TimeOfDay;
+                if (nowTimeOut < shiftEndTime.Value.Subtract(TimeSpan.FromMinutes(5)))
+                {
+                    var earlyMins = (int)(shiftEndTime.Value - nowTimeOut).TotalMinutes;
+                    earlyNote = $"Về sớm {earlyMins} phút";
+                }
+            }
+            var userOutNote = Value(body, "note");
+            var outPieces = new[] { earlyNote, userOutNote }.Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+            var appendText = outPieces.Count > 0 ? string.Join(" | ", outPieces) : null;
+            var finalUpdatedNote = string.IsNullOrWhiteSpace(currentNote)
+                ? appendText
+                : (string.IsNullOrWhiteSpace(appendText) ? currentNote : $"{currentNote} | {appendText}");
+
+            var n = await ExecuteNonQueryAsync(c, "UPDATE dbo.Attendance SET Check_Out_Time=SYSUTCDATETIME(), Note=@note WHERE Attendance_ID=@id AND Check_Out_Time IS NULL", ct, tx, ("@note", (object?)finalUpdatedNote ?? DBNull.Value), ("@id", key.Value));
             if (n == 0) { await tx.RollbackAsync(ct); return OperationResult<object>.Fail("ALREADY_PROCESSED", "Đã chấm công ra hoặc không tồn tại.", StatusCodes.Status409Conflict); }
             await ExecuteNonQueryAsync(c, "UPDATE dbo.Work_Schedules SET Status='Completed' WHERE Schedule_ID=(SELECT Schedule_ID FROM dbo.Attendance WHERE Attendance_ID=@id)", ct, tx, ("@id", key.Value));
-            await tx.CommitAsync(ct); return OperationResult<object>.Ok(new { id, checkOut = DateTime.UtcNow });
+            await tx.CommitAsync(ct); return OperationResult<object>.Ok(new { id, checkOut = DateTime.UtcNow, note = finalUpdatedNote });
         }
         catch { await tx.RollbackAsync(ct); throw; }
     }
@@ -708,7 +776,7 @@ public sealed class ManagementService(SqlConnectionFactory connections)
     }
 
     private async Task<bool> UsernameTakenAsync(SqlConnection c, SqlTransaction? tx, string username, CancellationToken ct) => await ScalarIntAsync(c, "SELECT COUNT(*) FROM dbo.App_Accounts WHERE Username=@u UNION ALL SELECT COUNT(*) FROM dbo.Customers WHERE Username=@u", ct, tx, ("@u", username)) > 0;
-    private static object EmployeeObject(int id, string fullName, string department, string position, JsonElement body, decimal salary, DateOnly joinedAt) => new { id = Id("e", id), fullName, phone = Value(body, "phone") ?? "", email = Value(body, "email") ?? "", department, position, qualification = Value(body, "qualification") ?? "", baseSalary = salary, joinedAt = joinedAt.ToString("yyyy-MM-dd"), status = Value(body, "status") ?? "Active" };
+    private static object EmployeeObject(int id, string fullName, string department, string position, JsonElement body, decimal salary, DateOnly joinedAt) => new { id = Id("e", id), fullName, phone = Value(body, "phone") ?? "", email = Value(body, "email") ?? "", department, position, qualification = Value(body, "qualification") ?? "", baseSalary = salary, joinedAt = joinedAt.ToString("yyyy-MM-dd"), dateOfBirth = Date(body, "dateOfBirth")?.ToString("yyyy-MM-dd"), status = Value(body, "status") ?? "Active" };
     private static object PayrollObject(int id, int employee, DateOnly month, decimal salary, decimal bonus, decimal deduction, string status) => new { id = Id("payroll", id), employeeId = Id("e", employee), month = month.ToString("yyyy-MM"), baseSalary = salary, bonus, deduction, total = Math.Max(0, salary + bonus - deduction), status };
     private static async Task<OperationResult<object>> ExecuteAsync(Func<Task<OperationResult<object>>> action) { try { return await action(); } catch (SqlException ex) when (ex.Number is 2601 or 2627) { return OperationResult<object>.Fail("CONFLICT", "Dữ liệu đã tồn tại hoặc đang được tham chiếu.", StatusCodes.Status409Conflict); } catch (SqlException) { return OperationResult<object>.Fail("DATABASE_ERROR", "Không thể ghi dữ liệu do ràng buộc cơ sở dữ liệu.", StatusCodes.Status409Conflict); } catch (InvalidOperationException ex) { return Validation(ex.Message); } }
     private static Task<int> ScalarIntAsync(SqlConnection c, string sql, CancellationToken ct, params (string Name, object Value)[] p) => ScalarIntCoreAsync(c, sql, ct, null, p, false);

@@ -121,7 +121,7 @@ public sealed class ManagementRepository(SqlConnectionFactory connections)
         if (!CanManage(identity) && identity.EmployeeId is null) return EmptyAsync<EmployeeReadDto>();
         return QueryAsync("""
             SELECT e.Employee_ID, e.Full_Name, e.Phone_Number, e.Email, d.Department_Name, p.Position_Name,
-                   e.Status, e.Base_Salary, e.Hire_Date, e.Qualification
+                   e.Status, e.Base_Salary, e.Hire_Date, e.Qualification, e.Date_Of_Birth
             FROM dbo.Employees e
             JOIN dbo.Positions p ON p.Position_ID = e.Position_ID
             JOIN dbo.Departments d ON d.Department_ID = p.Department_ID
@@ -129,7 +129,7 @@ public sealed class ManagementRepository(SqlConnectionFactory connections)
             ORDER BY e.Full_Name, e.Employee_ID
             """, r => new EmployeeReadDto(
                 Id("e", r.GetInt32(0)), r.GetString(1), Text(r, 2), Text(r, 3), r.GetString(4), r.GetString(5),
-                EmployeeStatus(Text(r, 6)), DecimalValue(r, 7), DateOnlyValue(r, 8), Text(r, 9)), ct,
+                EmployeeStatus(Text(r, 6)), DecimalValue(r, 7), DateOnlyValue(r, 8), Text(r, 9), DateOnlyValue(r, 10)), ct,
             ("@ownOnly", CanManage(identity) ? 0 : 1), ("@employeeId", (object?)identity.EmployeeId ?? DBNull.Value));
     }
 
@@ -170,13 +170,13 @@ public sealed class ManagementRepository(SqlConnectionFactory connections)
     {
         if (!CanManage(identity) && identity.EmployeeId is null) return EmptyAsync<AttendanceReadDto>();
         return QueryAsync("""
-            SELECT a.Attendance_ID, s.Employee_ID, a.Schedule_ID, a.Check_In_Time, a.Check_Out_Time
+            SELECT a.Attendance_ID, s.Employee_ID, a.Schedule_ID, a.Check_In_Time, a.Check_Out_Time, a.Note
             FROM dbo.Attendance a
             JOIN dbo.Work_Schedules s ON s.Schedule_ID = a.Schedule_ID
             WHERE @ownOnly = 0 OR s.Employee_ID = @employeeId
             ORDER BY a.Check_In_Time DESC, a.Attendance_ID DESC
             """, r => new AttendanceReadDto(Id("attendance", r.GetInt32(0)), Id("e", r.GetInt32(1)), Id("schedule", r.GetInt32(2)),
-                NullableDateTimeValue(r, 3), NullableDateTimeValue(r, 4)), ct,
+                NullableDateTimeValue(r, 3), NullableDateTimeValue(r, 4), Text(r, 5)), ct,
             ("@ownOnly", CanManage(identity) ? 0 : 1), ("@employeeId", (object?)identity.EmployeeId ?? DBNull.Value));
     }
 
@@ -322,11 +322,11 @@ public sealed record FeedbackReadDto(string Id, string CustomerId, string Subjec
 public sealed record SurveyQuestionReadDto(string Id, string Text, IReadOnlyList<string> Options);
 public sealed record SurveyResponseReadDto(string CustomerId, IReadOnlyDictionary<string, string> Answers, DateTime CreatedAt);
 public sealed record SurveyReadDto(string Id, string Title, string Description, IReadOnlyList<SurveyQuestionReadDto> Questions, IReadOnlyList<string> CustomerIds, string Status, IReadOnlyList<SurveyResponseReadDto> Responses);
-public sealed record EmployeeReadDto(string Id, string FullName, string Phone, string Email, string Department, string Position, string Status, decimal BaseSalary, string JoinedAt, string Qualification);
+public sealed record EmployeeReadDto(string Id, string FullName, string Phone, string Email, string Department, string Position, string Status, decimal BaseSalary, string JoinedAt, string Qualification, string? DateOfBirth);
 public sealed record ShiftReadDto(string Id, string Name, string StartTime, string EndTime);
 public sealed record ScheduleReadDto(string Id, string EmployeeId, string ShiftId, string Date, string Status);
 public sealed record LeaveReadDto(string Id, string EmployeeId, string Type, string StartDate, string EndDate, string Reason, string Status);
-public sealed record AttendanceReadDto(string Id, string EmployeeId, string ScheduleId, DateTime? CheckIn, DateTime? CheckOut);
+public sealed record AttendanceReadDto(string Id, string EmployeeId, string ScheduleId, DateTime? CheckIn, DateTime? CheckOut, string? Note);
 public sealed record PayrollReadDto(string Id, string EmployeeId, string Month, decimal BaseSalary, decimal Bonus, decimal Deduction, decimal Total, string Status);
 public sealed record AccountReadDto(string Id, string Username, string FullName, string Role, string Status, string? EmployeeId);
 public sealed record MaterialReadDto(string Id, string Code, string Name, string Unit, decimal StockQuantity, decimal ReorderLevel, decimal UnitCost, string Status, string SupplierName);

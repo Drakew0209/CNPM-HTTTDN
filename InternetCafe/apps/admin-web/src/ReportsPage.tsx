@@ -49,6 +49,29 @@ const compactMoney = (value: number) => Math.abs(value) >= 1_000_000 ? `${value 
 export function ReportsPage() {
   const { workspace, session, refresh, loading } = useCafe();
   const [from, setFrom] = useState(''), [to, setTo] = useState('');
+  const applyPreset = (preset: 'all' | 'today' | 'month' | 'quarter' | 'year') => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${y}-${m}-${d}`;
+    if (preset === 'all') { setFrom(''); setTo(''); }
+    else if (preset === 'today') { setFrom(todayStr); setTo(todayStr); }
+    else if (preset === 'month') {
+      const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
+      setFrom(`${y}-${m}-01`); setTo(`${y}-${m}-${String(lastDay).padStart(2, '0')}`);
+    }
+    else if (preset === 'quarter') {
+      const q = Math.floor(now.getMonth() / 3);
+      const startMonth = String(q * 3 + 1).padStart(2, '0');
+      const endMonth = String(q * 3 + 3).padStart(2, '0');
+      const lastDayOfQ = new Date(y, q * 3 + 3, 0).getDate();
+      setFrom(`${y}-${startMonth}-01`); setTo(`${y}-${endMonth}-${String(lastDayOfQ).padStart(2, '0')}`);
+    }
+    else if (preset === 'year') {
+      setFrom(`${y}-01-01`); setTo(`${y}-12-31`);
+    }
+  };
   const isManager = ['Owner', 'Manager'].includes(session.user.role);
   const invalidRange = Boolean(from && to && from > to);
   const period = from || to ? `${from || 'Đầu kỳ'} → ${to || 'Hiện tại'}` : 'Toàn bộ dữ liệu';
@@ -58,6 +81,12 @@ export function ReportsPage() {
   const byDay = new Map<string, Row[]>();
   for (const transaction of selectedTransactions) { const day = localDay(transaction.createdAt); if (day) byDay.set(day, [...(byDay.get(day) ?? []), transaction]); }
   const daily = [...byDay].sort(([a], [b]) => a.localeCompare(b)).map(([date, rows]) => ({ id: date, date, ...revenue(rows) }));
+  const byMonth = new Map<string, Row[]>();
+  for (const transaction of selectedTransactions) {
+    const day = localDay(transaction.createdAt);
+    if (day) { const month = day.slice(0, 7); byMonth.set(month, [...(byMonth.get(month) ?? []), transaction]); }
+  }
+  const monthly = [...byMonth].sort(([a], [b]) => a.localeCompare(b)).map(([month, rows]) => ({ id: month, month: `Tháng ${month}`, ...revenue(rows) }));
   const selectedOrders = invalidRange ? [] : filterDates(workspace.orders ?? [], from, to).filter(order => order.status !== 'Cancelled');
   const topMap = new Map<string, Row>();
   for (const order of selectedOrders) for (const item of Array.isArray(order.items) ? order.items as Record<string, unknown>[] : []) {
@@ -101,6 +130,23 @@ export function ReportsPage() {
       </div> : <EmptyState description="Không có giao dịch trong khoảng ngày đã chọn." />}
     </Card>
     <ReportTable title={`Doanh thu theo ngày · ${period}`} rows={daily} workspace={workspace} columns={[{ key: 'date', label: 'Ngày' }, ...[['rental', 'Giờ chơi'], ['food', 'F&B'], ['refund', 'Hoàn tiền'], ['net', 'Doanh thu thuần'], ['topup', 'Nạp vào ví'], ['withdraw', 'Rút tiền ví']].map(([key, label]) => ({ key, label, currency: true }))]} />
+    {monthly.length > 0 && (
+      <Card title="Tổng hợp doanh thu theo tháng" extra={<Tag color="blue">{monthly.length} tháng ghi nhận</Tag>} style={{ marginTop: 20 }}>
+        <ResponsiveContainer width="100%" height={260} minWidth={0}>
+          <BarChart data={monthly} margin={{ top: 10, right: 20, left: 8, bottom: 8 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4ebe7" />
+            <XAxis dataKey="month" />
+            <YAxis tickFormatter={compactMoney} width={65} />
+            <Tooltip formatter={value => money(value)} />
+            <Legend />
+            <Bar dataKey="rental" name="Giờ chơi" fill="#236f61" isAnimationActive={false} />
+            <Bar dataKey="food" name="F&B" fill="#bb812c" isAnimationActive={false} />
+            <Bar dataKey="net" name="Thuần" fill="#253b48" isAnimationActive={false} />
+          </BarChart>
+        </ResponsiveContainer>
+        <ReportTable title="Bảng tổng hợp doanh thu theo tháng" rows={monthly} workspace={workspace} columns={[{ key: 'month', label: 'Tháng' }, ...[['rental', 'Giờ chơi'], ['food', 'F&B'], ['refund', 'Hoàn tiền'], ['net', 'Doanh thu thuần'], ['topup', 'Nạp vào ví'], ['withdraw', 'Rút tiền ví']].map(([key, label]) => ({ key, label, currency: true }))]} />
+      </Card>
+    )}
     <ReportTable title={`Món bán nhiều · ${period}`} rows={topProducts} workspace={workspace} description="Tổng hợp đơn Pending, Preparing và Served tạo trong kỳ; loại đơn Cancelled. Đây là phân tích món, không cộng thêm vào doanh thu giao dịch." columns={[{ key: 'name', label: 'Sản phẩm' }, { key: 'quantity', label: 'Số lượng đặt' }, { key: 'revenue', label: 'Giá trị món', currency: true }]} />
     <ReportTable title={`Chi tiết giao dịch · ${period}`} rows={selectedTransactions} workspace={workspace} columns={[...commonColumns, { key: 'customerId', label: 'Khách hàng', reference: true }, { key: 'type', label: 'Loại', reference: true }, { key: 'amount', label: 'Số tiền', currency: true }, { key: 'referenceId', label: 'Tham chiếu' }]} />
   </>;
@@ -134,20 +180,33 @@ export function ReportsPage() {
     <ReportTable title="Báo cáo Tồn kho Nguyên vật liệu (Kho NVL - MRP)" rows={materials} workspace={workspace} description="Bảng theo dõi tồn kho thực tế so với định mức tồn tối thiểu (Reorder Level) để kịp thời mua sắm nguyên vật liệu." columns={[{ key: 'code', label: 'Mã NVL' }, { key: 'name', label: 'Tên nguyên vật liệu' }, { key: 'unit', label: 'ĐVT' }, { key: 'stockQuantity', label: 'Tồn thực tế' }, { key: 'reorderLevel', label: 'Mức an toàn tối thiểu' }, { key: 'unitCost', label: 'Đơn giá vốn', currency: true }, { key: 'supplierName', label: 'Nhà cung cấp' }, { key: 'status', label: 'Trạng thái', reference: true }]} />
   </>;
   const hrTab = <>
-    <Alert type="info" showIcon style={{ marginBottom: 20 }} title={`Hồ sơ nhân sự và thâm niên đến ${asOf}`} description="Phân nhóm dùng hồ sơ hiện tại và ngày vào làm. Thống kê cơ cấu nhân sự theo phòng ban, vị trí, trình độ và thâm niên." />
+    <Alert type="info" showIcon style={{ marginBottom: 20 }} title={`Hồ sơ nhân sự và thâm niên đến ${asOf}`} description="Phân nhóm dùng hồ sơ hiện tại và ngày vào làm. Thống kê cơ cấu nhân sự theo phòng ban, vị trí, trình độ, thâm niên và quỹ lương cơ bản." />
     <GridRow gutter={[16, 16]}>
-      {metric('Nhân sự', employees.length, 'Có ngày vào làm không sau mốc báo cáo', <TeamOutlined />)}
-      {metric('Đang làm việc', employees.filter(row => row.status === 'Active').length, 'Trạng thái hiện tại', <TeamOutlined />)}
-                </GridRow>
+      {metric('Tổng nhân sự', employees.length, 'Có ngày vào làm không sau mốc báo cáo', <TeamOutlined />)}
+      {metric('Đang làm việc', employees.filter(row => row.status === 'Active').length, 'Trạng thái hoạt động', <TeamOutlined />)}
+      {metric('Đã thôi việc / Tạm dừng', employees.filter(row => row.status !== 'Active').length, 'Trạng thái Inactive / Suspended', <RollbackOutlined />)}
+      {metric('Tổng quỹ lương cơ bản', money(employees.filter(row => row.status === 'Active').reduce((sum, row) => sum + number(row.baseSalary), 0)), 'Lương cơ bản tháng của nhân sự đang làm', <BankOutlined />)}
+    </GridRow>
     <GridRow gutter={[16, 16]} style={{ marginTop: 20 }}><Col xs={24} lg={12}><CountChart title="Phòng ban" rows={countGroups(employees, 'department')} /></Col><Col xs={24} lg={12}><CountChart title="Vị trí công việc" rows={countGroups(employees, 'position')} /></Col><Col xs={24} lg={12}><CountChart title="Trình độ" rows={countGroups(employees, 'qualification')} /></Col><Col xs={24} lg={12}><CountChart title="Thâm niên" rows={countGroups(employees, 'tenureGroup')} /></Col></GridRow>
     {employees.some(row => typeof row.age === 'number') ? <div style={{ marginTop: 20 }}><CountChart title="Tuổi nhân sự có ngày sinh" rows={countGroups(employees, 'ageGroup')} /></div> : <Alert style={{ marginTop: 20 }} type="warning" showIcon title="Chưa thể thống kê tuổi nhân viên" description="DTO nhân viên hiện chưa có dateOfBirth. Báo cáo giữ thông tin này là thiếu dữ liệu; cần backend bổ sung trường ngày sinh." />}
-        <ReportTable title={`Nhân sự đến ${asOf}`} rows={employees} workspace={workspace} columns={[{ key: 'fullName', label: 'Nhân viên' }, { key: 'department', label: 'Phòng ban' }, { key: 'position', label: 'Vị trí' }, { key: 'qualification', label: 'Trình độ' }, { key: 'joinedAt', label: 'Ngày vào làm' }, { key: 'tenure', label: 'Thâm niên' }, { key: 'age', label: 'Tuổi' }, { key: 'status', label: 'Trạng thái', reference: true }]} />
-        <ReportTable title={`Thống kê Nghỉ phép trong kỳ · ${period}`} rows={monthlyLeaves} workspace={workspace} description="Tổng hợp đơn nghỉ phép thường niên, nghỉ ốm, thai sản và nghỉ việc." columns={[{ key: 'employeeId', label: 'Nhân viên', reference: true }, { key: 'type', label: 'Loại nghỉ', reference: true }, { key: 'startDate', label: 'Từ ngày' }, { key: 'endDate', label: 'Đến ngày' }, { key: 'reason', label: 'Lý do' }, { key: 'status', label: 'Trạng thái', reference: true }]} />
-      </>;
+    <ReportTable title={`Nhân sự đến ${asOf}`} rows={employees} workspace={workspace} columns={[{ key: 'fullName', label: 'Nhân viên' }, { key: 'department', label: 'Phòng ban' }, { key: 'position', label: 'Vị trí' }, { key: 'qualification', label: 'Trình độ' }, { key: 'joinedAt', label: 'Ngày vào làm' }, { key: 'tenure', label: 'Thâm niên' }, { key: 'age', label: 'Tuổi' }, { key: 'baseSalary', label: 'Lương cơ bản', currency: true }, { key: 'status', label: 'Trạng thái', reference: true }]} />
+    <ReportTable title={`Thống kê Nghỉ phép trong kỳ · ${period}`} rows={monthlyLeaves} workspace={workspace} description="Tổng hợp đơn nghỉ phép thường niên, nghỉ ốm, thai sản và nghỉ việc." columns={[{ key: 'employeeId', label: 'Nhân viên', reference: true }, { key: 'type', label: 'Loại nghỉ', reference: true }, { key: 'startDate', label: 'Từ ngày' }, { key: 'endDate', label: 'Đến ngày' }, { key: 'reason', label: 'Lý do' }, { key: 'status', label: 'Trạng thái', reference: true }]} />
+  </>;
 
   return <>
     <PageTitle eyebrow="INTERNETCAFE / BÁO CÁO" title="Báo cáo vận hành" description="Tổng hợp dữ liệu được cấp quyền từ hệ thống demo. Chọn kỳ và xuất từng bảng đang xem." actions={<Button icon={<ReloadOutlined />} loading={loading} onClick={() => void refresh()}>Làm mới</Button>} />
-    <Space wrap style={{ marginBottom: 20 }}><DateFilter from={from} to={to} onFrom={setFrom} onTo={setTo} /><Tag color="green">Nguồn: SQL Server</Tag><Typography.Text type="secondary">{period}</Typography.Text></Space>
+    <Space wrap style={{ marginBottom: 20 }}>
+      <DateFilter from={from} to={to} onFrom={setFrom} onTo={setTo} />
+      <Space.Compact>
+        <Button size="middle" type={!from && !to ? 'primary' : 'default'} onClick={() => applyPreset('all')}>Tất cả</Button>
+        <Button size="middle" type={from === localDay(new Date().toISOString()) && to === from ? 'primary' : 'default'} onClick={() => applyPreset('today')}>Hôm nay</Button>
+        <Button size="middle" onClick={() => applyPreset('month')}>Tháng này</Button>
+        <Button size="middle" onClick={() => applyPreset('quarter')}>Quý này</Button>
+        <Button size="middle" onClick={() => applyPreset('year')}>Năm nay</Button>
+      </Space.Compact>
+      <Tag color="green">Nguồn: SQL Server</Tag>
+      <Typography.Text type="secondary">{period}</Typography.Text>
+    </Space>
     {invalidRange && <Alert style={{ marginBottom: 20 }} type="error" showIcon title="Ngày bắt đầu phải trước hoặc bằng ngày kết thúc." />}
     <Tabs items={[{ key: 'revenue', label: 'Doanh thu & món bán', children: revenueTab }, { key: 'customers', label: 'Khách hàng', children: customerTab }, ...(isManager ? [{ key: 'inventory', label: 'Nhập · xuất · tồn', children: inventoryTab }, { key: 'hr', label: 'Nhân sự & tiền lương', children: hrTab }] : [])]} />
   </>;
