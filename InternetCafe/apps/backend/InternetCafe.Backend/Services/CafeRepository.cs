@@ -85,7 +85,7 @@ public sealed class CafeRepository(SqlConnectionFactory connections, ManagementR
 
     public Task<IReadOnlyList<ComputerDto>> ComputersAsync(IdentityContext identity, CancellationToken ct) => QueryAsync("""
         SELECT c.Computer_ID, c.Computer_Code, c.Zone_Type, c.Status, c.Hourly_Rate,
-            CASE WHEN h.Last_Seen_At IS NULL OR h.Last_Seen_At >= DATEADD(second, -30, SYSUTCDATETIME()) THEN CAST(1 AS bit) ELSE CAST(0 AS bit) END AS IsOnline,
+            CASE WHEN h.Last_Seen_At >= DATEADD(second, -30, SYSUTCDATETIME()) THEN CAST(1 AS bit) ELSE CAST(0 AS bit) END AS IsOnline,
             s.Customer_ID, s.Session_ID
         FROM dbo.Computers c
         LEFT JOIN dbo.Machine_Heartbeats h ON h.Computer_ID = c.Computer_ID
