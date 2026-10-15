@@ -1,6 +1,9 @@
 # Ranh giới triển khai frontend
 
-Mã nguồn nằm trong `InternetCafe` của checkout nhánh `FE`. Backend sản xuất chưa có; mock chỉ phục vụ demo và kiểm thử frontend. Không chỉnh sửa SQL/tài liệu nhóm ở thư mục cha.
+> [!NOTE]
+> **Ghi chú chuyển tiếp (15/10/2026)**: Tài liệu này mô tả ranh giới ban đầu của giai đoạn phát triển giao diện. Hiện tại hệ thống đã được tích hợp hoàn chỉnh (Monorepo) gồm cả Backend ASP.NET Core 10 thật kết nối SQL Server LocalDB, Client WPF Kiosk và Web Admin.
+
+Mã nguồn nằm trong thư mục `InternetCafe`. Hệ thống hỗ trợ cả chế độ mock độc lập (`npm run dev`) và chế độ kết nối Backend SQL Server production (`npm run demo:real`).
 
 Web: React + TypeScript + Vite, Ant Design, TanStack Query, React Router, Recharts, MSW. Desktop: WPF .NET 10, MVVM, Material Design, HttpClient và SignalR qua adapter.
 

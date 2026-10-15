@@ -1,6 +1,9 @@
 # Rà soát quy tắc nghiệp vụ
 
-Nguồn rà soát độc lập: [kết quả OMX ngày 03/10/2026](../../.omx/delegations/20261003-124925-omx-exec.md), đối chiếu `implementation-contract.md` và SQL gốc. Tài liệu này phân biệt các rủi ro đã được xử lý trong contract/mock với phần backend vẫn phải triển khai. SQL gốc chưa phải backend production; không có migration SQL trong đợt làm frontend này.
+> [!NOTE]
+> **Ghi chú chuyển tiếp (15/10/2026)**: Toàn bộ 8 phát hiện rà soát dưới đây đã được xử lý dứt điểm trong **Backend ASP.NET Core 10 chính thức** (`apps/backend/InternetCafe.Backend`): CSDL SQL Server đã có đầy đủ bảng, transaction Serializable chống race condition, quản lý kho tự động trừ tồn theo định mức BOM, và chấm công tự động kiểm tra khung ca.
+
+Tài liệu này ghi nhận quá trình chuẩn hóa quy tắc nghiệp vụ giữa mô hình dữ liệu quan hệ và tầng dịch vụ API.
 
 ## Tám phát hiện và kết quả xử lý
 

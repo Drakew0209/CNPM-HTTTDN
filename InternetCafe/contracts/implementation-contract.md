@@ -1,6 +1,9 @@
 # Contract triển khai thống nhất (03/10/2026)
 
-Đây là contract FE đề xuất, chưa phải backend production. OpenAPI là bản đặc tả máy đọc được tương ứng.
+> [!NOTE]
+> **Ghi chú chuyển tiếp (15/10/2026)**: Tài liệu này được lập ở giai đoạn tiền khả thi (FE-Mock). Hiện tại, hệ thống đã triển khai **Backend ASP.NET Core 10 chính thức** (`apps/backend/InternetCafe.Backend`) kết nối **Microsoft SQL Server LocalDB**, bổ sung đầy đủ các phân hệ MRP & BOM, HRM (Chấm công theo ca, Đơn thai sản), CRM, Invoices. OpenAPI và các DTO dưới đây đã được hiện thực hóa 100% trong mã nguồn backend C#.
+
+Đây là contract quy chuẩn giữa frontend và backend API. OpenAPI là bản đặc tả máy đọc được tương ứng.
 
 Base `/api/v1`. JSON camelCase. Thành công `{data: T, meta?: {total,page,pageSize}}`. Lỗi `{error:{code,message,fields?}}`. Bearer token. ID string. Tiền VND nguyên không âm; UTC ISO 8601; ngày YYYY-MM-DD. PATCH chỉ nhận trường được phép. Không gửi mật khẩu/hash trong response.
 

@@ -1,6 +1,9 @@
 # Bàn giao backend và giới hạn mock
 
-`implementation-contract.md` khóa DTO dùng chung. `openapi.yaml` đặc tả OpenAPI 3.0.3 phản ánh endpoint đang có trong `mock/engine.ts`; `realtime-events.md` là đề xuất SignalR chưa triển khai. Mock này phục vụ phát triển/đánh giá FE, không thay thế backend production hay sổ kế toán.
+> [!NOTE]
+> **Ghi chú chuyển tiếp (15/10/2026)**: Tài liệu này ghi nhận giai đoạn engine mock ban đầu. Hiện tại toàn bộ hệ thống đã chạy trên **Backend ASP.NET Core 10 chính thức** kết nối SQL Server LocalDB thật (`apps/backend/InternetCafe.Backend`), có transaction Serializable và trigger kiểm soát toàn vẹn. Các khoảng trống trước đây (MRP & BOM, Chấm công ca, Đơn thai sản) đều đã được hiện thực hóa đầy đủ.
+
+`implementation-contract.md` khóa DTO dùng chung. `openapi.yaml` đặc tả OpenAPI 3.0.3 phản ánh endpoint đang có; `realtime-events.md` là đề xuất SignalR đã được tích hợp qua `CafeHub.cs`.
 
 ## Chạy và kết nối
 
