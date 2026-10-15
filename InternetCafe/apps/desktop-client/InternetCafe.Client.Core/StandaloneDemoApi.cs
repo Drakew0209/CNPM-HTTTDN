@@ -36,7 +36,7 @@ public sealed class StandaloneDemoApi : ICafeApi
         {
             Id = "c-001",
             Username = "gamer",
-            FullName = "Nguyễn Văn Game Thủ",
+            FullName = "Nguyễn Văn An",
             Phone = "0987654321",
             Email = "gamer@cybercafe.vn",
             DateOfBirth = "2002-05-15",

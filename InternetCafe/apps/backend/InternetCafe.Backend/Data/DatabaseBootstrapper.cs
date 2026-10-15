@@ -146,7 +146,7 @@ public sealed class DatabaseBootstrapper(SqlConnectionFactory connections)
         ("manager", Roles.Manager, null, "emp01", "Quản lý quán"),
         ("cashier", Roles.Cashier, null, "emp02", "Thu ngân"),
         ("staff", Roles.Staff, null, "emp03", "Nhân viên"),
-        ("gamer", Roles.Customer, "user01", null, "Khách hàng demo")
+        ("gamer", Roles.Customer, "user01", null, "Nguyễn Văn An")
     ];
 
     private const string MigrationSql = """
