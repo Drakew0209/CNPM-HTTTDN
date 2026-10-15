@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Alert, Button, Card, Col, Divider, Row as GridRow, Space, Table, Tabs, Tag, Typography } from 'antd';
-import { BankOutlined, ClockCircleOutlined, DownloadOutlined, ReloadOutlined, RollbackOutlined, ShoppingCartOutlined, TeamOutlined } from '@ant-design/icons';
+import { BankOutlined, CalendarOutlined, ClockCircleOutlined, DownloadOutlined, ReloadOutlined, RollbackOutlined, ShoppingCartOutlined, TeamOutlined } from '@ant-design/icons';
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { DateFilter, EmptyState, Metric, PageTitle, PrintButton, Value, displayValue, useCafe } from './components';
 import { downloadCsv, filterDates, labels, money, revenue, type Row, type Workspace } from './domain';
@@ -195,19 +195,25 @@ export function ReportsPage() {
 
   return <>
     <PageTitle eyebrow="INTERNETCAFE / BÁO CÁO" title="Báo cáo vận hành" description="Tổng hợp dữ liệu được cấp quyền từ hệ thống demo. Chọn kỳ và xuất từng bảng đang xem." actions={<Button icon={<ReloadOutlined />} loading={loading} onClick={() => void refresh()}>Làm mới</Button>} />
-    <Space wrap style={{ marginBottom: 20 }}>
-      <DateFilter from={from} to={to} onFrom={setFrom} onTo={setTo} />
-      <Space.Compact>
-        <Button size="middle" type={!from && !to ? 'primary' : 'default'} onClick={() => applyPreset('all')}>Tất cả</Button>
-        <Button size="middle" type={from === localDay(new Date().toISOString()) && to === from ? 'primary' : 'default'} onClick={() => applyPreset('today')}>Hôm nay</Button>
-        <Button size="middle" onClick={() => applyPreset('month')}>Tháng này</Button>
-        <Button size="middle" onClick={() => applyPreset('quarter')}>Quý này</Button>
-        <Button size="middle" onClick={() => applyPreset('year')}>Năm nay</Button>
-      </Space.Compact>
-      <Tag color="green">Nguồn: SQL Server</Tag>
-      <Typography.Text type="secondary">{period}</Typography.Text>
-    </Space>
+    <div className="reports-toolbar-card">
+      <div className="toolbar-left">
+        <DateFilter from={from} to={to} onFrom={setFrom} onTo={setTo} />
+        <Space.Compact className="preset-buttons">
+          <Button size="middle" type={!from && !to ? 'primary' : 'default'} onClick={() => applyPreset('all')}>Tất cả</Button>
+          <Button size="middle" type={from === localDay(new Date().toISOString()) && to === from ? 'primary' : 'default'} onClick={() => applyPreset('today')}>Hôm nay</Button>
+          <Button size="middle" onClick={() => applyPreset('month')}>Tháng này</Button>
+          <Button size="middle" onClick={() => applyPreset('quarter')}>Quý này</Button>
+          <Button size="middle" onClick={() => applyPreset('year')}>Năm nay</Button>
+        </Space.Compact>
+      </div>
+      <div className="toolbar-right">
+        <Tag color="cyan" variant="filled" className="toolbar-source-tag">Nguồn: SQL Server</Tag>
+        <span className="toolbar-period-badge">
+          <CalendarOutlined /> {period}
+        </span>
+      </div>
+    </div>
     {invalidRange && <Alert style={{ marginBottom: 20 }} type="error" showIcon title="Ngày bắt đầu phải trước hoặc bằng ngày kết thúc." />}
-    <Tabs items={[{ key: 'revenue', label: 'Doanh thu & món bán', children: revenueTab }, { key: 'customers', label: 'Khách hàng', children: customerTab }, ...(isManager ? [{ key: 'inventory', label: 'Nhập · xuất · tồn', children: inventoryTab }, { key: 'hr', label: 'Nhân sự & tiền lương', children: hrTab }] : [])]} />
+    <Tabs items={[{ key: 'revenue', label: 'Doanh thu & món bán', children: revenueTab }, { key: 'customers', label: 'Khách hàng', children: customerTab }, ...(isManager ? [{ key: 'inventory', label: 'Nhập · xuất · tồn', children: inventoryTab }, { key: 'hr', label: 'Nhân sự & ca làm', children: hrTab }] : [])]} />
   </>;
 }

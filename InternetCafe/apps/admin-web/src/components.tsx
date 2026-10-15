@@ -31,7 +31,19 @@ export function PageTitle({ eyebrow, title, description, actions }: { eyebrow?: 
   return <div className="page-title"><div><div className="eyebrow">{eyebrow || 'INTERNETCAFE / VẬN HÀNH'}</div><h1>{title}</h1><p>{description}</p></div><div className="page-actions">{actions}</div></div>;
 }
 export function DateFilter({ from,to,onFrom,onTo }: { from:string;to:string;onFrom:(s:string)=>void;onTo:(s:string)=>void }) {
-  return <Space wrap className="date-filter"><label>Từ ngày <input aria-label="Từ ngày" type="date" value={from} max={to || undefined} onChange={e=>onFrom(e.target.value)}/></label><label>Đến ngày <input aria-label="Đến ngày" type="date" value={to} min={from || undefined} onChange={e=>onTo(e.target.value)}/></label>{(from||to)&&<Button size="small" onClick={()=>{onFrom('');onTo('');}}>Xóa ngày</Button>}</Space>;
+  return (
+    <div className="date-filter-group">
+      <label className="date-filter-label">
+        <span className="date-filter-caption">Từ ngày</span>
+        <input aria-label="Từ ngày" type="date" value={from} max={to || undefined} onChange={e=>onFrom(e.target.value)}/>
+      </label>
+      <label className="date-filter-label">
+        <span className="date-filter-caption">Đến ngày</span>
+        <input aria-label="Đến ngày" type="date" value={to} min={from || undefined} onChange={e=>onTo(e.target.value)}/>
+      </label>
+      {(from||to)&&<Button size="middle" className="date-clear-btn" onClick={()=>{onFrom('');onTo('');}}>Xóa lọc</Button>}
+    </div>
+  );
 }
 export function EmptyState({ description = 'Chưa có dữ liệu phù hợp.' }: { description?: string }) { return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={description}/>; }
 export function ErrorState({ error, retry }: { error: Error; retry:()=>void }) { return <Alert type="error" showIcon title="Không tải được dữ liệu" description={error.message} action={<Button onClick={retry}>Thử lại</Button>}/>; }

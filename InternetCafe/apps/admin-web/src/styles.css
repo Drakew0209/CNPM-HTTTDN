@@ -364,6 +364,115 @@ h1, h2, h3, p {
   flex-shrink: 0;
 }
 
+/* Reports toolbar & Date filter styling */
+.reports-toolbar-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 22px;
+  padding: 14px 18px;
+  background: #0f182e;
+  border: 1px solid #1f3358;
+  border-radius: 12px;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.date-filter-group {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.date-filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #c4d5f2;
+}
+
+.date-filter-caption {
+  white-space: nowrap;
+}
+
+.date-filter-label input[type="date"] {
+  height: 38px;
+  padding: 0 12px;
+  background: #142240;
+  border: 1px solid #28416d;
+  border-radius: 8px;
+  color: #edf5ff;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.2s ease;
+  color-scheme: dark;
+}
+
+.date-filter-label input[type="date"]:hover {
+  border-color: var(--cyan);
+}
+
+.date-filter-label input[type="date"]:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 2px rgba(56, 217, 255, 0.2);
+}
+
+.date-clear-btn {
+  height: 38px !important;
+  color: #ff8a8a !important;
+  border-color: #5c2838 !important;
+  background: #2b141d !important;
+}
+
+.preset-buttons .ant-btn {
+  height: 38px !important;
+  font-weight: 500;
+}
+
+.toolbar-source-tag {
+  height: 38px !important;
+  line-height: 38px !important;
+  padding: 0 14px !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.toolbar-period-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  background: #142442;
+  border: 1px solid #284473;
+  border-radius: 8px;
+  color: #a3c4f3;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 /* Metric Cards - KPI Grid */
 .metric-grid {
   display: grid;
