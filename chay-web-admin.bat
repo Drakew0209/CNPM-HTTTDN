@@ -7,5 +7,5 @@ echo   KHỞI CHẠY GIAO DIỆN QUẢN TRỊ PHÒNG NET (WEB ADMIN)
 echo   Địa chỉ: http://127.0.0.1:5173
 echo ============================================================
 echo.
-npm run dev
+npm run dev:shared
 pause

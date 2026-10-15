@@ -4,10 +4,17 @@ export const apiMode = import.meta.env.VITE_API_MODE || 'mock';
 export const apiBase = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/$/, '');
 export class ApiError extends Error { constructor(public status: number, public code: string, message: string, public fields?: Record<string, string>) { super(message); } }
 export function readSession(): Session | null {
-  try { return JSON.parse(sessionStorage.getItem(sessionKey) || 'null') as Session | null; } catch { return null; }
+  try { return JSON.parse(localStorage.getItem(sessionKey) || sessionStorage.getItem(sessionKey) || 'null') as Session | null; } catch { return null; }
 }
 export function writeSession(session: Session | null) {
-  if (session) sessionStorage.setItem(sessionKey, JSON.stringify(session)); else sessionStorage.removeItem(sessionKey);
+  if (session) {
+    const raw = JSON.stringify(session);
+    try { localStorage.setItem(sessionKey, raw); } catch {}
+    try { sessionStorage.setItem(sessionKey, raw); } catch {}
+  } else {
+    try { localStorage.removeItem(sessionKey); } catch {}
+    try { sessionStorage.removeItem(sessionKey); } catch {}
+  }
   window.dispatchEvent(new Event('session-changed'));
 }
 export async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> {

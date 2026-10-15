@@ -79,7 +79,18 @@ export function createMockEngine(options: EngineOptions = {}) {
     return { id: account?.employeeId ?? person.id, username: person.username, fullName: person.fullName, role, permissions: [...new Set([...readable[role].map(resource => `${resource}:read`), ...(managers.includes(role) ? ['management:write', 'reports:read'] : []), ...(role === 'Admin' ? ['accounts:write'] : []), ...(operators.includes(role) ? ['operations:write', 'reports:read'] : [])])] };
   }
   function auth(token?: string): AuthUser {
-    const entry = tokens.get((token ?? '').replace(/^Bearer\s+/i, ''));
+    const raw = (token ?? '').replace(/^Bearer\s+/i, '');
+    let entry = tokens.get(raw);
+    if (!entry && raw) {
+      try {
+        const win = typeof window !== 'undefined' ? window : (globalThis as any);
+        const saved = JSON.parse(win?.localStorage?.getItem('internetcafe.session') || win?.sessionStorage?.getItem('internetcafe.session') || 'null');
+        if (saved && saved.accessToken === raw && saved.user?.username) {
+          entry = { username: saved.user.username };
+          tokens.set(raw, entry);
+        }
+      } catch {}
+    }
     if (!entry) fail(401, 'UNAUTHENTICATED', 'Vui lòng đăng nhập lại.');
     return identity(entry.username);
   }
