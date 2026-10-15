@@ -8,5 +8,5 @@ echo   Địa chỉ API: http://127.0.0.1:5055/api/v1
 echo   Swagger / Health: http://127.0.0.1:5055/health
 echo ============================================================
 echo.
-dotnet run
+dotnet run --urls "http://127.0.0.1:5055"
 pause
