@@ -13,6 +13,7 @@ public sealed partial class CartItem(Product product) : ObservableObject
     public decimal UnitPrice { get; } = product.Price;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(TotalLabel))] private int quantity = 1;
     public string TotalLabel => Format.Money(UnitPrice * Quantity);
+    public string UnitPriceLabel => Format.Money(UnitPrice);
 }
 
 public sealed partial class AnswerViewModel(SurveyQuestion question) : ObservableObject
@@ -54,16 +55,9 @@ public sealed partial class MainViewModel : ObservableObject
     {
         this.api = api; this.realtime = realtime; this.clock = clock ?? TimeProvider.System; MachineId = machineId;
         Games.Clear();
-        Games.Add(new GameItem
-        {
-            Id = "valorant",
-            Name = "VALORANT",
-            Category = "Bắn súng (FPS)",
-            ExecutablePath = @"D:\Riot Games\VALORANT\live\VALORANT.exe",
-            BannerUrl = "https://images.contentstack.io/v3/assets/blt370612131b6e0756/blt02fae44364e4a199/62a93444f6da4a123bc807be/Valorant_Hero.jpg",
-            Description = "Game bắn súng chiến thuật 5v5 của Riot Games.",
-            Active = true
-        });
+        foreach (var g in GetDefaultGames()) Games.Add(g);
+        UpdateGameCategories();
+        FilterGames();
     }
     public Func<string, Task<bool>> ConfirmAsync { get; set; } = _ => Task.FromResult(false);
     public Action? OnGameLaunched { get; set; }
@@ -75,8 +69,8 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool isAppLocked;
     [ObservableProperty] private bool isTemporaryLocked;
     [ObservableProperty] private bool lowBalance;
-    [ObservableProperty] private string username = "gamer";
-    [ObservableProperty] private string password = "Demo@123";
+    [ObservableProperty] private string username = "";
+    [ObservableProperty] private string password = "";
     [ObservableProperty] private string passwordConfirmation = "";
     [ObservableProperty] private string fullName = "";
     [ObservableProperty] private string phone = "";
@@ -145,6 +139,10 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private string feedbackSubject = "";
     [ObservableProperty] private string feedbackContent = "";
     [ObservableProperty] private int selectedTab;
+    [ObservableProperty] private string gameSearch = "";
+    [ObservableProperty] private string selectedGameCategory = "Tất cả";
+    public ObservableCollection<string> GameCategories { get; } = [];
+    public ObservableCollection<GameItem> FilteredGames { get; } = [];
     public ObservableCollection<Product> Products { get; } = [];
     public ObservableCollection<GameItem> Games { get; } = [];
     public ObservableCollection<Category> Categories { get; } = [];
@@ -159,6 +157,8 @@ public sealed partial class MainViewModel : ObservableObject
     public ObservableCollection<AnswerViewModel> Answers { get; } = [];
     public string BalanceLabel => Format.Money(ActiveSession is null ? Balance : RealtimeBalance);
     public string CartTotalLabel => Format.Money(Cart.Sum(x => x.Quantity * x.UnitPrice));
+    public int CartCount => Cart.Sum(x => x.Quantity);
+    public string CartCountLabel => $"{CartCount} món";
     public bool HasActiveSession => ActiveSession is not null;
     public bool CanStartSession => IsAuthenticated && IsConnected && !IsBusy && !HasActiveSession && Balance > 0 && Machine is { Online: true, Status: "Available" };
     public bool CanEndSession => IsAuthenticated && IsConnected && !IsBusy && HasActiveSession;
@@ -176,6 +176,11 @@ public sealed partial class MainViewModel : ObservableObject
     partial void OnRealtimeBalanceChanged(decimal value) => OnPropertyChanged(nameof(BalanceLabel));
     partial void OnMenuSearchChanged(string value) => FilterProducts();
     partial void OnSelectedCategoryChanged(Category? value) => FilterProducts();
+    partial void OnGameSearchChanged(string value) => FilterGames();
+    partial void OnSelectedGameCategoryChanged(string value) => FilterGames();
+    [RelayCommand] private void SelectGameCategory(string category) => SelectedGameCategory = category;
+    [RelayCommand] private void SelectCategory(Category? category) => SelectedCategory = category;
+    [RelayCommand] private void RemoveCartItem(CartItem? item) { if (item is not null) { Cart.Remove(item); NotifyCart(); } }
     partial void OnSelectedOrderChanged(Order? value) => OnPropertyChanged(nameof(CanCancelOrder));
     partial void OnSelectedSurveyChanged(Survey? value)
     {
@@ -268,7 +273,12 @@ public sealed partial class MainViewModel : ObservableObject
         if (profile.Status != "Active") throw new ApiException("ACCOUNT_BANNED", "Tài khoản đã bị khóa. Liên hệ nhân viên.", HttpStatusCode.Forbidden);
         var oldSession = ActiveSession?.Id;
         snapshot = data; receivedServerTime = api.ServerTime; receivedLocalTime = clock.GetUtcNow();
-        if (snapshot.Games.Count > 0) Replace(Games, snapshot.Games.Where(x => x.Active));
+        if (snapshot.Games.Count > 0)
+        {
+            Replace(Games, snapshot.Games.Where(x => x.Active));
+            UpdateGameCategories();
+        }
+        FilterGames();
         try { var combos = await api.GetAsync<List<Combo>>("combos"); Replace(Combos, combos); } catch { }
         Balance = profile.Balance; AccountName = profile.FullName; Tier = profile.Tier;
         if (!profileLoaded) { CopyProfile(profile); profileLoaded = true; }
@@ -458,7 +468,13 @@ public sealed partial class MainViewModel : ObservableObject
     }
     [RelayCommand] private void DecreaseQuantity(CartItem? item) { if (item is null) return; if (item.Quantity <= 1) Cart.Remove(item); else item.Quantity--; NotifyCart(); }
     [RelayCommand] private void ClearCart() { Cart.Clear(); NotifyCart(); }
-    private void NotifyCart() { OnPropertyChanged(nameof(CartTotalLabel)); OnPropertyChanged(nameof(CanOrder)); }
+    private void NotifyCart()
+    {
+        OnPropertyChanged(nameof(CartTotalLabel));
+        OnPropertyChanged(nameof(CanOrder));
+        OnPropertyChanged(nameof(CartCount));
+        OnPropertyChanged(nameof(CartCountLabel));
+    }
     [RelayCommand] private async Task PlaceOrderAsync()
     {
         if (!CanOrder) { Error = "Cần phiên tại máy này, kết nối máy chủ và món trong giỏ."; return; }
@@ -549,6 +565,68 @@ public sealed partial class MainViewModel : ObservableObject
                 Error = "Không thể hoàn thành thao tác. Thử tải lại dữ liệu hoặc liên hệ nhân viên."; break;
         }
     }
+
     private void FilterProducts() => Replace(Products, snapshot.Products.Where(x => x.Active && (string.IsNullOrEmpty(SelectedCategory?.Id) || x.CategoryId == SelectedCategory.Id) && (string.IsNullOrWhiteSpace(MenuSearch) || x.Name.Contains(MenuSearch.Trim(), StringComparison.CurrentCultureIgnoreCase))));
+
+    public void UpdateGameCategories()
+    {
+        var existingSelected = SelectedGameCategory;
+        var cats = new List<string> { "Tất cả", "Game Hot" };
+        var dynamicCats = Games
+            .Where(g => g.Active && !string.IsNullOrWhiteSpace(g.Category))
+            .Select(g => g.Category.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c);
+
+        foreach (var c in dynamicCats)
+        {
+            if (!cats.Contains(c, StringComparer.OrdinalIgnoreCase))
+                cats.Add(c);
+        }
+
+        if (cats.Count <= 2)
+        {
+            cats.AddRange(new[] { "Bắn súng (FPS)", "Chiến thuật (MOBA)", "Sinh tồn", "Game Offline" });
+        }
+
+        Replace(GameCategories, cats);
+        if (GameCategories.Contains(existingSelected))
+            SelectedGameCategory = existingSelected;
+        else
+            SelectedGameCategory = "Tất cả";
+    }
+
+    public void FilterGames()
+    {
+        var q = GameSearch?.Trim() ?? "";
+        var cat = SelectedGameCategory ?? "Tất cả";
+        IEnumerable<GameItem> source = Games.Count > 0 ? Games : GetDefaultGames();
+        var filtered = source.Where(g =>
+            g.Active &&
+            (cat == "Tất cả" ||
+             (cat == "Game Hot" && (
+                 g.Category.Contains("Hot", StringComparison.OrdinalIgnoreCase) ||
+                 g.Name.Contains("VALORANT", StringComparison.OrdinalIgnoreCase) ||
+                 g.Name.Contains("Liên Minh", StringComparison.OrdinalIgnoreCase) ||
+                 g.Name.Contains("CS2", StringComparison.OrdinalIgnoreCase) ||
+                 g.Name.Contains("PUBG", StringComparison.OrdinalIgnoreCase) ||
+                 g.Name.Contains("FIFA", StringComparison.OrdinalIgnoreCase)
+             )) ||
+             g.Category.Equals(cat, StringComparison.OrdinalIgnoreCase) ||
+             g.Category.Contains(cat, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrWhiteSpace(q) ||
+             g.Name.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+             g.Category.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+             (g.Description != null && g.Description.Contains(q, StringComparison.OrdinalIgnoreCase)))
+        );
+        Replace(FilteredGames, filtered);
+    }
+    private static List<GameItem> GetDefaultGames() =>
+    [
+        new GameItem { Id = "valorant", Name = "VALORANT", Category = "Bắn súng (FPS)", ExecutablePath = @"D:\Riot Games\VALORANT\live\VALORANT.exe", BannerUrl = "http://127.0.0.1:5055/images/games/valorant.jpg", Description = "Game bắn súng chiến thuật 5v5 đỉnh cao của Riot Games.", Active = true },
+        new GameItem { Id = "lol", Name = "Liên Minh Huyền Thoại", Category = "Chiến thuật (MOBA)", ExecutablePath = @"C:\Riot Games\League of Legends\LeagueClient.exe", BannerUrl = "http://127.0.0.1:5055/images/games/lol.jpg", Description = "Đấu trường trực tuyến nhiều người chơi hàng đầu thế giới.", Active = true },
+        new GameItem { Id = "cs2", Name = "Counter-Strike 2", Category = "Bắn súng (FPS)", ExecutablePath = @"C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\game\bin\win64\cs2.exe", BannerUrl = "http://127.0.0.1:5055/images/games/cs2.jpg", Description = "Tựa game bắn súng góc nhìn thứ nhất kinh điển của Valve.", Active = true },
+        new GameItem { Id = "pubg", Name = "PUBG: BATTLEGROUNDS", Category = "Sinh tồn", ExecutablePath = @"C:\Program Files (x86)\Steam\steamapps\common\PUBG\TslGame\Binaries\Win64\TslGame.exe", BannerUrl = "http://127.0.0.1:5055/images/games/pubg.jpg", Description = "Tựa game sinh tồn Battle Royale 100 người khốc liệt.", Active = true }
+    ];
     private static void Replace<T>(ObservableCollection<T> target, IEnumerable<T> values) { target.Clear(); foreach (var value in values) target.Add(value); }
 }

@@ -113,7 +113,7 @@ public sealed class ManagementService(SqlConnectionFactory connections)
 
     private async Task<OperationResult<object>> CreateGameAsync(IdentityContext actor, JsonElement body, CancellationToken ct)
     {
-        if (!actor.IsManagement) return Forbidden();
+        if (!actor.IsManagement && actor.Role != Roles.Admin) return Forbidden();
         var name = Required(body, "name"); var category = Required(body, "category");
         var executablePath = Required(body, "executablePath"); var bannerUrl = Required(body, "bannerUrl");
         var description = Value(body, "description"); var active = Bool(body, "active") is not false;
@@ -130,8 +130,8 @@ public sealed class ManagementService(SqlConnectionFactory connections)
     {
         if (!actor.IsOperator) return Forbidden();
         var username = Username(Value(body, "username")); var fullName = Required(body, "fullName"); var phone = Required(body, "phone");
-        var email = Value(body, "email"); var birth = Date(body, "dateOfBirth"); var tier = "Member"; var password = Value(body, "password") ?? "Demo@123"; var citizenId = Value(body, "citizenId");
-        if (username is null || fullName is null || phone is null || birth is null || password.Length < 8) return Validation("Thông tin khách hàng hoặc mật khẩu không hợp lệ.");
+        var email = Value(body, "email"); var birth = Date(body, "dateOfBirth"); var tier = "Member"; var password = Value(body, "password"); var citizenId = Value(body, "citizenId");
+        if (username is null || fullName is null || phone is null || birth is null || string.IsNullOrWhiteSpace(password) || password.Length < 8) return Validation("Thông tin khách hàng hoặc mật khẩu không hợp lệ (mật khẩu tối thiểu 8 ký tự).");
         await using var c = await connections.OpenAsync(ct); await using var tx = (SqlTransaction)await c.BeginTransactionAsync(ct);
         try
         {
@@ -212,9 +212,9 @@ public sealed class ManagementService(SqlConnectionFactory connections)
     private async Task<OperationResult<object>> CreateEmployeeAsync(IdentityContext actor, JsonElement body, CancellationToken ct)
     {
         if (!actor.IsManagement) return Forbidden(); var fullName = Required(body, "fullName"); var department = Required(body, "department"); var position = Required(body, "position"); var joinedAt = Date(body, "joinedAt"); var salary = Decimal(body, "baseSalary");
-        var username = Username(Value(body, "username")); var password = Value(body, "password") ?? "Demo@123";
+        var username = Username(Value(body, "username")); var password = Value(body, "password");
         if (fullName is null || department is null || position is null || joinedAt is null || salary is null || salary < 0) return Validation("Thông tin nhân viên không hợp lệ.");
-        if (username is null || password.Length < 8) return Validation("Tên đăng nhập hoặc mật khẩu không hợp lệ (tối thiểu 8 ký tự).");
+        if (username is null || string.IsNullOrWhiteSpace(password) || password.Length < 8) return Validation("Tên đăng nhập hoặc mật khẩu không hợp lệ (mật khẩu tối thiểu 8 ký tự).");
         await using var c = await connections.OpenAsync(ct); await using var tx = (SqlTransaction)await c.BeginTransactionAsync(ct);
         try
         {
@@ -289,8 +289,8 @@ public sealed class ManagementService(SqlConnectionFactory connections)
 
     private async Task<OperationResult<object>> CreateAccountAsync(IdentityContext actor, JsonElement body, CancellationToken ct)
     {
-        if (actor.Role != Roles.Admin) return Forbidden(); var username = Username(Value(body, "username")); var fullName = Required(body, "fullName"); var role = Value(body, "role"); var employee = ParseId(Value(body, "employeeId"), "e"); var password = Value(body, "password") ?? "Demo@123";
-        if (username is null || fullName is null || role is not (Roles.Admin or Roles.Owner or Roles.Manager or Roles.Cashier or Roles.Staff) || password.Length < 8 || (role == Roles.Staff && employee is null)) return Validation("Tài khoản không hợp lệ.");
+        if (actor.Role != Roles.Admin) return Forbidden(); var username = Username(Value(body, "username")); var fullName = Required(body, "fullName"); var role = Value(body, "role"); var employee = ParseId(Value(body, "employeeId"), "e"); var password = Value(body, "password");
+        if (username is null || fullName is null || role is not (Roles.Admin or Roles.Owner or Roles.Manager or Roles.Cashier or Roles.Staff) || string.IsNullOrWhiteSpace(password) || password.Length < 8 || (role == Roles.Staff && employee is null)) return Validation("Tài khoản không hợp lệ (mật khẩu tối thiểu 8 ký tự).");
         await using var c = await connections.OpenAsync(ct); if (await UsernameTakenAsync(c, null, username, ct)) return OperationResult<object>.Fail("USERNAME_EXISTS", "Tên đăng nhập đã được sử dụng.", StatusCodes.Status409Conflict);
         var id = await ScalarIntAsync(c, "INSERT INTO dbo.App_Accounts (Username,Password_Hash,Role,Employee_ID,Full_Name,Status) VALUES (@username,@hash,@role,@employee,@name,@status); SELECT CAST(SCOPE_IDENTITY() AS int);", ct, ("@username", username), ("@hash", passwords.HashPassword(new object(), password)), ("@role", role), ("@employee", Db(employee)), ("@name", fullName), ("@status", Value(body, "status") == "Banned" ? "Banned" : "Active"));
         return OperationResult<object>.Ok(new { id = Id("a", id), username, fullName, role, employeeId = employee is null ? null : Id("e", employee.Value), status = Value(body, "status") == "Banned" ? "Banned" : "Active" });
@@ -305,7 +305,7 @@ public sealed class ManagementService(SqlConnectionFactory connections)
 
     private async Task<OperationResult<object>> UpdateGameAsync(IdentityContext actor, string id, JsonElement body, CancellationToken ct)
     {
-        if (!actor.IsManagement) return Forbidden();
+        if (!actor.IsManagement && actor.Role != Roles.Admin) return Forbidden();
         var key = ParseId(id, "g"); if (key is null) return NotFound();
         if (!new[] { "name", "category", "executablePath", "bannerUrl", "description", "active" }.Any(field => Has(body, field)))
             return Validation("Không có dữ liệu game để cập nhật.");
@@ -704,7 +704,7 @@ public sealed class ManagementService(SqlConnectionFactory connections)
 
     private async Task<OperationResult<object>> SetStatusAsync(IdentityContext actor, string resource, string id, string status, CancellationToken ct)
     {
-        if (resource == "accounts" ? actor.Role != Roles.Admin : !actor.IsManagement) return Forbidden();
+        if (resource == "accounts" ? actor.Role != Roles.Admin : resource == "games" ? (!actor.IsManagement && actor.Role != Roles.Admin) : !actor.IsManagement) return Forbidden();
         var (table, column, prefix) = resource switch
         {
             "customers" => ("dbo.Customers", "Customer_ID", "c"), "products" => ("dbo.Products", "Product_ID", "p"),
@@ -842,6 +842,7 @@ public sealed class ManagementService(SqlConnectionFactory connections)
         var status = Value(body, "status") ?? "Active";
 
         if (name is null) return Validation("Tên nguyên vật liệu là bắt buộc.");
+        if (stock < 0 || reorder < 0 || cost < 0) return Validation("Số lượng tồn kho, mức đặt hàng lại và đơn giá không được là số âm.");
 
         await using var c = await connections.OpenAsync(ct);
         var id = await ScalarIntAsync(c, """
@@ -861,6 +862,11 @@ public sealed class ManagementService(SqlConnectionFactory connections)
         if (!actor.IsManagement) return Forbidden();
         var key = ParseId(id, "mat");
         if (key is null) return NotFound();
+        var stock = Decimal(body, "stockQuantity");
+        var reorder = Decimal(body, "reorderLevel");
+        var cost = Decimal(body, "unitCost");
+        if ((stock is not null && stock < 0) || (reorder is not null && reorder < 0) || (cost is not null && cost < 0))
+            return Validation("Số lượng tồn kho, mức đặt hàng lại và đơn giá không được là số âm.");
         await using var c = await connections.OpenAsync(ct);
         var changes = new List<string>();
         var p = new List<(string, object)> { ("@id", key.Value) };

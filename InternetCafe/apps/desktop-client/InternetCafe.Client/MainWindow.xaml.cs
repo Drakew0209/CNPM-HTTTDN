@@ -54,7 +54,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         this.viewModel = viewModel; this.realtime = realtime; DataContext = viewModel;
-        emergencyPassword = config["Kiosk:EmergencyPassword"] ?? "Demo@123";
+        emergencyPassword = config["Kiosk:EmergencyPassword"] ?? "";
         keyboardProc = KeyboardHookCallback;
         viewModel.ConfirmAsync = message => Task.FromResult(MessageBox.Show(this, message, "Xác nhận thao tác", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes);
         viewModel.OnGameLaunched = () => Dispatcher.BeginInvoke(() => OpenCompact(this, new RoutedEventArgs()));
@@ -66,7 +66,7 @@ public partial class MainWindow : Window
         viewModel.PropertyChanged += OnViewModelChanged;
         realtime.Changed += OnRealtimeChanged; realtime.ConnectionChanged += OnRealtimeConnectionChanged;
         PreviewKeyDown += OnPreviewKeyDown;
-        Loaded += (_, _) => { UpdateKioskMode(); if (!viewModel.IsAuthenticated) { LoginPassword.Password = "Demo@123"; LoginPassword.Focus(); } };
+        Loaded += (_, _) => { UpdateKioskMode(); if (!viewModel.IsAuthenticated) { LoginPassword.Focus(); } };
     }
     private async void OnPoll(object? sender, EventArgs e) { if (!closing) await viewModel.PollAsync(); }
     private void OnTick(object? sender, EventArgs e) => viewModel.UpdateClock();
@@ -236,7 +236,7 @@ public partial class MainWindow : Window
             dialog.Content = new Border { Padding = new Thickness(22), Child = stack };
             if (dialog.ShowDialog() == true)
             {
-                if (string.Equals(passwordBox.Password, emergencyPassword, StringComparison.Ordinal))
+                if (!string.IsNullOrWhiteSpace(emergencyPassword) && string.Equals(passwordBox.Password, emergencyPassword, StringComparison.Ordinal))
                 {
                     emergencyBypassed = true;
                     SetKioskProtection(false);

@@ -18,7 +18,7 @@ export function ResourcePage({ module, readonly = false }: { module: Module; rea
   const [adminCheckoutRow,setAdminCheckoutRow]=useState<Row|null>(null),[adminCheckoutNote,setAdminCheckoutNote]=useState<string>('Quản lý chốt công cuối ca');
   const [directTopupOpen,setDirectTopupOpen]=useState(false),[directCustomerId,setDirectCustomerId]=useState<string>('');
   const canEdit=!readonly && (module.editRoles || module.roles).includes(session.user.role);
-  const all=workspace[module.key] || [];
+  const all=workspace[module.key] || workspace[module.key.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] || [];
   const dateField=module.key==='sessions'?'startTime':module.key==='attendance'?'checkIn':'createdAt';
   const rows=filterDates(all,from,to,dateField).filter(row=>(!status||row.status===status)&&(!search||[row.id,...module.columns.map(k=>displayValue(k,row[k],workspace))].join(' ').toLocaleLowerCase('vi').includes(search.toLocaleLowerCase('vi'))));
   const lowStockItems=(workspace.products||[]).filter(p=>Number(p.stock)<=5);
@@ -66,7 +66,9 @@ export function ResourcePage({ module, readonly = false }: { module: Module; rea
     balance: 105,
     status: 105,
     name: 140,
+    bannerUrl: 90,
     category: 120,
+    executablePath: 220,
     categoryId: 120,
     price: 105,
     stock: 90,
@@ -88,13 +90,15 @@ export function ResourcePage({ module, readonly = false }: { module: Module; rea
     reorderLevel: 115,
     unitCost: 115,
     supplierName: 140,
+    suppliedCount: 130,
+    importCount: 130,
     itemType: 110,
     materialName: 140,
     productName: 140,
     requesterName: 130,
     deciderName: 130,
   };
-  const columns=[...module.columns.map(k=>({title:columnLabels[k]||k,dataIndex:k,key:k,width:columnWidths[k],sorter:(a:Row,b:Row)=>typeof a[k]==='number'?Number(a[k])-Number(b[k]):displayValue(k,a[k],workspace).localeCompare(displayValue(k,b[k],workspace),'vi'),render:(v:unknown)=><Value k={k} value={v} workspace={workspace}/>})),{
+  const columns=[...module.columns.map(k=>({title:columnLabels[k]||k,dataIndex:k,key:k,width:columnWidths[k],sorter:(a:Row,b:Row)=>typeof a[k]==='number'?Number(a[k])-Number(b[k]):displayValue(k,a[k],workspace).localeCompare(displayValue(k,b[k],workspace),'vi'),render:(v:unknown,record:Row)=><Value k={k} value={v} row={record} workspace={workspace}/>})),{
     title:'Thao tác',
     key:'actions',
     fixed:'right' as const,
@@ -155,10 +159,183 @@ export function ResourcePage({ module, readonly = false }: { module: Module; rea
     <Modal open={!!publish} title="Chọn khách nhận khảo sát" onCancel={()=>setPublish(null)} confirmLoading={busy} okText="Phát hành khảo sát" okButtonProps={{disabled:!recipients.length}} onOk={async()=>{if(publish){await act(`/surveys/${publish.id}/publish`,{customerIds:recipients},'Đã phát hành khảo sát.');setPublish(null);}}}>
       <p>Khách được chọn sẽ thấy khảo sát trong client sau lần đồng bộ tiếp theo.</p><Checkbox checked={recipients.length===(workspace.customers||[]).filter(c=>c.status==='Active').length&&recipients.length>0} onChange={e=>setRecipients(e.target.checked?(workspace.customers||[]).filter(c=>c.status==='Active').map(c=>c.id):[])}>Chọn tất cả khách đang hoạt động</Checkbox><Select aria-label="Khách nhận khảo sát" className="full-width" mode="multiple" optionFilterProp="label" value={recipients} onChange={setRecipients} options={(workspace.customers||[]).filter(c=>c.status==='Active').map(c=>({value:c.id,label:String(c.fullName)}))}/>
     </Modal>
-    <Modal open={!!detail} title={`${module.title} · ${detail?.id||''}`} onCancel={()=>setDetail(null)} footer={<Space><PrintButton title={module.title} rows={detail?[detail]:[]} keys={module.columns} workspace={workspace}/><Button onClick={()=>setDetail(null)}>Đóng</Button></Space>} width={800}>
-      {detail&&<><Descriptions bordered column={{xs:1,sm:2}} size="small" items={Object.entries(detail).filter(([k,v])=>!Array.isArray(v)&&typeof v!=='object').map(([k,v])=>({key:k,label:columnLabels[k]||k,children:<Value k={k} value={v} workspace={workspace}/>}))}/>
-      {Array.isArray(detail.items)&&<><Divider>Chi tiết đơn</Divider><Table size="small" rowKey="productId" pagination={false} dataSource={detail.items} columns={[{title:'Món',dataIndex:'name'},{title:'Số lượng',dataIndex:'quantity'},{title:'Đơn giá',dataIndex:'unitPrice',render:v=>displayValue('price',v,workspace)}]}/></>}
-      {module.key==='customers'&&<><Divider>Lịch sử của khách</Divider><Table size="small" rowKey="id" dataSource={(workspace.transactions||[]).filter(r=>r.customerId===detail.id)} pagination={{pageSize:5}} columns={['type','amount','createdAt'].map(k=>({title:columnLabels[k],dataIndex:k,render:v=><Value k={k} value={v} workspace={workspace}/>}))}/></>}
+    <Modal open={!!detail} title={`${module.title} · ${detail?.id||''}`} onCancel={()=>setDetail(null)} footer={<Space><PrintButton title={module.title} rows={detail?[detail]:[]} keys={module.columns} workspace={workspace}/><Button onClick={()=>setDetail(null)}>Đóng</Button></Space>} width={850}>
+      {detail&&<><Descriptions bordered column={{xs:1,sm:2}} size="small" items={Object.entries(detail).filter(([k,v])=>!Array.isArray(v)&&typeof v!=='object').map(([k,v])=>({key:k,label:columnLabels[k]||k,children:<Value k={k} value={v} row={detail} workspace={workspace}/>}))}/>
+      {Array.isArray(detail.items)&&<><Divider>Chi tiết đơn ({detail.items.length} món)</Divider><Table size="small" rowKey="productId" pagination={false} dataSource={detail.items} columns={[{title:'Món',dataIndex:'name'},{title:'Số lượng',dataIndex:'quantity'},{title:'Đơn giá',dataIndex:'unitPrice',render:v=>displayValue('price',v,workspace)}]}/></>}
+      {module.key==='suppliers'&&(()=>{
+        const supMats = (workspace.materials || []).filter(m => m.supplierId === detail.id || m.supplierName === detail.name);
+        const supImports = (workspace.inventory || []).filter(i => (i.type === 'In' || i.type === 'Import') && (i.supplierId === detail.id || i.supplierName === detail.name || String(i.note || '').includes(String(detail.name))));
+        return <>
+          <Divider>Nguyên vật liệu do nhà cung cấp phân phối ({supMats.length})</Divider>
+          <Table size="small" rowKey="id" pagination={{pageSize:5}} dataSource={supMats} locale={{emptyText:'Chưa có nguyên vật liệu nào liên kết với nhà cung cấp này'}} columns={[
+            {title:'Mã NVL',dataIndex:'code'},
+            {title:'Tên nguyên vật liệu',dataIndex:'name'},
+            {title:'ĐVT',dataIndex:'unit'},
+            {title:'Tồn kho',dataIndex:'stockQuantity',render:(v,r)=><Tag color={Number(v)<=Number(r.reorderLevel)?'error':'processing'}>{String(v)} {String(r.unit||'')}</Tag>},
+            {title:'Mức tối thiểu',dataIndex:'reorderLevel'},
+            {title:'Đơn giá vốn',dataIndex:'unitCost',render:v=>displayValue('price',v,workspace)},
+            {title:'Trạng thái',dataIndex:'status',render:v=><Value k="status" value={v} workspace={workspace}/>}
+          ]}/>
+          <Divider>Lịch sử phiếu nhập kho ({supImports.length})</Divider>
+          <Table size="small" rowKey="id" pagination={{pageSize:5}} dataSource={supImports} locale={{emptyText:'Chưa có phiếu nhập kho nào từ nhà cung cấp này'}} columns={[
+            {title:'Mã phiếu',dataIndex:'id'},
+            {title:'Ngày nhập',dataIndex:'createdAt',render:v=><Value k="createdAt" value={v} workspace={workspace}/>},
+            {title:'Số lượng',dataIndex:'quantity'},
+            {title:'Ghi chú / Số HĐ',dataIndex:'note'}
+          ]}/>
+        </>;
+      })()}
+      {module.key==='products'&&(()=>{
+        const prodBom = (workspace.bom || []).filter(b => b.productId === detail.id);
+        const prodTrans = (workspace.inventory || []).filter(i => i.productId === detail.id);
+        return <>
+          <Divider>Công thức định mức cấu thành (BOM - {prodBom.length} NVL)</Divider>
+          <Table size="small" rowKey={(r,idx)=>String(r.materialId||idx)} pagination={false} dataSource={prodBom} locale={{emptyText:'Chưa khai báo công thức định mức BOM cho món này'}} columns={[
+            {title:'Nguyên vật liệu',dataIndex:'materialName'},
+            {title:'Định lượng tiêu hao',dataIndex:'quantity'},
+            {title:'Đơn vị',dataIndex:'unit'}
+          ]}/>
+          <Divider>Lịch sử biến động kho ({prodTrans.length})</Divider>
+          <Table size="small" rowKey="id" pagination={{pageSize:5}} dataSource={prodTrans} locale={{emptyText:'Chưa có biến động kho'}} columns={[
+            {title:'Thời gian',dataIndex:'createdAt',render:v=><Value k="createdAt" value={v} workspace={workspace}/>},
+            {title:'Loại',dataIndex:'type',render:v=><Value k="type" value={v} workspace={workspace}/>},
+            {title:'Số lượng',dataIndex:'quantity'},
+            {title:'Ghi chú',dataIndex:'note'}
+          ]}/>
+        </>;
+      })()}
+      {module.key==='materials'&&(()=>{
+        const sup = (workspace.suppliers || []).find(s => s.id === detail.supplierId);
+        const matBom = (workspace.bom || []).filter(b => b.materialId === detail.id);
+        const matReqs = ((workspace.materialRequests || workspace['material-requests'] || []) as Row[]).filter(r => r.materialId === detail.id);
+        return <>
+          {sup ? <Alert style={{marginTop:12}} type="info" showIcon title={`Nhà cung cấp: ${sup.name}`} description={`Điện thoại: ${sup.phone || '—'} · Email: ${sup.email || '—'} · Địa chỉ: ${sup.address || '—'}`}/> : <Alert style={{marginTop:12}} type="warning" showIcon title="Chưa liên kết nhà cung cấp" description="Nguyên vật liệu này chưa được gán nhà cung cấp cung ứng."/>}
+          <Divider>Các món F&B sử dụng nguyên liệu này ({matBom.length})</Divider>
+          <Table size="small" rowKey={(r,idx)=>String(r.productId||idx)} pagination={false} dataSource={matBom} locale={{emptyText:'Chưa có món F&B nào dùng nguyên vật liệu này'}} columns={[
+            {title:'Món F&B',dataIndex:'productName'},
+            {title:'Định lượng dùng',dataIndex:'quantity'},
+            {title:'Đơn vị',dataIndex:'unit'}
+          ]}/>
+          <Divider>Lịch sử đề xuất xuất NVL / Pha chế ({matReqs.length})</Divider>
+          <Table size="small" rowKey="id" pagination={{pageSize:5}} dataSource={matReqs} locale={{emptyText:'Chưa có yêu cầu xuất kho nào'}} columns={[
+            {title:'Mã phiếu',dataIndex:'id'},
+            {title:'Thời gian',dataIndex:'createdAt',render:v=><Value k="createdAt" value={v} workspace={workspace}/>},
+            {title:'Số lượng',dataIndex:'quantity'},
+            {title:'Người đề xuất',dataIndex:'requesterName'},
+            {title:'Trạng thái',dataIndex:'status',render:v=><Value k="status" value={v} workspace={workspace}/>}
+          ]}/>
+        </>;
+      })()}
+      {module.key==='customers'&&(()=>{
+        const custTrans = (workspace.transactions || []).filter(r => r.customerId === detail.id);
+        const custOrders = (workspace.orders || []).filter(o => o.customerId === detail.id);
+        const custSessions = (workspace.sessions || []).filter(s => s.customerId === detail.id);
+        return <>
+          <Divider>Sổ giao dịch & Biến động số dư ({custTrans.length})</Divider>
+          <Table size="small" rowKey="id" dataSource={custTrans} pagination={{pageSize:5}} columns={['type','amount','createdAt'].map(k=>({title:columnLabels[k]||k,dataIndex:k,render:v=><Value k={k} value={v} workspace={workspace}/>}))}/>
+          <Divider>Đơn dịch vụ F&B ({custOrders.length})</Divider>
+          <Table size="small" rowKey="id" dataSource={custOrders} pagination={{pageSize:5}} locale={{emptyText:'Chưa có đơn hàng F&B nào'}} columns={[
+            {title:'Mã đơn',dataIndex:'id'},
+            {title:'Máy',dataIndex:'computerId',render:v=><Value k="computerId" value={v} workspace={workspace}/>},
+            {title:'Tổng tiền',dataIndex:'total',render:v=>displayValue('price',v,workspace)},
+            {title:'Trạng thái',dataIndex:'status',render:v=><Value k="status" value={v} workspace={workspace}/>},
+            {title:'Thời gian',dataIndex:'createdAt',render:v=><Value k="createdAt" value={v} workspace={workspace}/>}
+          ]}/>
+          <Divider>Lịch sử phiên chơi máy ({custSessions.length})</Divider>
+          <Table size="small" rowKey="id" dataSource={custSessions} pagination={{pageSize:5}} locale={{emptyText:'Chưa có phiên chơi nào'}} columns={[
+            {title:'Máy',dataIndex:'computerId',render:v=><Value k="computerId" value={v} workspace={workspace}/>},
+            {title:'Bắt đầu',dataIndex:'startTime',render:v=><Value k="startTime" value={v} workspace={workspace}/>},
+            {title:'Kết thúc',dataIndex:'endTime',render:v=><Value k="endTime" value={v} workspace={workspace}/>},
+            {title:'Tiền giờ',dataIndex:'amount',render:v=>displayValue('price',v,workspace)},
+            {title:'Trạng thái',dataIndex:'status',render:v=><Value k="status" value={v} workspace={workspace}/>}
+          ]}/>
+        </>;
+      })()}
+      {module.key==='employees'&&(()=>{
+        const acc = (workspace.accounts || []).find(a => a.employeeId === detail.id || a.email === detail.email);
+        const scheds = (workspace.schedules || []).filter(s => s.employeeId === detail.id);
+        const atts = (workspace.attendance || []).filter(a => a.employeeId === detail.id);
+        return <>
+          {acc ? <Alert style={{marginTop:12}} type="success" showIcon title={`Tài khoản hệ thống: @${acc.username}`} description={`Vai trò: ${acc.role} · Trạng thái tài khoản: ${acc.status}`}/> : <Alert style={{marginTop:12}} type="warning" showIcon title="Chưa cấp tài khoản đăng nhập" description="Nhân sự này chưa được liên kết tài khoản hệ thống."/>}
+          <Divider>Lịch làm việc phân công ({scheds.length})</Divider>
+          <Table size="small" rowKey="id" dataSource={scheds} pagination={{pageSize:5}} locale={{emptyText:'Chưa có lịch làm'}} columns={[
+            {title:'Ngày',dataIndex:'date'},
+            {title:'Ca làm',dataIndex:'shiftId',render:v=><Value k="shiftId" value={v} workspace={workspace}/>},
+            {title:'Trạng thái',dataIndex:'status',render:v=><Value k="status" value={v} workspace={workspace}/>}
+          ]}/>
+          <Divider>Chấm công ({atts.length})</Divider>
+          <Table size="small" rowKey="id" dataSource={atts} pagination={{pageSize:5}} locale={{emptyText:'Chưa có dữ liệu chấm công'}} columns={[
+            {title:'Giờ vào',dataIndex:'checkIn',render:v=><Value k="checkIn" value={v} workspace={workspace}/>},
+            {title:'Giờ ra',dataIndex:'checkOut',render:v=><Value k="checkOut" value={v} workspace={workspace}/>},
+            {title:'Ghi chú',dataIndex:'note'}
+          ]}/>
+        </>;
+      })()}
+      {module.key==='sessions'&&(()=>{
+        const cust = (workspace.customers || []).find(c => c.id === detail.customerId);
+        const comp = (workspace.computers || []).find(m => m.id === detail.computerId);
+        const sessOrders = (workspace.orders || []).filter(o => o.customerId === detail.customerId && o.computerId === detail.computerId);
+        return <>
+          <Alert style={{marginTop:12}} type="info" showIcon title={`Phiên chơi tại ${comp?.name || detail.computerId || 'máy trạm'} — Khách: ${cust?.fullName || detail.customerId || '—'}`} description={`Khu vực: ${comp?.zone === 'VIP' ? 'VIP' : 'Tiêu chuẩn'} · Giá giờ: ${money(comp?.hourlyRate || 0)}/giờ · Số dư khách: ${money(cust?.balance || 0)}`}/>
+          <Divider>Đơn dịch vụ F&B phát sinh trong phiên ({sessOrders.length})</Divider>
+          <Table size="small" rowKey="id" dataSource={sessOrders} pagination={{pageSize:5}} locale={{emptyText:'Không có đơn F&B nào phát sinh trong phiên chơi này'}} columns={[
+            {title:'Mã đơn',dataIndex:'id'},
+            {title:'Thời gian',dataIndex:'createdAt',render:v=><Value k="createdAt" value={v} workspace={workspace}/>},
+            {title:'Tổng tiền',dataIndex:'total',render:v=>displayValue('price',v,workspace)},
+            {title:'Trạng thái',dataIndex:'status',render:v=><Value k="status" value={v} workspace={workspace}/>}
+          ]}/>
+        </>;
+      })()}
+      {module.key==='categories'&&(()=>{
+        const prods = (workspace.products || []).filter(p => p.categoryId === detail.id);
+        return <>
+          <Divider>Danh sách món thuộc danh mục ({prods.length})</Divider>
+          <Table size="small" rowKey="id" dataSource={prods} pagination={{pageSize:5}} locale={{emptyText:'Chưa có món nào thuộc danh mục này'}} columns={[
+            {title:'Món',dataIndex:'name'},
+            {title:'Giá bán',dataIndex:'price',render:v=>displayValue('price',v,workspace)},
+            {title:'Tồn kho',dataIndex:'stock',render:v=><Tag color={Number(v)<=5?'error':'processing'}>{String(v)} phần</Tag>},
+            {title:'Hoạt động',dataIndex:'active',render:v=><Value k="active" value={v} workspace={workspace}/>}
+          ]}/>
+        </>;
+      })()}
+      {module.key==='shifts'&&(()=>{
+        const scheds = (workspace.schedules || []).filter(s => s.shiftId === detail.id);
+        return <>
+          <Divider>Lịch phân công nhân sự ca này ({scheds.length})</Divider>
+          <Table size="small" rowKey="id" dataSource={scheds} pagination={{pageSize:5}} locale={{emptyText:'Chưa có lịch phân công cho ca này'}} columns={[
+            {title:'Ngày làm',dataIndex:'date'},
+            {title:'Nhân viên',dataIndex:'employeeId',render:v=><Value k="employeeId" value={v} workspace={workspace}/>},
+            {title:'Trạng thái',dataIndex:'status',render:v=><Value k="status" value={v} workspace={workspace}/>}
+          ]}/>
+        </>;
+      })()}
+      {module.key==='material-requests'&&(()=>{
+        const isProd = detail.itemType === 'Product';
+        const prod = isProd ? (workspace.products || []).find(p => p.id === detail.productId) : null;
+        const mat = !isProd ? (workspace.materials || []).find(m => m.id === detail.materialId) : null;
+        const bom = isProd ? (workspace.bom || []).filter(b => b.productId === detail.productId) : [];
+        return <>
+          {isProd ? <>
+            <Alert style={{marginTop:12}} type="info" showIcon title={`Đề xuất sản xuất F&B: ${prod?.name || detail.productName || 'Món'}`} description={`Số lượng đề xuất: ${detail.quantity} phần. Hệ thống sẽ kiểm tra và trừ tồn kho NVL theo công thức BOM dưới đây.`}/>
+            <Divider>Định mức tiêu hao NVL cho yêu cầu này</Divider>
+            <Table size="small" rowKey={(r,idx)=>String(r.materialId||idx)} pagination={false} dataSource={bom} locale={{emptyText:'Chưa có công thức BOM cho món này'}} columns={[
+              {title:'Nguyên vật liệu',dataIndex:'materialName'},
+              {title:'Định mức / phần',dataIndex:'quantity'},
+              {title:'Tổng tiêu hao',render:(_,r)=><strong>{(Number(r.quantity||0) * Number(detail.quantity||0)).toFixed(2)} {String(r.unit||'')}</strong>},
+              {title:'Đơn vị',dataIndex:'unit'}
+            ]}/>
+          </> : <>
+            <Alert style={{marginTop:12}} type="info" showIcon title={`Đề xuất xuất kho NVL: ${mat?.name || detail.materialName || 'Vật tư'}`} description={`Số lượng đề xuất xuất: ${detail.quantity} ${mat?.unit || ''}. Tồn kho hiện tại: ${mat?.stockQuantity || '—'} ${mat?.unit || ''} (Mức tối thiểu: ${mat?.reorderLevel || '—'}).`}/>
+          </>}
+        </>;
+      })()}
+      {module.key==='feedback'&&(()=>{
+        const cust = (workspace.customers || []).find(c => c.id === detail.customerId);
+        return <>
+          {cust && <Alert style={{marginTop:12}} type="info" showIcon title={`Khách hàng gửi phản hồi: ${cust.fullName}`} description={`Tài khoản: @${cust.username || cust.id} · Điện thoại: ${cust.phone || '—'} · Hạng: ${cust.tier || 'Thành viên'}`}/>}
+          {detail.response && <Alert style={{marginTop:10}} type="success" showIcon title="Phản hồi từ quản lý / thu ngân" description={String(detail.response)}/>}
+        </>;
+      })()}
       {module.key==='surveys'&&<><Divider>Kết quả khảo sát</Divider><p>{Array.isArray(detail.responses)?detail.responses.length:0} / {Array.isArray(detail.customerIds)?detail.customerIds.length:0} khách đã trả lời</p>{(Array.isArray(detail.questions)?detail.questions:[]).map((q:{id:string;text:string;options:string[]})=><Card key={q.id} size="small" title={q.text} className="question-card">{q.options.map(option=>{const count=(Array.isArray(detail.responses)?detail.responses:[]).filter((r:{answers:Record<string,string>})=>r.answers[q.id]===option).length;return <div className="survey-result" key={option}><span>{option}</span><Tag color="cyan">{count} lượt</Tag></div>;})}</Card>)}</>}
       </>}
     </Modal>

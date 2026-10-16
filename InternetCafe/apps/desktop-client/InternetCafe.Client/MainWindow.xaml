@@ -45,7 +45,7 @@
       <TextBlock Text="ĐĂNG KÝ HỘI VIÊN MỚI" Style="{StaticResource Heading}" HorizontalAlignment="Center" FontSize="22" Visibility="{Binding IsRegistering, Converter={StaticResource BoolVisible}}"/>
       <TextBlock Text="Nhập tài khoản để mở khóa sử dụng máy tính." Style="{StaticResource Muted}" HorizontalAlignment="Center" Margin="0,4,0,14"/>
       <Border Background="#162746" CornerRadius="8" Padding="12,6" Margin="0,0,0,16" HorizontalAlignment="Center">
-       <TextBlock Text="💡 Trải nghiệm ngay: gamer · Mật khẩu: Demo@123" Foreground="#7FE8FF" FontSize="11" FontWeight="SemiBold"/>
+       <TextBlock Text="💡 Quý khách vui lòng đăng nhập hoặc đăng ký tài khoản hội viên" Foreground="#7FE8FF" FontSize="11" FontWeight="SemiBold"/>
       </Border>
       
       <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Tên đăng nhập" MaxLength="30" AutomationProperties.Name="Tên đăng nhập"/>
@@ -80,27 +80,318 @@
      <Border Style="{StaticResource Card}"><StackPanel><DockPanel><TextBlock Text="Lịch sử sử dụng" Style="{StaticResource Subheading}"/><Button Content="Gọi hỗ trợ" Command="{Binding RequestSupportCommand}" HorizontalAlignment="Right" Style="{StaticResource Secondary}"/></DockPanel><TextBlock Text="Chưa có phiên sử dụng." Style="{StaticResource Muted}" Visibility="{Binding Sessions.Count, Converter={StaticResource EmptyVisible}}"/><DataGrid ItemsSource="{Binding Sessions}" MaxHeight="270"><DataGrid.Columns><DataGridTextColumn Header="Máy" Binding="{Binding ComputerId}" Width="100"/><DataGridTextColumn Header="Bắt đầu" Binding="{Binding Started}" Width="*"/><DataGridTextColumn Header="Kết thúc" Binding="{Binding Ended}" Width="*"/><DataGridTextColumn Header="Phí máy chủ" Binding="{Binding Billed}" Width="140"/></DataGrid.Columns></DataGrid></StackPanel></Border>
     </StackPanel></ScrollViewer></TabItem>
     <TabItem Header="Menu Game">
- <ScrollViewer VerticalScrollBarVisibility="Auto">
-  <StackPanel Margin="24,0,24,20">
-   <DockPanel Margin="0,0,0,16"><StackPanel DockPanel.Dock="Left"><TextBlock Text="Menu Game Cybercafe" Style="{StaticResource Heading}"/><TextBlock Text="Chọn game để khởi động nhanh và vào trận ngay lập tức:" Style="{StaticResource Muted}"/></StackPanel></DockPanel>
-   <ItemsControl ItemsSource="{Binding Games}">
-    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-    <ItemsControl.ItemTemplate><DataTemplate>
-     <Border Background="#0C152B" BorderBrush="#233B6B" BorderThickness="1.5" CornerRadius="16" Width="340" Margin="0,0,18,18">
-      <StackPanel>
-       <Border Height="160" CornerRadius="14,14,0,0" Background="#14213D"><Grid><Image Source="{Binding BannerUrl}" Stretch="UniformToFill"/><Border Background="#77000000" VerticalAlignment="Top" HorizontalAlignment="Right" CornerRadius="8" Padding="8,4" Margin="10"><TextBlock Text="{Binding Category}" Foreground="#38D9FF" FontSize="11" FontWeight="Bold"/></Border></Grid></Border>
-       <Border Padding="16"><StackPanel><TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="18" Foreground="White"/><TextBlock Text="{Binding Description}" Style="{StaticResource Muted}" FontSize="12" Margin="0,4,0,12" TextWrapping="Wrap" MaxHeight="36"/><DockPanel><Button Content="▶ CHƠI NGAY" Command="{Binding DataContext.LaunchGameCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Background="#38D9FF" Foreground="#080D1B" FontWeight="Bold" Padding="16,6"/><TextBlock Text="{Binding ExecutablePath}" FontSize="10" Foreground="#557299" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="10,0,0,0"/></DockPanel></StackPanel></Border>
+     <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel Margin="24,0,24,20">
+       <DockPanel Margin="0,0,0,16">
+        <StackPanel DockPanel.Dock="Left">
+         <TextBlock Text="Menu Game Cybercafe" Style="{StaticResource Heading}"/>
+         <TextBlock Text="Chọn biểu tượng game để khởi động nhanh và vào trận ngay lập tức:" Style="{StaticResource Muted}"/>
+        </StackPanel>
+        <TextBox DockPanel.Dock="Right" HorizontalAlignment="Right" Width="260"
+                 Text="{Binding GameSearch, UpdateSourceTrigger=PropertyChanged}"
+                 Style="{StaticResource Field}" md:HintAssist.Hint="🔍 Tìm game nhanh..." MinHeight="42" Margin="0"/>
+       </DockPanel>
+
+       <!-- Game Category Chips (Image 1 Style) -->
+       <ListBox ItemsSource="{Binding GameCategories}" SelectedItem="{Binding SelectedGameCategory}"
+                Background="Transparent" BorderThickness="0" Margin="0,0,0,16">
+        <ListBox.ItemsPanel>
+         <ItemsPanelTemplate>
+          <WrapPanel/>
+         </ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBox.ItemContainerStyle>
+         <Style TargetType="ListBoxItem">
+          <Setter Property="Padding" Value="0"/>
+          <Setter Property="Margin" Value="0,0,8,8"/>
+          <Setter Property="Template">
+           <Setter.Value>
+            <ControlTemplate TargetType="ListBoxItem">
+             <Border x:Name="ChipBorder" Background="#13203A" BorderBrush="#253A63" BorderThickness="1.2" CornerRadius="18" Padding="14,6" Cursor="Hand">
+              <TextBlock x:Name="ChipText" Text="{Binding}" Foreground="#B0C7E6" FontWeight="SemiBold" FontSize="12.5"/>
+             </Border>
+             <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+               <Setter TargetName="ChipBorder" Property="Background" Value="#1A2D52"/>
+               <Setter TargetName="ChipBorder" Property="BorderBrush" Value="#38D9FF"/>
+              </Trigger>
+              <Trigger Property="IsSelected" Value="True">
+               <Setter TargetName="ChipBorder" Property="Background" Value="#38D9FF"/>
+               <Setter TargetName="ChipBorder" Property="BorderBrush" Value="#38D9FF"/>
+               <Setter TargetName="ChipText" Property="Foreground" Value="#080D1B"/>
+               <Setter TargetName="ChipText" Property="FontWeight" Value="Bold"/>
+              </Trigger>
+             </ControlTemplate.Triggers>
+            </ControlTemplate>
+           </Setter.Value>
+          </Setter>
+         </Style>
+        </ListBox.ItemContainerStyle>
+       </ListBox>
+
+       <TextBlock Text="Không tìm thấy game phù hợp." Style="{StaticResource Muted}"
+                  Visibility="{Binding FilteredGames.Count, Converter={StaticResource EmptyVisible}}"/>
+
+       <!-- Game Icon Grid (Image 1 Cybercafe Apps Grid) -->
+       <ItemsControl ItemsSource="{Binding FilteredGames}">
+        <ItemsControl.ItemsPanel>
+         <ItemsPanelTemplate>
+          <WrapPanel/>
+         </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+         <DataTemplate>
+          <Button Command="{Binding DataContext.LaunchGameCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                  CommandParameter="{Binding}"
+                  ToolTip="{Binding Description}"
+                  Padding="0" Margin="0,0,14,16" Width="104" Height="124"
+                  Background="Transparent" BorderThickness="0" Cursor="Hand">
+           <Button.Template>
+            <ControlTemplate TargetType="Button">
+             <Border x:Name="GameTile" Background="#0C152B" BorderBrush="#1C2F52" BorderThickness="1.2" CornerRadius="16" Padding="6,8">
+              <Grid>
+               <Grid.RowDefinitions>
+                <RowDefinition Height="68"/>
+                <RowDefinition Height="*"/>
+               </Grid.RowDefinitions>
+               
+               <!-- Game Icon (Squircle) -->
+               <Border Grid.Row="0" Width="68" Height="68" CornerRadius="15" ClipToBounds="True" Background="#14223E" HorizontalAlignment="Center">
+                <Grid>
+                 <md:PackIcon Kind="GamepadVariant" Width="38" Height="38" Foreground="#38D9FF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                 <Image Source="{Binding BannerUrl}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                 <Border x:Name="PlayOverlay" Background="#AA000000" Opacity="0">
+                  <md:PackIcon Kind="PlayCircle" Width="36" Height="36" Foreground="#38D9FF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                 </Border>
+                </Grid>
+               </Border>
+               
+               <!-- Game Name -->
+               <TextBlock Grid.Row="1" Text="{Binding Name}" FontWeight="SemiBold" FontSize="11.5"
+                          Foreground="#E2EDF9" TextAlignment="Center" TextTrimming="CharacterEllipsis"
+                          TextWrapping="Wrap" MaxHeight="32" Margin="0,5,0,0" VerticalAlignment="Center"/>
+              </Grid>
+             </Border>
+             <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+               <Setter TargetName="GameTile" Property="Background" Value="#152648"/>
+               <Setter TargetName="GameTile" Property="BorderBrush" Value="#38D9FF"/>
+               <Setter TargetName="PlayOverlay" Property="Opacity" Value="1"/>
+              </Trigger>
+             </ControlTemplate.Triggers>
+            </ControlTemplate>
+           </Button.Template>
+          </Button>
+         </DataTemplate>
+        </ItemsControl.ItemTemplate>
+       </ItemsControl>
       </StackPanel>
-     </Border>
-    </DataTemplate></ItemsControl.ItemTemplate>
-   </ItemsControl>
-  </StackPanel>
- </ScrollViewer>
-</TabItem>
-     <TabItem Header="Thực đơn"><Grid Margin="24,0,0,18"><Grid.ColumnDefinitions><ColumnDefinition Width="1.4*"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
-     <DockPanel Margin="0,0,18,0"><StackPanel DockPanel.Dock="Top"><TextBlock Text="Thực đơn" Style="{StaticResource Heading}"/><TextBox Text="{Binding MenuSearch, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Tìm món"/><ComboBox ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" DisplayMemberPath="Name" Margin="0,0,0,18" MinHeight="42" AutomationProperties.Name="Danh mục món"/><TextBlock Text="Không có món phù hợp." Style="{StaticResource Muted}" Visibility="{Binding Products.Count, Converter={StaticResource EmptyVisible}}"/></StackPanel><ScrollViewer VerticalScrollBarVisibility="Auto"><ItemsControl ItemsSource="{Binding Products}"><ItemsControl.ItemTemplate><DataTemplate><Border Style="{StaticResource Card}" Padding="16" Margin="0,0,0,12"><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="18"/><TextBlock Text="{Binding PriceLabel}" Margin="0,8,0,0"/><TextBlock Text="{Binding StockLabel}" Style="{StaticResource Muted}" Margin="0,5,0,0"/></StackPanel><Button Grid.Column="1" Content="Thêm" Command="{Binding DataContext.AddToCartCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" VerticalAlignment="Center"/></Grid></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></ScrollViewer></DockPanel>
-     <Border Grid.Column="1" Style="{StaticResource Card}"><DockPanel><StackPanel DockPanel.Dock="Top"><TextBlock Text="Giỏ món" Style="{StaticResource Subheading}"/><TextBlock Text="Cần có phiên đang hoạt động để đặt món." Style="{StaticResource Muted}"/><TextBlock Text="Chọn món bên trái để bắt đầu." Style="{StaticResource Muted}" Visibility="{Binding Cart.Count, Converter={StaticResource EmptyVisible}}"/></StackPanel><StackPanel DockPanel.Dock="Bottom"><Separator Margin="0,16"/><TextBlock Text="{Binding CartTotalLabel}" FontSize="27" FontWeight="SemiBold"/><TextBox Text="{Binding OrderNote, UpdateSourceTrigger=PropertyChanged}" md:HintAssist.Hint="Ghi chú cho quầy" Style="{StaticResource Field}" MaxLength="2000" TextWrapping="Wrap"/><Button Content="Xác nhận đặt món" Command="{Binding PlaceOrderCommand}" IsEnabled="{Binding CanOrder}"/><Button Content="Xóa giỏ" Command="{Binding ClearCartCommand}" Style="{StaticResource Secondary}"/></StackPanel><ScrollViewer VerticalScrollBarVisibility="Auto"><ItemsControl ItemsSource="{Binding Cart}"><ItemsControl.ItemTemplate><DataTemplate><StackPanel Margin="0,8,0,12"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/><DockPanel><TextBlock Text="{Binding TotalLabel}" VerticalAlignment="Center"/><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="−" Command="{Binding DataContext.DecreaseQuantityCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Padding="10,2" MinHeight="32" Style="{StaticResource Secondary}" AutomationProperties.Name="Giảm số lượng"/><TextBlock Text="{Binding Quantity}" VerticalAlignment="Center" Margin="0,0,8,0"/><Button Content="+" Command="{Binding DataContext.IncreaseQuantityCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Padding="10,2" MinHeight="32" Style="{StaticResource Secondary}" AutomationProperties.Name="Tăng số lượng"/></StackPanel></DockPanel></StackPanel></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></ScrollViewer></DockPanel></Border>
-    </Grid></TabItem>
+     </ScrollViewer>
+    </TabItem>
+    <TabItem Header="Thực đơn">
+     <Grid Margin="24,0,0,18">
+      <Grid.ColumnDefinitions>
+       <ColumnDefinition Width="*"/>
+       <ColumnDefinition Width="380"/>
+      </Grid.ColumnDefinitions>
+
+      <!-- Left Column: Menu Items & Categories -->
+      <DockPanel Margin="0,0,18,0">
+       <StackPanel DockPanel.Dock="Top">
+        <DockPanel Margin="0,0,0,12">
+         <StackPanel DockPanel.Dock="Left">
+          <TextBlock Text="Thực đơn Cybercafe" Style="{StaticResource Heading}"/>
+          <TextBlock Text="Gọi món nóng, nước ngọt, đồ ăn vặt phục vụ tận máy:" Style="{StaticResource Muted}"/>
+         </StackPanel>
+         <TextBox DockPanel.Dock="Right" HorizontalAlignment="Right" Width="260"
+                  Text="{Binding MenuSearch, UpdateSourceTrigger=PropertyChanged}"
+                  Style="{StaticResource Field}" md:HintAssist.Hint="🔍 Tìm món nhanh..." MinHeight="42" Margin="0"/>
+        </DockPanel>
+
+        <!-- Category Filter Chips (Image 2 Sapo POS Category Bar) -->
+        <ListBox ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}"
+                 Background="Transparent" BorderThickness="0" Margin="0,0,0,14">
+         <ListBox.ItemsPanel>
+          <ItemsPanelTemplate>
+           <WrapPanel/>
+          </ItemsPanelTemplate>
+         </ListBox.ItemsPanel>
+         <ListBox.ItemContainerStyle>
+          <Style TargetType="ListBoxItem">
+           <Setter Property="Padding" Value="0"/>
+           <Setter Property="Margin" Value="0,0,8,8"/>
+           <Setter Property="Template">
+            <Setter.Value>
+             <ControlTemplate TargetType="ListBoxItem">
+              <Border x:Name="CatChip" Background="#13203A" BorderBrush="#253A63" BorderThickness="1.2" CornerRadius="18" Padding="14,6" Cursor="Hand">
+               <TextBlock x:Name="CatText" Text="{Binding Name}" Foreground="#B0C7E6" FontWeight="SemiBold" FontSize="12.5"/>
+              </Border>
+              <ControlTemplate.Triggers>
+               <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="CatChip" Property="Background" Value="#1A2D52"/>
+                <Setter TargetName="CatChip" Property="BorderBrush" Value="#38D9FF"/>
+               </Trigger>
+               <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="CatChip" Property="Background" Value="#38D9FF"/>
+                <Setter TargetName="CatChip" Property="BorderBrush" Value="#38D9FF"/>
+                <Setter TargetName="CatText" Property="Foreground" Value="#080D1B"/>
+                <Setter TargetName="CatText" Property="FontWeight" Value="Bold"/>
+               </Trigger>
+              </ControlTemplate.Triggers>
+             </ControlTemplate>
+            </Setter.Value>
+           </Setter>
+          </Style>
+         </ListBox.ItemContainerStyle>
+        </ListBox>
+
+        <TextBlock Text="Không có món phù hợp." Style="{StaticResource Muted}"
+                   Visibility="{Binding Products.Count, Converter={StaticResource EmptyVisible}}"/>
+       </StackPanel>
+
+       <!-- Food & Beverage Cards Grid -->
+       <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <ItemsControl ItemsSource="{Binding Products}">
+         <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+           <WrapPanel/>
+          </ItemsPanelTemplate>
+         </ItemsControl.ItemsPanel>
+         <ItemsControl.ItemTemplate>
+          <DataTemplate>
+           <Border Width="195" Margin="0,0,14,16" Background="#0C152B" BorderBrush="#203357" BorderThickness="1.2" CornerRadius="14">
+            <Grid>
+             <Grid.RowDefinitions>
+              <RowDefinition Height="110"/>
+              <RowDefinition Height="Auto"/>
+             </Grid.RowDefinitions>
+
+             <!-- Dish Photo Banner -->
+             <Border Grid.Row="0" CornerRadius="13,13,0,0" ClipToBounds="True" Background="#14213D">
+              <Grid>
+               <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <md:PackIcon Kind="FoodForkDrink" Width="36" Height="36" Foreground="#38D9FF" HorizontalAlignment="Center"/>
+               </StackPanel>
+               <Image Source="{Binding ImageUrl}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+
+               <!-- Floating Price Badge (Top Right) -->
+               <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8" Background="#00D2FF" CornerRadius="6" Padding="8,3">
+                <TextBlock Text="{Binding PriceLabel}" Foreground="#080D1B" FontWeight="Bold" FontSize="11.5"/>
+               </Border>
+              </Grid>
+             </Border>
+
+             <!-- Dish Details & Action (Bottom) -->
+             <StackPanel Grid.Row="1" Margin="12,10">
+              <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="13.5" Foreground="White"
+                         TextTrimming="CharacterEllipsis" TextWrapping="Wrap" MaxHeight="38" MinHeight="34"/>
+              <DockPanel Margin="0,6,0,0">
+               <TextBlock Text="{Binding StockLabel}" Style="{StaticResource Muted}" FontSize="11" VerticalAlignment="Center"/>
+               <Button Content="+ Thêm" Command="{Binding DataContext.AddToCartCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                       CommandParameter="{Binding}"
+                       DockPanel.Dock="Right" HorizontalAlignment="Right"
+                       Background="#38D9FF" Foreground="#080D1B" FontWeight="Bold" FontSize="11"
+                       MinHeight="28" Height="28" Padding="10,0" Margin="0"/>
+              </DockPanel>
+             </StackPanel>
+            </Grid>
+           </Border>
+          </DataTemplate>
+         </ItemsControl.ItemTemplate>
+        </ItemsControl>
+       </ScrollViewer>
+      </DockPanel>
+
+      <!-- Right Column: POS Cart & Checkout Slip -->
+      <Border Grid.Column="1" Style="{StaticResource Card}" Background="#0C152B" BorderBrush="#203357" Padding="18">
+       <DockPanel>
+        <!-- Header -->
+        <StackPanel DockPanel.Dock="Top">
+         <DockPanel Margin="0,0,0,10">
+          <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+           <md:PackIcon Kind="CartOutline" Width="22" Height="22" Foreground="#38D9FF" VerticalAlignment="Center" Margin="0,0,8,0"/>
+           <TextBlock Text="Giỏ món đã chọn" Style="{StaticResource Subheading}" Margin="0"/>
+          </StackPanel>
+          <Border DockPanel.Dock="Right" HorizontalAlignment="Right" Background="#163B50" CornerRadius="10" Padding="8,3"
+                  Visibility="{Binding Cart.Count, Converter={StaticResource EmptyVisible}, ConverterParameter=Inverse}">
+           <TextBlock Text="{Binding CartCountLabel}" Foreground="#7FE8FF" FontSize="11" FontWeight="Bold"/>
+          </Border>
+         </DockPanel>
+
+         <TextBlock Text="Cần có phiên đang hoạt động để đặt món." Style="{StaticResource Muted}" FontSize="11.5"
+                    Visibility="{Binding HasActiveSession, Converter={StaticResource BoolVisible}, ConverterParameter=Inverse}"/>
+
+         <Border Visibility="{Binding Cart.Count, Converter={StaticResource EmptyVisible}}"
+                 Background="#0F1A30" CornerRadius="12" Padding="20" Margin="0,10,0,10">
+          <StackPanel HorizontalAlignment="Center">
+           <md:PackIcon Kind="CartRemove" Width="42" Height="42" Foreground="#4A658E" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+           <TextBlock Text="Giỏ món đang trống" FontWeight="SemiBold" Foreground="#8BA6CE" HorizontalAlignment="Center"/>
+           <TextBlock Text="Chọn món bên trái để thêm vào đơn hàng." Style="{StaticResource Muted}" FontSize="11.5" TextAlignment="Center" Margin="0,4,0,0"/>
+          </StackPanel>
+         </Border>
+        </StackPanel>
+
+        <!-- Footer / Checkout Controls -->
+        <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+         <Separator Margin="0,8,0,12" Background="#203357"/>
+         <DockPanel Margin="0,0,0,10">
+          <TextBlock Text="Tổng thanh toán:" Foreground="#A8BFDF" FontSize="13" VerticalAlignment="Center"/>
+          <TextBlock Text="{Binding CartTotalLabel}" FontSize="24" FontWeight="Bold" Foreground="#38D9FF" HorizontalAlignment="Right"/>
+         </DockPanel>
+
+         <TextBox Text="{Binding OrderNote, UpdateSourceTrigger=PropertyChanged}"
+                  md:HintAssist.Hint="Ghi chú cho quầy (ví dụ: ít đá, không cay...)"
+                  Style="{StaticResource Field}" MaxLength="2000" TextWrapping="Wrap" MinHeight="42" Margin="0,0,0,10"/>
+
+         <Button Content="🚀 XÁC NHẬN ĐẶT MÓN" Command="{Binding PlaceOrderCommand}" IsEnabled="{Binding CanOrder}"
+                 Background="#38D9FF" Foreground="#080D1B" FontWeight="Bold" FontSize="14" MinHeight="44" Margin="0,0,0,6"/>
+         <Button Content="Xóa toàn bộ giỏ" Command="{Binding ClearCartCommand}" Style="{StaticResource Secondary}"
+                 Visibility="{Binding Cart.Count, Converter={StaticResource EmptyVisible}, ConverterParameter=Inverse}"
+                 MinHeight="36" Margin="0"/>
+        </StackPanel>
+
+        <!-- Cart Items List -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+         <ItemsControl ItemsSource="{Binding Cart}">
+          <ItemsControl.ItemTemplate>
+           <DataTemplate>
+            <Border Background="#13203A" BorderBrush="#203357" BorderThickness="1" CornerRadius="10" Padding="12,10" Margin="0,0,0,8">
+             <Grid>
+              <Grid.RowDefinitions>
+               <RowDefinition Height="Auto"/>
+               <RowDefinition Height="Auto"/>
+              </Grid.RowDefinitions>
+
+              <DockPanel Grid.Row="0">
+               <Button Command="{Binding DataContext.RemoveCartItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                       CommandParameter="{Binding}"
+                       DockPanel.Dock="Right" Padding="4" MinHeight="22" Height="24" Width="24"
+                       Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Xóa món">
+                <md:PackIcon Kind="CloseCircleOutline" Width="16" Height="16" Foreground="#FF6B6B"/>
+               </Button>
+               <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" Foreground="White" TextWrapping="Wrap"/>
+              </DockPanel>
+
+              <DockPanel Grid.Row="1" Margin="0,8,0,0">
+               <TextBlock Text="{Binding TotalLabel}" Foreground="#FFD700" FontWeight="Bold" FontSize="13" VerticalAlignment="Center" DockPanel.Dock="Right"/>
+               <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Content="−" Command="{Binding DataContext.DecreaseQuantityCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="{Binding}" Padding="8,1" MinHeight="26" Height="26" Style="{StaticResource Secondary}" FontSize="12"/>
+                <TextBlock Text="{Binding Quantity}" VerticalAlignment="Center" Margin="10,0" FontWeight="Bold" FontSize="13" Foreground="White"/>
+                <Button Content="+" Command="{Binding DataContext.IncreaseQuantityCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="{Binding}" Padding="8,1" MinHeight="26" Height="26" Style="{StaticResource Secondary}" FontSize="12"/>
+               </StackPanel>
+              </DockPanel>
+             </Grid>
+            </Border>
+           </DataTemplate>
+          </ItemsControl.ItemTemplate>
+         </ItemsControl>
+        </ScrollViewer>
+       </DockPanel>
+      </Border>
+     </Grid>
+    </TabItem>
     <TabItem Header="Đơn của tôi"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="24,0,0,20"><TextBlock Text="Đơn của tôi" Style="{StaticResource Heading}"/><Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Chưa có đơn hàng." Style="{StaticResource Muted}" Visibility="{Binding Orders.Count, Converter={StaticResource EmptyVisible}}"/><DataGrid ItemsSource="{Binding Orders}" SelectedItem="{Binding SelectedOrder}" MaxHeight="460"><DataGrid.Columns><DataGridTextColumn Header="Thời gian" Binding="{Binding Created}" Width="150"/><DataGridTextColumn Header="Món" Binding="{Binding Details}" Width="*"/><DataGridTextColumn Header="Tổng" Binding="{Binding TotalLabel}" Width="120"/><DataGridTextColumn Header="Trạng thái" Binding="{Binding StatusLabel}" Width="150"/></DataGrid.Columns></DataGrid><TextBlock Text="{Binding SelectedOrder.Note}" TextWrapping="Wrap" Margin="0,12,0,4"/><Button Content="Hủy đơn đã chọn" Command="{Binding CancelOrderCommand}" IsEnabled="{Binding CanCancelOrder}" HorizontalAlignment="Left" Style="{StaticResource Secondary}"/></StackPanel></Border></StackPanel></ScrollViewer></TabItem>
     <TabItem Header="Ví và nạp tiền"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="24,0,0,20"><TextBlock Text="Ví và nạp tiền" Style="{StaticResource Heading}"/><Border Style="{StaticResource Card}" Visibility="{Binding Combos.Count, Converter={StaticResource EmptyVisible}, ConverterParameter=Inverse}"><StackPanel><TextBlock Text="Gói Combo khuyến mãi nạp tiền" Style="{StaticResource Subheading}"/><TextBlock Text="Chọn nhanh gói khuyến mãi nhận thêm tiền thưởng giờ chơi:" Style="{StaticResource Muted}" Margin="0,0,0,12"/><ItemsControl ItemsSource="{Binding Combos}"><ItemsControl.ItemTemplate><DataTemplate><Border Background="#162746" CornerRadius="10" Padding="14,10" Margin="0,0,0,8"><DockPanel><Button Content="Chọn gói" Command="{Binding DataContext.SelectComboCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" DockPanel.Dock="Right" Padding="14,4" MinHeight="32" Background="#38D9FF" Foreground="#0B1226"/><StackPanel VerticalAlignment="Center"><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="15" Foreground="White"/><Border Background="#255438" CornerRadius="6" Padding="6,2" Margin="10,0,0,0" Visibility="{Binding BonusValue, Converter={StaticResource BoolVisible}}"><TextBlock Text="{Binding BonusLabel, StringFormat='Tặng {0}'}" Foreground="#55F2A3" FontSize="11" FontWeight="SemiBold"/></Border></StackPanel><TextBlock Text="{Binding Description}" Style="{StaticResource Muted}" FontSize="12" Margin="0,3,0,0"/></StackPanel></DockPanel></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel></Border><Border Style="{StaticResource Card}" Background="#121F3A"><StackPanel><TextBlock Text="{Binding BalanceLabel}" FontSize="36" FontWeight="SemiBold"/><TextBlock Text="Số dư hiện tại của tài khoản" Margin="0,4,0,16" Foreground="#8FAAC9"/><TextBlock Text="Chọn hình thức nạp tiền:" FontWeight="SemiBold" FontSize="14" Foreground="#E2EDF9" Margin="0,0,0,8"/><WrapPanel Margin="0,0,0,16"><Button Content="💵 TIỀN MẶT TẠI QUẦY" Command="{Binding SetCashPaymentCommand}" Margin="0,0,10,0" Padding="16,8" FontWeight="Bold" Cursor="Hand"/><Button Content="💳 CHUYỂN KHOẢN VIETQR" Command="{Binding SetTransferPaymentCommand}" Padding="16,8" FontWeight="Bold" Cursor="Hand"/></WrapPanel><Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><TextBox Text="{Binding TopupAmount, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Số tiền cần nạp (VND)" MaxLength="8" Margin="0,0,18,0"/><TextBox Grid.Column="1" Text="{Binding TopupNote, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Ghi chú thêm (không bắt buộc)" MaxLength="2000"/></Grid><Border Visibility="{Binding IsTransferMethod, Converter={StaticResource BoolVisible}}" Background="#091428" BorderBrush="#00D2FF" BorderThickness="1.5" CornerRadius="12" Padding="16" Margin="0,0,0,16"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Background="White" CornerRadius="8" Padding="6" Margin="0,0,16,0" VerticalAlignment="Center"><Image Source="{Binding VietQrUrl}" Width="150" Height="150" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/></Border><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="QUÉT MÃ VIETQR QUA APP NGÂN HÀNG" FontWeight="Bold" FontSize="15" Foreground="#00D2FF"/><TextBlock Text="Chuyển khoản chính xác theo thông tin bên dưới:" Foreground="#A8BFDF" FontSize="12" Margin="0,4,0,10"/><Grid Margin="0,0,0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Ngân hàng:" Foreground="#8FAAC9"/><TextBlock Grid.Column="1" Text="{Binding BankName}" FontWeight="SemiBold" Foreground="White"/></Grid><Grid Margin="0,0,0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Số tài khoản:" Foreground="#8FAAC9"/><TextBlock Grid.Column="1" Text="{Binding BankAccount}" FontWeight="Bold" FontSize="14" Foreground="#FFD700"/></Grid><Grid Margin="0,0,0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Chủ tài khoản:" Foreground="#8FAAC9"/><TextBlock Grid.Column="1" Text="{Binding BankAccountName}" FontWeight="SemiBold" Foreground="White"/></Grid><Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Cú pháp CK:" Foreground="#8FAAC9"/><TextBlock Grid.Column="1" Text="{Binding TransferSyntax}" FontWeight="Bold" FontSize="14" Foreground="#39D8FF"/></Grid><TextBlock Text="💡 Sau khi hoàn tất chuyển khoản trên app ngân hàng, vui lòng bấm nút bên dưới để thông báo cho thu ngân duyệt nạp ngay." TextWrapping="Wrap" Foreground="#7FE8FF" FontSize="11" Margin="0,4,0,0"/></StackPanel></Grid></Border><Border Visibility="{Binding IsCashMethod, Converter={StaticResource BoolVisible}}" Background="#1A2B4C" CornerRadius="10" Padding="14,12" Margin="0,0,0,16"><DockPanel><md:PackIcon Kind="CashMultiple" Width="28" Height="28" Foreground="#FFD700" VerticalAlignment="Center" Margin="0,0,12,0"/><TextBlock Text="Quý khách vui lòng gửi yêu cầu và mang tiền mặt thanh toán trực tiếp tại quầy thu ngân. Thu ngân sẽ nhận tiền và cộng vào tài khoản của bạn ngay lập tức." TextWrapping="Wrap" Foreground="#D5E3F7" VerticalAlignment="Center"/></DockPanel></Border><Button Content="GỬI YÊU CẦU NẠP TIỀN" Command="{Binding RequestTopupCommand}" IsEnabled="{Binding CanMutate}" HorizontalAlignment="Left" Padding="24,10" FontWeight="Bold" Background="#00D2FF" Foreground="#080D1B"/><TextBlock Text="Yêu cầu sẽ được gửi tới màn hình thu ngân và xử lý ngay khi nhận được thanh toán." Style="{StaticResource Muted}" Margin="0,10,0,0"/></StackPanel></Border><Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Yêu cầu nạp tiền" Style="{StaticResource Subheading}"/><TextBlock Text="Chưa có yêu cầu nạp." Style="{StaticResource Muted}" Visibility="{Binding Topups.Count, Converter={StaticResource EmptyVisible}}"/><DataGrid ItemsSource="{Binding Topups}" MaxHeight="250"><DataGrid.Columns><DataGridTextColumn Header="Thời gian" Binding="{Binding Created}" Width="*"/><DataGridTextColumn Header="Số tiền" Binding="{Binding AmountLabel}" Width="150"/><DataGridTextColumn Header="Trạng thái" Binding="{Binding StatusLabel}" Width="150"/><DataGridTextColumn Header="Ghi chú" Binding="{Binding Note}" Width="*"/></DataGrid.Columns></DataGrid></StackPanel></Border><Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Lịch sử giao dịch" Style="{StaticResource Subheading}"/><TextBlock Text="Chưa có giao dịch." Style="{StaticResource Muted}" Visibility="{Binding Transactions.Count, Converter={StaticResource EmptyVisible}}"/><DataGrid ItemsSource="{Binding Transactions}" MaxHeight="250"><DataGrid.Columns><DataGridTextColumn Header="Thời gian" Binding="{Binding Created}" Width="*"/><DataGridTextColumn Header="Loại" Binding="{Binding Type}" Width="150"/><DataGridTextColumn Header="Số tiền" Binding="{Binding AmountLabel}" Width="150"/><DataGridTextColumn Header="Tham chiếu" Binding="{Binding ReferenceId}" Width="*"/></DataGrid.Columns></DataGrid></StackPanel></Border></StackPanel></ScrollViewer></TabItem>
     <TabItem Header="Hồ sơ"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="24,0,0,20"><TextBlock Text="Hồ sơ của bạn" Style="{StaticResource Heading}"/><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><Border Style="{StaticResource Card}" Margin="0,0,18,18"><StackPanel><TextBlock Text="Thông tin cá nhân" Style="{StaticResource Subheading}"/><TextBlock Text="{Binding Tier}" Style="{StaticResource Muted}"/><TextBox Text="{Binding FullName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Họ và tên" MaxLength="100"/><TextBox Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Số điện thoại" MaxLength="13"/><TextBox Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Email" MaxLength="150"/><TextBox Text="{Binding DateOfBirth, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Ngày sinh (yyyy-MM-dd)" MaxLength="10"/><TextBox Text="{Binding Hobbies, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Sở thích" MaxLength="500" TextWrapping="Wrap"/><Button Content="Lưu hồ sơ" Command="{Binding SaveProfileCommand}" IsEnabled="{Binding CanMutate}"/></StackPanel></Border><Border Grid.Column="1" Style="{StaticResource Card}" VerticalAlignment="Top"><StackPanel><TextBlock Text="Đổi mật khẩu" Style="{StaticResource Subheading}"/><PasswordBox Style="{StaticResource Secret}" md:HintAssist.Hint="Mật khẩu hiện tại" Tag="CurrentPassword" PasswordChanged="OnPasswordChanged" MaxLength="100"/><PasswordBox Style="{StaticResource Secret}" md:HintAssist.Hint="Mật khẩu mới" Tag="NewPassword" PasswordChanged="OnPasswordChanged" MaxLength="100"/><PasswordBox Style="{StaticResource Secret}" md:HintAssist.Hint="Xác nhận mật khẩu mới" Tag="NewPasswordConfirmation" PasswordChanged="OnPasswordChanged" MaxLength="100"/><TextBlock Text="Tối thiểu 8 ký tự và khác mật khẩu đang sử dụng." Style="{StaticResource Muted}"/><Button Content="Đổi mật khẩu" Command="{Binding ChangePasswordCommand}" IsEnabled="{Binding CanMutate}"/></StackPanel></Border></Grid></StackPanel></ScrollViewer></TabItem>

@@ -404,6 +404,16 @@ public sealed class DatabaseBootstrapper(SqlConnectionFactory connections)
         IF @FBCombo IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.Products WHERE Product_Name = N'Combo Bất Bại (Mì xào + Sting)')
             INSERT INTO dbo.Products (Category_ID, Product_Name, Price, Stock_Quantity, Status, Image_Url) VALUES (@FBCombo, N'Combo Bất Bại (Mì xào + Sting)', 45000, 30, 'Active', NULL);
 
+        -- F&B Image URLs: Cập nhật hình ảnh món ăn đồ uống bắt mắt chuẩn quán Net
+        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/sting_dau.jpg' WHERE Product_Name LIKE N'%Sting%';
+        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/ca_phe_sua.jpg' WHERE Product_Name LIKE N'%Cà phê%' OR Product_Name LIKE N'%Redbull%';
+        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/tra_sua.jpg' WHERE Product_Name LIKE N'%Trà sữa%' OR Product_Name LIKE N'%Trà đào%';
+        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/sting_dau.jpg' WHERE Product_Name LIKE N'%Pepsi%' OR Product_Name LIKE N'%Tài Lộc%';
+        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/mi_xao_trung.jpg' WHERE Product_Name LIKE N'%Mì %' OR Product_Name LIKE N'%Combo Bất Bại%';
+        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/com_rang.jpg' WHERE Product_Name LIKE N'%Cơm%' OR Product_Name LIKE N'%Gà rán%';
+        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/banh_mi.jpg' WHERE Product_Name LIKE N'%Bánh mì%';
+        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/snack_xuc_xich.jpg' WHERE Product_Name LIKE N'%Xúc xích%' OR Product_Name LIKE N'%Snack%' OR Product_Name LIKE N'%Khô gà%' OR Product_Name LIKE N'%Trứng ốp la%';
+
         -- F&B 1c: chuẩn hóa nhà cung cấp thực tế.
         IF EXISTS (SELECT 1 FROM dbo.Suppliers WHERE Name = N'PepsiCo Việt Nam')
             UPDATE dbo.Suppliers SET Name = N'Suntory PepsiCo Việt Nam', Phone = '02838247555' WHERE Name = N'PepsiCo Việt Nam';
@@ -537,8 +547,29 @@ public sealed class DatabaseBootstrapper(SqlConnectionFactory connections)
             IF NOT EXISTS (SELECT 1 FROM dbo.Games WHERE Code = N''valorant'')
                 INSERT INTO dbo.Games (Code, Name, Category, Executable_Path, Banner_Url, Description)
                 VALUES (N''valorant'', N''VALORANT'', N''Bắn súng (FPS)'', N''D:\Riot Games\VALORANT\live\VALORANT.exe'',
-                    N''https://images.contentstack.io/v3/assets/blt370612131b6e0756/blt02fae44364e4a199/62a93444f6da4a123bc807be/Valorant_Hero.jpg'',
+                    N''http://127.0.0.1:5055/images/games/valorant.jpg'',
                     N''Game bắn súng chiến thuật 5v5 của Riot Games.'');
+
+            IF NOT EXISTS (SELECT 1 FROM dbo.Games WHERE Code = N''lol'')
+                INSERT INTO dbo.Games (Code, Name, Category, Executable_Path, Banner_Url, Description)
+                VALUES (N''lol'', N''Liên Minh Huyền Thoại'', N''Chiến thuật (MOBA)'', N''C:\Riot Games\League of Legends\LeagueClient.exe'',
+                    N''http://127.0.0.1:5055/images/games/lol.jpg'',
+                    N''Đấu trường trực tuyến nhiều người chơi hàng đầu thế giới.'');
+
+            IF NOT EXISTS (SELECT 1 FROM dbo.Games WHERE Code = N''cs2'')
+                INSERT INTO dbo.Games (Code, Name, Category, Executable_Path, Banner_Url, Description)
+                VALUES (N''cs2'', N''Counter-Strike 2'', N''Bắn súng (FPS)'', N''C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\game\bin\win64\cs2.exe'',
+                    N''http://127.0.0.1:5055/images/games/cs2.jpg'',
+                    N''Tựa game bắn súng góc nhìn thứ nhất kinh điển của Valve.'');
+
+            IF NOT EXISTS (SELECT 1 FROM dbo.Games WHERE Code = N''pubg'')
+                INSERT INTO dbo.Games (Code, Name, Category, Executable_Path, Banner_Url, Description)
+                VALUES (N''pubg'', N''PUBG: BATTLEGROUNDS'', N''Sinh tồn'', N''C:\Program Files (x86)\Steam\steamapps\common\PUBG\TslGame\Binaries\Win64\TslGame.exe'',
+                    N''http://127.0.0.1:5055/images/games/pubg.jpg'',
+                    N''Tựa game sinh tồn Battle Royale 100 người khốc liệt.'');
+
+            UPDATE dbo.Games SET Category = N''Thể thao'' WHERE Category LIKE ''%thao%'';
+            UPDATE dbo.Games SET Category = N''Sinh tồn'' WHERE Code = N''pubg'';
         ');
 
         EXEC(N'

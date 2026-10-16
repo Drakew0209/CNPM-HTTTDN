@@ -21,8 +21,8 @@ obj/
 dist/
 !docs/client/
 Temp/
-Backend/
-WebAdmin/
+/Backend/
+/WebAdmin/
 InternetCafe/scratch/
 .build-check*
 *.log
@@ -45,5 +45,13 @@ $RECYCLE.BIN/
 .codex/skills/.system/**
 !.codex/prompts/
 !.codex/prompts/**
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json
+
 AGENTS.md
 

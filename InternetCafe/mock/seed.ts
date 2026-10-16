@@ -93,5 +93,11 @@ export function createSeed(now = new Date()): Workspace {
     { id: 'a-cashier', username: 'cashier', fullName: 'Nguyễn Thu Hà', role: 'Cashier', status: 'Active', employeeId: 'e-002' },
     { id: 'a-staff', username: 'staff', fullName: 'Phạm Gia Bảo', role: 'Staff', status: 'Active', employeeId: 'e-001' },
   ];
+  state.games = [
+    { id: 'g-001', code: 'valorant', name: 'VALORANT', category: 'Bắn súng (FPS)', executablePath: 'D:\\Riot Games\\VALORANT\\live\\VALORANT.exe', bannerUrl: 'http://127.0.0.1:5055/images/games/valorant.jpg', description: 'Game bắn súng chiến thuật 5v5 của Riot Games.', active: true },
+    { id: 'g-002', code: 'lol', name: 'Liên Minh Huyền Thoại', category: 'Chiến thuật (MOBA)', executablePath: 'C:\\Riot Games\\League of Legends\\LeagueClient.exe', bannerUrl: 'http://127.0.0.1:5055/images/games/lol.jpg', description: 'Đấu trường trực tuyến nhiều người chơi hàng đầu thế giới.', active: true },
+    { id: 'g-003', code: 'cs2', name: 'Counter-Strike 2', category: 'Bắn súng (FPS)', executablePath: 'C:\\Program Files (x86)\\Steam\\steamapps\\common\\Counter-Strike Global Offensive\\game\\bin\\win64\\cs2.exe', bannerUrl: 'http://127.0.0.1:5055/images/games/cs2.jpg', description: 'Tựa game bắn súng góc nhìn thứ nhất kinh điển của Valve.', active: true },
+    { id: 'g-004', code: 'pubg', name: 'PUBG: BATTLEGROUNDS', category: 'Sinh tồn', executablePath: 'C:\\Program Files (x86)\\Steam\\steamapps\\common\\PUBG\\TslGame\\Binaries\\Win64\\TslGame.exe', bannerUrl: 'http://127.0.0.1:5055/images/games/pubg.jpg', description: 'Tựa game sinh tồn Battle Royale 100 người khốc liệt.', active: true },
+  ];
   return state;
 }

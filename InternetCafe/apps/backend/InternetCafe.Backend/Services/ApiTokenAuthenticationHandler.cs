@@ -15,8 +15,20 @@ public sealed class ApiTokenAuthenticationHandler(IOptionsMonitor<Authentication
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         var authorization = Request.Headers.Authorization.ToString();
-        if (!authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)) return AuthenticateResult.NoResult();
-        var rawToken = authorization[7..].Trim();
+        var rawToken = string.Empty;
+        if (authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            rawToken = authorization[7..].Trim();
+        }
+        else if (Request.Path.StartsWithSegments("/hubs") && Request.Query.TryGetValue("access_token", out var queryToken))
+        {
+            rawToken = queryToken.ToString().Trim();
+        }
+        else
+        {
+            return AuthenticateResult.NoResult();
+        }
+
         if (rawToken.Length != 64) return AuthenticateResult.Fail("Invalid bearer token.");
         await using var connection = await connections.OpenAsync(Context.RequestAborted);
         await using var command = new SqlCommand("""

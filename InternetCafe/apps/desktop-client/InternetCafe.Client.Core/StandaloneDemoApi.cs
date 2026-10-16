@@ -52,7 +52,7 @@ public sealed class StandaloneDemoApi : ICafeApi
             Name = "VALORANT",
             Category = "Bắn súng (FPS)",
             ExecutablePath = @"D:\Riot Games\VALORANT\live\VALORANT.exe",
-            BannerUrl = "https://images.contentstack.io/v3/assets/blt370612131b6e0756/blt02fae44364e4a199/62a93444f6da4a123bc807be/Valorant_Hero.jpg",
+            BannerUrl = "http://127.0.0.1:5055/images/games/valorant.jpg",
             Description = "Game bắn súng chiến thuật 5v5 đỉnh cao của Riot Games.",
             Active = true
         });

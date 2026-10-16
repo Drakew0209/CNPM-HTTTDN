@@ -12,7 +12,14 @@ export function StatusTag({ value }: { value: unknown }) {
   return <Tag color={color}>{labels[key] || key || '—'}</Tag>;
 }
 export function displayValue(key: string, value: unknown, workspace: Workspace): string {
-  if (value === null || value === undefined || value === '') return '—';
+  if (key === 'scheduleId') {
+    const sched = (workspace.schedules || []).find(s => s.id === value);
+    if (sched) {
+      const shift = (workspace.shifts || []).find(sh => sh.id === sched.shiftId);
+      return `${sched.date} (${shift?.name || sched.shiftId})`;
+    }
+    return String(value);
+  }
   const lookup: Record<string,string> = { customerId:'customers',employeeId:'employees',productId:'products',computerId:'computers',supplierId:'suppliers',categoryId:'categories',shiftId:'shifts',materialId:'materials' };
   if (lookup[key]) { const row = workspace[lookup[key]]?.find(r => r.id === value); return String(row?.fullName || row?.name || value); }
   if (['balance','amount','total','price','baseSalary','bonus','deduction','hourlyRate','startBalance','unitCost'].includes(key)) return money(value);
@@ -22,9 +29,22 @@ export function displayValue(key: string, value: unknown, workspace: Workspace):
   if (typeof value === 'object') return JSON.stringify(value);
   return labels[String(value)] || String(value);
 }
-export function Value({ k, value, workspace }: { k: string; value: unknown; workspace: Workspace }) {
+export function Value({ k, value, row, workspace }: { k: string; value: unknown; row?: Row; workspace: Workspace }) {
   if (k === 'status') return <StatusTag value={value}/>;
   if (k === 'active' || k === 'online') return <Tag color={value ? 'green' : 'default'}>{k === 'online' ? (value ? 'Trực tuyến' : 'Mất kết nối') : (value ? 'Hoạt động' : 'Tạm ngừng')}</Tag>;
+  if (k === 'suppliedCount') {
+    const rowId = (row as any)?.id; const rowName = (row as any)?.name;
+    const count = (workspace.materials || []).filter(m => (rowId && m.supplierId === rowId) || (rowName && m.supplierName === rowName)).length;
+    return <Tag color={count > 0 ? 'cyan' : 'default'}>{count > 0 ? `${count} loại NVL` : '0 NVL'}</Tag>;
+  }
+  if (k === 'importCount') {
+    const rowId = (row as any)?.id; const rowName = (row as any)?.name;
+    const count = (workspace.inventory || []).filter(i => ((rowId && i.supplierId === rowId) || (rowName && i.supplierName === rowName)) && i.type === 'Import').length;
+    return <Tag color={count > 0 ? 'geekblue' : 'default'}>{count > 0 ? `${count} phiếu nhập` : '0 phiếu'}</Tag>;
+  }
+  if ((k === 'bannerUrl' || k === 'imageUrl') && typeof value === 'string' && value) {
+    return <img src={value} alt="banner" style={{ width: 44, height: 28, objectFit: 'cover', borderRadius: 4, verticalAlign: 'middle', border: '1px solid #26385c' }} onError={(e)=>{ (e.target as HTMLElement).style.display = 'none'; }} />;
+  }
   return <span className={['balance','amount','total','price','stock','stockQuantity','reorderLevel','unitCost'].includes(k) ? 'numeric' : undefined}>{displayValue(k,value,workspace)}</span>;
 }
 export function PageTitle({ eyebrow, title, description, actions }: { eyebrow?: string; title: string; description: string; actions?: ReactNode }) {

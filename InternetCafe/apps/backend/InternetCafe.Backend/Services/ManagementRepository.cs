@@ -275,7 +275,7 @@ public sealed class ManagementRepository(SqlConnectionFactory connections)
     }
 
     private static Task<IReadOnlyList<T>> EmptyAsync<T>() => Task.FromResult<IReadOnlyList<T>>([]);
-    private static bool CanManage(IdentityContext identity) => identity.Role is Roles.Owner or Roles.Manager;
+    private static bool CanManage(IdentityContext identity) => identity.Role is Roles.Owner or Roles.Manager or Roles.Admin;
     private static string Id(string prefix, int value) => $"{prefix}-{value:000}";
     private static string? NullableId(string prefix, SqlDataReader reader, int ordinal) => reader.IsDBNull(ordinal) ? null : Id(prefix, reader.GetInt32(ordinal));
     private static string Text(SqlDataReader reader, int ordinal) => reader.IsDBNull(ordinal) ? "" : reader.GetString(ordinal);

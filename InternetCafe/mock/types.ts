@@ -2,7 +2,7 @@ export const roles = ['Admin', 'Owner', 'Manager', 'Cashier', 'Staff', 'Customer
 export type Role = typeof roles[number];
 // Dynamic rows are intentional: this demo read model serves multiple CRUD modules.
 export type Row = { id: string; [key: string]: any };
-export const resources = ['computers', 'customers', 'products', 'categories', 'orders', 'topups', 'transactions', 'invoices', 'suppliers', 'inventory', 'feedback', 'surveys', 'employees', 'shifts', 'schedules', 'leaves', 'attendance', 'payroll', 'accounts', 'sessions'] as const;
+export const resources = ['computers', 'customers', 'products', 'categories', 'orders', 'topups', 'transactions', 'invoices', 'suppliers', 'inventory', 'feedback', 'surveys', 'employees', 'shifts', 'schedules', 'leaves', 'attendance', 'payroll', 'accounts', 'sessions', 'games'] as const;
 export type Resource = typeof resources[number];
 export type Workspace = Record<Resource, Row[]>;
 export interface AuthUser { id: string; username: string; fullName: string; role: Role; permissions: string[] }

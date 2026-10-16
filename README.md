@@ -98,9 +98,12 @@ CNPM-HTTTDN/
 
 ### Cách 1: Khởi chạy bằng kịch bản 1-Click (Khuyên dùng)
 Bạn chỉ cần nhấp đúp trực tiếp vào các file `.bat` tại thư mục gốc:
-* **`chay-backend.bat`**: Bật API Backend tại `http://127.0.0.1:5055/api/v1` (tự động khởi tạo DB LocalDB)
-* **`chay-web-admin.bat`**: Mở Web Quản trị tại `http://127.0.0.1:5173`
-* **`chay-desktop-client.bat`**: Mở ứng dụng Máy trạm Desktop Client
+* **`chay-toan-bo.bat`**: **[Khuyên dùng nhất]** Tự động bật SQL Server LocalDB, Backend API, Web Admin và Desktop Client chỉ với 1 click!
+* **`dung-toan-bo.bat`**: Đóng và giải phóng toàn bộ các cổng/tiến trình hệ thống khi kết thúc buổi làm việc.
+* Hoặc khởi chạy riêng lẻ từng ứng dụng:
+  * **`chay-backend.bat`**: Bật API Backend tại `http://127.0.0.1:5055/api/v1` (tự động khởi tạo DB LocalDB)
+  * **`chay-web-admin.bat`**: Mở Web Quản trị tại `http://127.0.0.1:5173`
+  * **`chay-desktop-client.bat`**: Mở ứng dụng Máy trạm Desktop Client
 
 ### Cách 2: Khởi chạy bằng dòng lệnh (Terminal)
 

@@ -537,7 +537,19 @@ public sealed class BusinessService(SqlConnectionFactory connections, IHubContex
     public async Task<OperationResult<object>> HeartbeatAsync(IdentityContext identity, string id, CancellationToken ct)
     {
         var computerId = TryId(id, "pc"); if (computerId is null) return OperationResult<object>.Fail("NOT_FOUND", "Không tìm thấy máy.", StatusCodes.Status404NotFound);
-        await using var connection = await connections.OpenAsync(ct); await using var command = new SqlCommand("""
+        await using var connection = await connections.OpenAsync(ct);
+        if (!identity.IsOperator && identity.CustomerId is { } customerId)
+        {
+            await using var checkOther = new SqlCommand("""
+                SELECT COUNT(*) FROM dbo.Usage_Sessions
+                WHERE Computer_ID = @id AND Status = 'Active' AND Customer_ID <> @cid
+                """, connection);
+            checkOther.Parameters.AddWithValue("@id", computerId.Value);
+            checkOther.Parameters.AddWithValue("@cid", customerId);
+            if (Convert.ToInt32(await checkOther.ExecuteScalarAsync(ct)) > 0)
+                return OperationResult<object>.Fail("FORBIDDEN", "Máy đang được sử dụng bởi phiên của tài khoản khác.", StatusCodes.Status403Forbidden);
+        }
+        await using var command = new SqlCommand("""
             MERGE dbo.Machine_Heartbeats AS target USING (SELECT @id AS Computer_ID) AS source ON target.Computer_ID = source.Computer_ID
             WHEN MATCHED THEN UPDATE SET Last_Seen_At = SYSUTCDATETIME(), Last_Account_ID = @accountId
             WHEN NOT MATCHED THEN INSERT (Computer_ID, Last_Seen_At, Last_Account_ID) VALUES (@id, SYSUTCDATETIME(), @accountId);

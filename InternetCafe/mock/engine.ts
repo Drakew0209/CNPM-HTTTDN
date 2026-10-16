@@ -6,13 +6,14 @@ export type { ApiResponse, AuthUser, EngineOptions, Resource, Role, Row, Workspa
 const managers: Role[] = ['Owner', 'Manager'];
 const operators: Role[] = ['Owner', 'Manager', 'Cashier'];
 const readable: Record<Role, readonly Resource[]> = {
-  Admin: ['accounts', 'products', 'categories', 'suppliers'],
+  Admin: ['accounts', 'products', 'categories', 'suppliers', 'games'],
   Owner: resources.filter(x => x !== 'accounts'), Manager: resources.filter(x => x !== 'accounts'),
-  Cashier: ['computers', 'customers', 'products', 'categories', 'orders', 'topups', 'transactions', 'invoices', 'sessions'],
+  Cashier: ['computers', 'customers', 'products', 'categories', 'orders', 'topups', 'transactions', 'invoices', 'sessions', 'games'],
   Staff: ['employees', 'shifts', 'schedules', 'leaves', 'attendance', 'payroll'],
-  Customer: ['computers', 'customers', 'products', 'categories', 'orders', 'topups', 'transactions', 'feedback', 'surveys', 'sessions'],
+  Customer: ['computers', 'customers', 'products', 'categories', 'orders', 'topups', 'transactions', 'feedback', 'surveys', 'sessions', 'games'],
 };
 const editable: Partial<Record<Resource, string[]>> = {
+  games: ['name', 'category', 'executablePath', 'bannerUrl', 'description', 'active'],
   computers: ['name', 'zone', 'hourlyRate'], customers: ['fullName', 'phone', 'email', 'dateOfBirth', 'hobbies', 'tier', 'status'],
   categories: ['name'], products: ['name', 'categoryId', 'price', 'active', 'imageUrl'],
   suppliers: ['name', 'phone', 'email', 'address', 'active'], feedback: ['status', 'response'],
@@ -212,6 +213,7 @@ export function createMockEngine(options: EngineOptions = {}) {
     const ownLeave = resource === 'leaves' && user.role === 'Staff';
     const ownProfile = resource === 'employees' && user.role === 'Staff' && method === 'PATCH' && rowId === user.id;
     if (resource === 'accounts') allow(user.role, ['Admin']);
+    else if (resource === 'games') allow(user.role, ['Admin', ...managers]);
     else if (ownLeave || ownProfile) { /* scoped below */ }
     else if (resource === 'customers' && method !== 'DELETE') allow(user.role, operators);
     else allow(user.role, managers);
@@ -233,6 +235,7 @@ export function createMockEngine(options: EngineOptions = {}) {
       if (resource === 'computers' && state.sessions.some(s => s.computerId === row.id)) fail(409, 'HAS_HISTORY', 'Máy có lịch sử phiên; hãy chuyển bảo trì.');
       if (resource === 'categories' && state.products.some(p => p.categoryId === row.id)) fail(409, 'IN_USE', 'Danh mục đang có sản phẩm.');
       if (resource === 'products') { row.active = false; return ok(row); }
+      if (resource === 'games') { row.active = false; return ok(row); }
       if (resource === 'suppliers') { row.active = false; return ok(row); }
       if (resource === 'shifts' && state.schedules.some(s => s.shiftId === row.id)) fail(409, 'IN_USE', 'Ca đang có lịch phân công.');
       if (resource === 'schedules' && state.attendance.some(a => a.scheduleId === row.id)) fail(409, 'HAS_HISTORY', 'Lịch đã có chấm công.');
@@ -272,12 +275,13 @@ export function createMockEngine(options: EngineOptions = {}) {
     if (!editable[resource] || resource === 'feedback') fail(405, 'METHOD_NOT_ALLOWED', 'Không hỗ trợ tạo dữ liệu trực tiếp.');
     whitelist(input, [...editable[resource]!, ...(additional[resource] ?? [])]);
     const required: Partial<Record<Resource, string[]>> = {
+      games: ['name', 'category', 'executablePath'],
       computers: ['name', 'zone', 'hourlyRate'], customers: ['username', 'fullName', 'phone', 'email', 'dateOfBirth'], categories: ['name'], products: ['name', 'categoryId', 'price'],
       suppliers: ['name', 'phone', 'email', 'address'], surveys: ['title', 'questions'], employees: ['fullName', 'phone', 'email', 'department', 'position', 'baseSalary', 'joinedAt', 'qualification'],
       shifts: ['name', 'startTime', 'endTime'], schedules: ['employeeId', 'shiftId', 'date'], leaves: ['type', 'startDate', 'endDate', 'reason'], payroll: ['employeeId', 'month', 'baseSalary'], accounts: ['username', 'fullName', 'role'],
     };
     for (const key of required[resource] ?? []) requireValue(input[key] !== undefined && input[key] !== '', `${key} là bắt buộc.`, key);
-    const defaults: Partial<Record<Resource, object>> = { computers: { status: 'Available', online: true }, customers: { hobbies: '', tier: 'Silver', balance: 0, status: 'Active' }, products: { active: true, stock: 0, imageUrl: '' }, suppliers: { active: true }, surveys: { description: '', status: 'Draft', customerIds: [], responses: [] }, employees: { status: 'Active' }, schedules: { status: 'Scheduled' }, leaves: { status: 'Pending', employeeId: user.id }, payroll: { bonus: 0, deduction: 0, status: 'Draft' }, accounts: { status: 'Active' } };
+    const defaults: Partial<Record<Resource, object>> = { games: { active: true, bannerUrl: '', description: '' }, computers: { status: 'Available', online: true }, customers: { hobbies: '', tier: 'Silver', balance: 0, status: 'Active' }, products: { active: true, stock: 0, imageUrl: '' }, suppliers: { active: true }, surveys: { description: '', status: 'Draft', customerIds: [], responses: [] }, employees: { status: 'Active' }, schedules: { status: 'Scheduled' }, leaves: { status: 'Pending', employeeId: user.id }, payroll: { bonus: 0, deduction: 0, status: 'Draft' }, accounts: { status: 'Active' } };
     const values: Record<string, any> = { ...defaults[resource], ...input };
     if (resource === 'surveys') requireValue(values.status === 'Draft', 'Khảo sát mới phải là bản nháp.', 'status');
     if (resource === 'payroll') requireValue(values.status === 'Draft', 'Bảng lương mới phải là Draft.', 'status');

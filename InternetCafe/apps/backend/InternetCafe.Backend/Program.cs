@@ -4,8 +4,10 @@ using InternetCafe.Backend.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Json;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Data.SqlClient;
 using System.Text.Json;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +24,20 @@ builder.Services.AddSignalR();
 builder.Services.AddAuthentication(ApiTokenAuthenticationHandler.SchemeName)
     .AddScheme<AuthenticationSchemeOptions, ApiTokenAuthenticationHandler>(ApiTokenAuthenticationHandler.SchemeName, _ => { });
 builder.Services.AddAuthorization();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+});
 builder.Services.AddCors(options => options.AddPolicy("local", policy => policy
     .WithOrigins("http://127.0.0.1:5173", "http://localhost:5173", "http://127.0.0.1:4173", "http://localhost:4173")
     .AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
@@ -30,7 +46,35 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
     await scope.ServiceProvider.GetRequiredService<DatabaseBootstrapper>().ApplyAsync();
 
+app.UseExceptionHandler(exceptionApp =>
+{
+    exceptionApp.Run(async context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new
+        {
+            error = new
+            {
+                code = "INTERNAL_SERVER_ERROR",
+                message = "Đã xảy ra lỗi trên hệ thống máy chủ. Vui lòng thử lại sau.",
+                status = StatusCodes.Status500InternalServerError
+            }
+        });
+    });
+});
+
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    await next();
+});
+
 app.UseCors("local");
+app.UseStaticFiles();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -49,7 +93,7 @@ api.MapPost("/auth/login", async (LoginRequest request, AuthService auth, Cancel
     return result is null
         ? Api.Error("INVALID_CREDENTIALS", "Tên đăng nhập hoặc mật khẩu không đúng.", StatusCodes.Status401Unauthorized)
         : Results.Ok(Api.Data(result));
-}).AllowAnonymous();
+}).AllowAnonymous().RequireRateLimiting("auth");
 
 api.MapPost("/auth/logout", [Authorize] async (HttpContext context, AuthService auth, CancellationToken ct) =>
 {
@@ -61,7 +105,7 @@ api.MapPost("/auth/register", async (RegisterRequest request, AuthService auth, 
 {
     var outcome = await auth.RegisterAsync(request, ct);
     return outcome.Match(created => Results.Created("/api/v1/me", Api.Data(created)), error => Api.Error(error.Code, error.Message, error.Status, error.Fields));
-}).AllowAnonymous();
+}).AllowAnonymous().RequireRateLimiting("auth");
 
 api.MapGet("/workspace", [Authorize] async (HttpContext context, CafeRepository repository, CancellationToken ct) =>
     Results.Ok(Api.Data(await repository.WorkspaceAsync(context.User.IdentityContext(), ct))));
