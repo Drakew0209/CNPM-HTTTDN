@@ -1,6 +1,7 @@
 using InternetCafe.Backend.Data;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Data.SqlClient;
+using System.Collections.Concurrent;
 using System.Data;
 using System.Data.Common;
 using System.Security.Cryptography;
@@ -11,6 +12,8 @@ namespace InternetCafe.Backend.Services;
 
 public sealed class BusinessService(SqlConnectionFactory connections, IHubContext<CafeHub> hub)
 {
+    private static readonly ConcurrentDictionary<string, string> PendingCommands = new(StringComparer.OrdinalIgnoreCase);
+
     public async Task<OperationResult<object>> StartSessionAsync(IdentityContext identity, StartSessionRequest request, CancellationToken ct)
     {
         if (identity.CustomerId is null) return OperationResult<object>.Fail("FORBIDDEN", "Chỉ khách hàng có thể bắt đầu phiên.", StatusCodes.Status403Forbidden);
@@ -527,6 +530,26 @@ public sealed class BusinessService(SqlConnectionFactory connections, IHubContex
             await using var connection = await connections.OpenAsync(ct); await using var command = new SqlCommand("SELECT TOP 1 Session_ID FROM dbo.Usage_Sessions WHERE Computer_ID = @id AND Status = 'Active' ORDER BY Session_ID DESC", connection); command.Parameters.AddWithValue("@id", computerId.Value);
             var sessionId = await command.ExecuteScalarAsync(ct); return sessionId is null ? OperationResult<object>.Fail("NO_ACTIVE_SESSION", "Máy không có phiên đang hoạt động.", StatusCodes.Status409Conflict) : await EndSessionAsync(identity, CafeRepository.Id("session", Convert.ToInt32(sessionId)), ct);
         }
+        if (request.Command is "Shutdown" or "Restart")
+        {
+            await using var connection = await connections.OpenAsync(ct);
+            await using var command = new SqlCommand("SELECT TOP 1 Session_ID FROM dbo.Usage_Sessions WHERE Computer_ID = @id AND Status = 'Active' ORDER BY Session_ID DESC", connection);
+            command.Parameters.AddWithValue("@id", computerId.Value);
+            var sessionId = await command.ExecuteScalarAsync(ct);
+            if (sessionId is not null)
+            {
+                await EndSessionAsync(identity, CafeRepository.Id("session", Convert.ToInt32(sessionId)), ct);
+            }
+
+            // Save pending command for heartbeat polling backup
+            PendingCommands[id] = request.Command;
+            PendingCommands[$"pc-{computerId.Value:D3}"] = request.Command;
+            PendingCommands[$"pc-{computerId.Value}"] = request.Command;
+
+            // Broadcast via SignalR real-time event
+            await NotifyAsync("RemoteCommand", id, new { computerId = id, command = request.Command }, ct);
+            return OperationResult<object>.Ok(new { id, command = request.Command, message = $"Đã gửi lệnh {request.Command} đến máy {id}." });
+        }
         if (request.Command is not ("Maintenance" or "Available")) return OperationResult<object>.Fail("VALIDATION_ERROR", "Lệnh máy không hợp lệ.");
         await using var updateConnection = await connections.OpenAsync(ct); await using var update = new SqlCommand("UPDATE dbo.Computers SET Status = @status WHERE Computer_ID = @id", updateConnection); update.Parameters.AddWithValue("@status", request.Command); update.Parameters.AddWithValue("@id", computerId.Value);
         try { if (await update.ExecuteNonQueryAsync(ct) == 0) return OperationResult<object>.Fail("NOT_FOUND", "Không tìm thấy máy.", StatusCodes.Status404NotFound); }
@@ -554,7 +577,13 @@ public sealed class BusinessService(SqlConnectionFactory connections, IHubContex
             WHEN MATCHED THEN UPDATE SET Last_Seen_At = SYSUTCDATETIME(), Last_Account_ID = @accountId
             WHEN NOT MATCHED THEN INSERT (Computer_ID, Last_Seen_At, Last_Account_ID) VALUES (@id, SYSUTCDATETIME(), @accountId);
             """, connection); command.Parameters.AddWithValue("@id", computerId.Value); command.Parameters.AddWithValue("@accountId", identity.AccountId); await command.ExecuteNonQueryAsync(ct);
-        return OperationResult<object>.Ok(new { id, online = true });
+
+        string? pendingCommand = null;
+        if (PendingCommands.TryRemove(id, out var cmd1)) pendingCommand = cmd1;
+        else if (PendingCommands.TryRemove($"pc-{computerId.Value:D3}", out var cmd2)) pendingCommand = cmd2;
+        else if (PendingCommands.TryRemove($"pc-{computerId.Value}", out var cmd3)) pendingCommand = cmd3;
+
+        return OperationResult<object>.Ok(new { id, online = true, command = pendingCommand });
     }
 
     public async Task CloseExpiredSessionsAsync(TimeSpan offlineSessionGrace, CancellationToken ct)

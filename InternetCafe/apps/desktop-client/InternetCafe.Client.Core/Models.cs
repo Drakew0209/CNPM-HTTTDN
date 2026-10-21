@@ -107,6 +107,7 @@ public sealed class Combo
 public sealed class GameItem
 {
     public string Id { get; set; } = "";
+    public string Code { get; set; } = "";
     public string Name { get; set; } = "";
     public string Category { get; set; } = "";
     public string ExecutablePath { get; set; } = "";

@@ -1,0 +1,1 @@
+PASS: live HTTP login; 16 products; seven tabs, compact and lock rendered. Balance=557403,00. No session or financial mutation performed.

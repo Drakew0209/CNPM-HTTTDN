@@ -58,12 +58,39 @@ public sealed partial class MainViewModel : ObservableObject
         foreach (var g in GetDefaultGames()) Games.Add(g);
         UpdateGameCategories();
         FilterGames();
+        _ = CheckConnectivityAsync();
     }
     public Func<string, Task<bool>> ConfirmAsync { get; set; } = _ => Task.FromResult(false);
     public Action? OnGameLaunched { get; set; }
+    public Action<string>? OnPlaySound { get; set; }
+    public Action<bool>? OnSoundMuteChanged { get; set; }
+    public Action<string>? OnCopyToClipboard { get; set; }
+    public Action<string>? OnRemoteCommand { get; set; }
     public string MachineId { get; }
+    private decimal previousBalance;
+    [ObservableProperty] private string vipBadge = "💎 VIP BẠCH KIM";
+    [ObservableProperty] private int currentExp = 3850;
+    [ObservableProperty] private int targetExp = 5000;
+    [ObservableProperty] private double expPercentage = 77.0;
+    [ObservableProperty] private int dailyStreak = 3;
+    [ObservableProperty] private int luckySpins = 1;
+    [ObservableProperty] private string luckyRewardMessage = "";
+    [ObservableProperty] private bool isLuckyWheelOpen;
+    [ObservableProperty] private double wheelAngle;
+    [ObservableProperty] private bool isSpinning;
+    [ObservableProperty] private bool hasWonPrize;
+    [ObservableProperty] private string wonPrizeName = "";
+    [ObservableProperty] private string wonPrizeIcon = "Gift";
+    public Func<double, Task>? OnSpinWheelAnimation { get; set; }
+    [ObservableProperty] private bool isSoundMuted;
     [ObservableProperty] private bool isAuthenticated;
     [ObservableProperty] private bool isRegistering;
+    [ObservableProperty] private bool isLoginModalOpen;
+    [ObservableProperty] private int currentBannerIndex;
+    [ObservableProperty] private string currentBannerImage = "banner_cybercafe.jpg";
+    [ObservableProperty] private string digitalClock = "12:00:00";
+    [ObservableProperty] private string digitalDate = "Thứ Hai, 20/10/2026";
+    private readonly string[] bannerImages = ["banner_cybercafe.jpg", "banner_lol.jpg", "banner_valorant.jpg"];
     [ObservableProperty] private bool isBusy;
     [ObservableProperty] private bool isConnected;
     [ObservableProperty] private bool isAppLocked;
@@ -82,18 +109,18 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private string newPasswordConfirmation = "";
     [ObservableProperty] private string error = "";
     [ObservableProperty] private string notice = "";
-    [ObservableProperty] private string connectionStatus = "Chưa kết nối máy chủ";
+    [ObservableProperty] private string connectionStatus = "Đang kiểm tra kết nối máy chủ...";
     [ObservableProperty] private string accountName = "Khách hàng";
     [ObservableProperty] private string tier = "";
     [ObservableProperty] private decimal balance;
     [ObservableProperty] private decimal realtimeBalance;
     [ObservableProperty] private string machineName = "PC-01";
-    [ObservableProperty] private string hourlyRateLabel = "—";
+    [ObservableProperty] private string hourlyRateLabel = "10.000 ₫/giờ";
     [ObservableProperty] private string elapsedLabel = "00:00:00";
     [ObservableProperty] private string remainingLabel = "—";
     [ObservableProperty] private string sessionStatus = "Chưa bắt đầu phiên";
     [ObservableProperty] private string sessionSummary = "";
-    [ObservableProperty] private string lastSyncLabel = "Chưa đồng bộ";
+    [ObservableProperty] private string lastSyncLabel = "Khởi tạo...";
     [ObservableProperty] private string menuSearch = "";
     [ObservableProperty] private Category? selectedCategory;
     [ObservableProperty] private Order? selectedOrder;
@@ -219,6 +246,7 @@ public sealed partial class MainViewModel : ObservableObject
                 await LoadSnapshotAsync();
                 Notice = "Đăng nhập thành công. Đã tự động bắt đầu tính giờ chơi!";
             }
+            OnPlaySound?.Invoke("login");
             try { await realtime.StartAsync(() => Task.FromResult<string?>(api.AccessToken)); }
             catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or OperationCanceledException) { Notice = "Realtime chưa sẵn sàng; ứng dụng vẫn đồng bộ qua HTTP."; }
         });
@@ -246,19 +274,59 @@ public sealed partial class MainViewModel : ObservableObject
     }
     private async Task ClearIdentityAsync()
     {
-        api.AccessToken = null; userId = null; IsAuthenticated = false; IsAppLocked = false; IsTemporaryLocked = false; TemporaryLockPassword = ""; profileLoaded = false; snapshot = new(); Balance = 0;
+        api.AccessToken = null; userId = null; IsAuthenticated = false; IsLoginModalOpen = false; IsAppLocked = false; IsTemporaryLocked = false; TemporaryLockPassword = ""; profileLoaded = false; snapshot = new(); Balance = 0;
         Cart.Clear(); Products.Clear(); Categories.Clear(); Orders.Clear(); Topups.Clear(); Combos.Clear(); Transactions.Clear(); Sessions.Clear(); FeedbackItems.Clear(); Surveys.Clear(); Answers.Clear(); SelectedSurvey = null; SelectedOrder = null;
         Password = ""; CurrentPassword = ""; NewPassword = ""; NewPasswordConfirmation = "";
         await realtime.StopAsync(); NotifyState(); NotifyCart();
+        _ = CheckConnectivityAsync();
+    }
+    public async Task CheckConnectivityAsync()
+    {
+        try
+        {
+            var health = await api.GetAsync<JsonElement>("health");
+            IsConnected = true;
+            if (api is SmartCafeApi { IsStandalone: true })
+            {
+                ConnectionStatus = "🟢 Máy chủ Ngoại tuyến Standalone Demo · Sẵn sàng mở máy";
+                LastSyncLabel = "Hệ thống sẵn sàng";
+            }
+            else
+            {
+                ConnectionStatus = "🟢 Đã kết nối máy chủ (127.0.0.1:5055) · Sẵn sàng mở máy";
+                LastSyncLabel = "Đồng bộ: Sẵn sàng";
+            }
+        }
+        catch (Exception)
+        {
+            IsConnected = false;
+            ConnectionStatus = "🔴 Không thể kết nối máy chủ (127.0.0.1:5055)";
+            LastSyncLabel = "Ngoại tuyến";
+        }
     }
     [RelayCommand] private async Task RefreshAsync()
     {
         if (api is SmartCafeApi smartApi) smartApi.ResetMode();
-        await ExecuteAsync(LoadSnapshotAsync);
+        if (IsAuthenticated) await ExecuteAsync(LoadSnapshotAsync);
+        else await CheckConnectivityAsync();
     }
     public async Task PollAsync()
     {
-        if (!IsAuthenticated || IsBusy || syncing) return;
+        if (IsBusy || syncing) return;
+        if (!IsAuthenticated)
+        {
+            try
+            {
+                var hb = await api.SendAsync<JsonElement>(HttpMethod.Post, $"machines/{Uri.EscapeDataString(MachineId)}/heartbeat", new { });
+                if (hb.TryGetProperty("command", out var c) && c.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(c.GetString()))
+                {
+                    HandleRemoteCommand(MachineId, c.GetString()!);
+                }
+            }
+            catch { }
+            return;
+        }
+
         syncing = true;
         try { await LoadSnapshotAsync(); }
         catch (Exception ex) { await HandleErrorAsync(ex); }
@@ -267,7 +335,15 @@ public sealed partial class MainViewModel : ObservableObject
     private async Task LoadSnapshotAsync()
     {
         if (!IsAuthenticated) return;
-        await api.SendAsync<JsonElement>(HttpMethod.Post, $"machines/{Uri.EscapeDataString(MachineId)}/heartbeat", new { });
+        try
+        {
+            var hb = await api.SendAsync<JsonElement>(HttpMethod.Post, $"machines/{Uri.EscapeDataString(MachineId)}/heartbeat", new { });
+            if (hb.TryGetProperty("command", out var c) && c.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(c.GetString()))
+            {
+                HandleRemoteCommand(MachineId, c.GetString()!);
+            }
+        }
+        catch { }
         var data = await api.GetAsync<Workspace>("workspace");
         var profile = data.Customers.FirstOrDefault(x => x.Id == userId) ?? throw new ApiException("UNAUTHENTICATED", "Không tìm thấy hồ sơ. Vui lòng đăng nhập lại.", HttpStatusCode.Unauthorized);
         if (profile.Status != "Active") throw new ApiException("ACCOUNT_BANNED", "Tài khoản đã bị khóa. Liên hệ nhân viên.", HttpStatusCode.Forbidden);
@@ -280,7 +356,14 @@ public sealed partial class MainViewModel : ObservableObject
         }
         FilterGames();
         try { var combos = await api.GetAsync<List<Combo>>("combos"); Replace(Combos, combos); } catch { }
+        if (previousBalance > 0 && profile.Balance > previousBalance)
+        {
+            OnPlaySound?.Invoke("topup");
+            Notice = $"Tài khoản vừa được cộng tiền thành công! Số dư mới: {Format.Money(profile.Balance)}";
+        }
+        previousBalance = profile.Balance;
         Balance = profile.Balance; AccountName = profile.FullName; Tier = profile.Tier;
+        UpdateVipProgress(profile.Balance, profile.Tier);
         if (!profileLoaded) { CopyProfile(profile); profileLoaded = true; }
         var orderId = SelectedOrder?.Id; var surveyId = SelectedSurvey?.Id;
         Replace(Orders, data.Orders.OrderByDescending(x => x.CreatedAt)); SelectedOrder = Orders.FirstOrDefault(x => x.Id == orderId);
@@ -304,6 +387,10 @@ public sealed partial class MainViewModel : ObservableObject
     }
     public void UpdateClock()
     {
+        var localNow = clock.GetLocalNow();
+        DigitalClock = localNow.ToString("HH:mm:ss");
+        DigitalDate = localNow.ToString("dddd, dd/MM/yyyy", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"));
+
         var now = receivedServerTime is { } server ? server + (clock.GetUtcNow() - receivedLocalTime) : clock.GetUtcNow();
         var active = ActiveSession;
         var rate = active is null ? Machine?.HourlyRate ?? 0 : snapshot.Computers.FirstOrDefault(x => x.Id == active.ComputerId)?.HourlyRate ?? 0;
@@ -352,78 +439,93 @@ public sealed partial class MainViewModel : ObservableObject
         if (game is null) return;
         try
         {
-            var isValorant = (game.Name?.Contains("VALORANT", StringComparison.OrdinalIgnoreCase) ?? false)
-                || (game.ExecutablePath?.Contains("VALORANT", StringComparison.OrdinalIgnoreCase) ?? false);
+            var executable = game.ExecutablePath?.Trim() ?? "";
+            var isRiotGame = ContainsRiotIdentity(game.Code) || ContainsRiotIdentity(game.Name) || ContainsRiotIdentity(executable);
 
-            if (isValorant)
+            if (isRiotGame && FindRiotClient(executable) is { } riotClient)
             {
-                var candidates = new[]
+                StartGameProcess(new System.Diagnostics.ProcessStartInfo
                 {
-                    @"D:\Riot Games\Riot Client\RiotClientServices.exe",
-                    @"C:\Riot Games\Riot Client\RiotClientServices.exe",
-                    @"E:\Riot Games\Riot Client\RiotClientServices.exe"
-                };
-
-                string? riotClient = candidates.FirstOrDefault(System.IO.File.Exists);
-                if (riotClient is null && !string.IsNullOrWhiteSpace(game.ExecutablePath))
-                {
-                    try
-                    {
-                        var root = System.IO.Path.GetPathRoot(game.ExecutablePath);
-                        if (!string.IsNullOrEmpty(root))
-                        {
-                            var candidate = System.IO.Path.Combine(root, "Riot Games", "Riot Client", "RiotClientServices.exe");
-                            if (System.IO.File.Exists(candidate)) riotClient = candidate;
-                        }
-                    }
-                    catch { }
-                }
-
-                if (riotClient is not null)
-                {
-                    var startInfo = new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = riotClient,
-                        Arguments = "--launch-product=valorant --launch-patchline=live",
-                        WorkingDirectory = System.IO.Path.GetDirectoryName(riotClient) ?? "",
-                        UseShellExecute = true
-                    };
-                    System.Diagnostics.Process.Start(startInfo);
-                    Notice = "Đang khởi động VALORANT qua Riot Client...";
-                    OnGameLaunched?.Invoke();
-                    return;
-                }
+                    FileName = riotClient,
+                    Arguments = "--launch-product=valorant --launch-patchline=live",
+                    WorkingDirectory = System.IO.Path.GetDirectoryName(riotClient) ?? "",
+                    UseShellExecute = true
+                });
+                Notice = $"Đang khởi động {game.Name} qua Riot Client...";
+                OnGameLaunched?.Invoke();
+                return;
             }
 
-            if (!string.IsNullOrWhiteSpace(game.ExecutablePath) && System.IO.File.Exists(game.ExecutablePath))
+            if (System.IO.File.Exists(executable))
             {
-                var workDir = System.IO.Path.GetDirectoryName(game.ExecutablePath);
-                var startInfo = new System.Diagnostics.ProcessStartInfo
+                var workDir = System.IO.Path.GetDirectoryName(executable);
+                StartGameProcess(new System.Diagnostics.ProcessStartInfo
                 {
-                    FileName = game.ExecutablePath,
+                    FileName = executable,
                     WorkingDirectory = string.IsNullOrEmpty(workDir) ? "" : workDir,
                     UseShellExecute = true
-                };
-                System.Diagnostics.Process.Start(startInfo);
+                });
                 Notice = $"Đang khởi động {game.Name}...";
                 OnGameLaunched?.Invoke();
+                return;
             }
-            else
+
+            SimulateGameLaunch(game);
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            SimulateGameLaunch(game);
+        }
+    }
+
+    private static bool ContainsRiotIdentity(string? value) =>
+        !string.IsNullOrWhiteSpace(value) &&
+        (value.Contains("valorant", StringComparison.OrdinalIgnoreCase) || value.Contains("riot", StringComparison.OrdinalIgnoreCase));
+
+    private static string? FindRiotClient(string executable)
+    {
+        var candidates = new List<string>
+        {
+            @"C:\Riot Games\Riot Client\RiotClientServices.exe",
+            @"D:\Riot Games\Riot Client\RiotClientServices.exe",
+            @"E:\Riot Games\Riot Client\RiotClientServices.exe"
+        };
+
+        if (!string.IsNullOrWhiteSpace(executable))
+        {
+            try
             {
-                Notice = $"[Mô phỏng mở game] Đang khởi chạy {game.Name}! Ứng dụng đã tự động thu nhỏ về thanh widget theo dõi thời gian chơi.";
-                OnGameLaunched?.Invoke();
+                var directory = System.IO.Path.GetDirectoryName(executable);
+                if (!string.IsNullOrEmpty(directory))
+                    candidates.Add(System.IO.Path.GetFullPath(System.IO.Path.Combine(directory, @"..\..\..\Riot Client\RiotClientServices.exe")));
+                var root = System.IO.Path.GetPathRoot(executable);
+                if (!string.IsNullOrEmpty(root))
+                    candidates.Add(System.IO.Path.Combine(root, "Riot Games", "Riot Client", "RiotClientServices.exe"));
             }
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or System.IO.PathTooLongException or System.Security.SecurityException) { }
         }
-        catch (System.ComponentModel.Win32Exception)
+
+        return candidates.FirstOrDefault(System.IO.File.Exists);
+    }
+
+    private static void StartGameProcess(System.Diagnostics.ProcessStartInfo startInfo)
+    {
+        try
         {
-            Notice = $"[Chế độ an toàn] Đang khởi chạy {game.Name} (đã ghi nhận phiên chơi, thu nhỏ về thanh tiện ích).";
-            OnGameLaunched?.Invoke();
+            System.Diagnostics.Process.Start(startInfo);
         }
-        catch (Exception)
+        catch (System.ComponentModel.Win32Exception exception) when (exception.NativeErrorCode == 5)
         {
-            Notice = $"[Mô phỏng mở game] Đang khởi chạy {game.Name}...";
-            OnGameLaunched?.Invoke();
+            startInfo.Verb = "runas";
+            startInfo.UseShellExecute = true;
+            System.Diagnostics.Process.Start(startInfo);
         }
+    }
+
+    private void SimulateGameLaunch(GameItem game)
+    {
+        Notice = $"[Mô phỏng] Đang khởi động {game.Name} trên máy trạm {MachineName}! Ứng dụng đã tự động thu nhỏ về Widget theo dõi giờ chơi.";
+        OnGameLaunched?.Invoke();
     }
     [RelayCommand] private void SelectCombo(Combo? combo)
     {
@@ -483,6 +585,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             await api.SendAsync<Order>(HttpMethod.Post, "orders", new { computerId = MachineId, items = Cart.Select(x => new { productId = x.ProductId, quantity = x.Quantity, expectedUnitPrice = x.UnitPrice }).ToArray(), expectedTotal = Cart.Sum(x => x.Quantity * x.UnitPrice), note = OrderNote, idempotencyKey = Guid.NewGuid().ToString() });
             Cart.Clear(); OrderNote = ""; NotifyCart();
+            OnPlaySound?.Invoke("order");
         }, "Đặt món thành công. Giá cuối cùng và số dư do máy chủ xác nhận.");
     }
     [RelayCommand] private async Task CancelOrderAsync()
@@ -528,12 +631,221 @@ public sealed partial class MainViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(FeedbackSubject) || string.IsNullOrWhiteSpace(FeedbackContent)) { Error = "Nhập chủ đề và nội dung phản hồi."; return; }
         await MutateAsync(async () => { await api.SendAsync<Feedback>(HttpMethod.Post, "feedback", new { subject = FeedbackSubject.Trim(), content = FeedbackContent.Trim() }); FeedbackSubject = ""; FeedbackContent = ""; }, "Đã gửi phản hồi. Theo dõi trả lời của nhân viên bên dưới.");
     }
-    [RelayCommand] private void RequestSupport() { SelectedTab = 5; FeedbackSubject = $"Hỗ trợ tại {MachineName}"; FeedbackContent = "Tôi cần nhân viên hỗ trợ: "; Notice = "Mô tả vấn đề rồi chọn Gửi hỗ trợ."; }
+    [RelayCommand] private void RequestSupport() { SelectedTab = 6; FeedbackSubject = $"Hỗ trợ tại {MachineName}"; FeedbackContent = "Tôi cần nhân viên hỗ trợ: "; Notice = "Mô tả vấn đề rồi chọn Gửi hỗ trợ."; }
+    [RelayCommand]
+    private void SelectTopupAmount(string amountStr)
+    {
+        TopupAmount = amountStr;
+        OnPlaySound?.Invoke("click");
+    }
+
+    [RelayCommand]
+    private void CopyText(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return;
+        OnCopyToClipboard?.Invoke(text);
+        Notice = $"Đã sao chép vào bộ nhớ tạm: {text}";
+        OnPlaySound?.Invoke("click");
+    }
+
+    [RelayCommand]
+    private async Task QuickSupportAsync(string issue)
+    {
+        if (string.IsNullOrWhiteSpace(issue)) return;
+        SelectedTab = 6;
+        FeedbackSubject = $"[Khẩn cấp] Hỗ trợ máy {MachineName}";
+        FeedbackContent = issue;
+        OnPlaySound?.Invoke("click");
+        await SendFeedbackAsync();
+    }
+
+    [RelayCommand]
+    private async Task RushKitchenAsync(Order? order)
+    {
+        SelectedTab = 6;
+        var orderCode = order is not null && !string.IsNullOrEmpty(order.Id) 
+            ? (order.Id.Length > 6 ? order.Id[..6] : order.Id)
+            : "hiện tại";
+        FeedbackSubject = $"[Giục bếp] Đơn hàng #{orderCode}";
+        FeedbackContent = $"Đơn món tại máy {MachineName} của tôi đang chờ lâu, vui lòng kiểm tra và bưng sớm giùm tôi với nhé!";
+        OnPlaySound?.Invoke("click");
+        await SendFeedbackAsync();
+    }
+
+    [RelayCommand]
+    private void LaunchFeaturedGame()
+    {
+        var game = FilteredGames.FirstOrDefault() ?? Games.FirstOrDefault();
+        if (game is not null)
+        {
+            LaunchGame(game);
+        }
+    }
     [RelayCommand] private async Task SubmitSurveyAsync()
     {
         if (!CanAnswerSurvey || SelectedSurvey is not { } survey) return;
         if (Answers.Any(x => string.IsNullOrEmpty(x.SelectedAnswer))) { Error = "Vui lòng trả lời đầy đủ câu hỏi."; return; }
         await MutateAsync(async () => { await api.SendAsync<SurveyResponse>(HttpMethod.Post, $"surveys/{Uri.EscapeDataString(survey.Id)}/responses", new { answers = Answers.ToDictionary(x => x.Id, x => x.SelectedAnswer) }); }, "Đã gửi khảo sát. Cảm ơn bạn đã góp ý!");
+    }
+    [RelayCommand]
+    private void ToggleSound()
+    {
+        IsSoundMuted = !IsSoundMuted;
+        OnSoundMuteChanged?.Invoke(IsSoundMuted);
+        Notice = IsSoundMuted ? "🔇 Đã tắt âm thanh hiệu ứng." : "🔊 Đã bật âm thanh hiệu ứng Cyberpunk.";
+        if (!IsSoundMuted) OnPlaySound?.Invoke("click");
+    }
+    [RelayCommand]
+    private void PlayLuckySpin()
+    {
+        OpenLuckyWheel();
+    }
+    [RelayCommand]
+    private void OpenLuckyWheel()
+    {
+        IsLuckyWheelOpen = true;
+        HasWonPrize = false;
+        WonPrizeName = "";
+        OnPlaySound?.Invoke("click");
+    }
+    [RelayCommand]
+    private void CloseLuckyWheel()
+    {
+        if (IsSpinning) return;
+        IsLuckyWheelOpen = false;
+        OnPlaySound?.Invoke("click");
+    }
+
+    [RelayCommand]
+    private void OpenLoginModal()
+    {
+        IsLoginModalOpen = true;
+        OnPlaySound?.Invoke("click");
+    }
+
+    [RelayCommand]
+    private void CloseLoginModal()
+    {
+        IsLoginModalOpen = false;
+        IsRegistering = false;
+        OnPlaySound?.Invoke("click");
+    }
+
+    [RelayCommand]
+    private void NextBanner()
+    {
+        if (bannerImages.Length == 0) return;
+        CurrentBannerIndex = (CurrentBannerIndex + 1) % bannerImages.Length;
+        CurrentBannerImage = bannerImages[CurrentBannerIndex];
+    }
+
+    [RelayCommand]
+    private void SelectBanner(object? parameter)
+    {
+        if (parameter is null) return;
+        int index = parameter switch
+        {
+            int i => i,
+            string s when int.TryParse(s, out var parsed) => parsed,
+            _ => -1
+        };
+        if (index >= 0 && index < bannerImages.Length)
+        {
+            CurrentBannerIndex = index;
+            CurrentBannerImage = bannerImages[index];
+            OnPlaySound?.Invoke("click");
+        }
+    }
+    [RelayCommand]
+    private async Task SpinWheelAsync()
+    {
+        if (IsSpinning) return;
+        if (LuckySpins <= 0)
+        {
+            Error = "Bạn đã dùng hết lượt quay hôm nay. Nạp từ 50.000 ₫ hoặc tích lũy giờ chơi để nhận thêm lượt!";
+            return;
+        }
+
+        LuckySpins--;
+        IsSpinning = true;
+        HasWonPrize = false;
+        WonPrizeName = "";
+
+        // 8 radial sectors (each 45 deg)
+        var prizes = new (string Name, string Icon, decimal BonusMoney, int BonusMinutes)[]
+        {
+            ("+30 phút giờ chơi miễn phí", "ClockFast", 0, 30),
+            ("1 Lon Sting dâu ướp lạnh", "BottleSodaClassic", 0, 0),
+            ("+10.000 ₫ nạp tài khoản", "CashPlus", 10000, 0),
+            ("1 Xúc xích nướng phô mai", "FoodHotDog", 0, 0),
+            ("Voucher giảm 20% đồ ăn F&B", "TicketPercent", 0, 0),
+            ("x2 EXP VIP toàn bộ hôm nay", "StarShooting", 0, 0),
+            ("+1 giờ chơi Cyber miễn phí", "GiftOutline", 0, 60),
+            ("Huy hiệu Chiến Thần Cyber", "ShieldCrown", 0, 0)
+        };
+
+        var rng = new Random();
+        int prizeIndex = rng.Next(prizes.Length);
+        var selectedPrize = prizes[prizeIndex];
+
+        // Rotation physics: 5 full turns + target alignment at 12 o'clock pointer
+        double targetAngle = WheelAngle + (360 * 5) + (360 - (prizeIndex * 45) - (WheelAngle % 360));
+
+        if (OnSpinWheelAnimation != null)
+        {
+            await OnSpinWheelAnimation(targetAngle);
+        }
+        else
+        {
+            WheelAngle = targetAngle;
+            await Task.Delay(1000);
+        }
+
+        WheelAngle = targetAngle;
+        IsSpinning = false;
+        HasWonPrize = true;
+        WonPrizeName = selectedPrize.Name;
+        WonPrizeIcon = selectedPrize.Icon;
+
+        if (selectedPrize.BonusMoney > 0)
+        {
+            Balance += selectedPrize.BonusMoney;
+        }
+
+        LuckyRewardMessage = $"🎉 Trúng: {selectedPrize.Name}";
+        Notice = $"🎉 Chúc mừng bạn đã trúng {selectedPrize.Name} từ Vòng Quay May Mắn!";
+        OnPlaySound?.Invoke("topup");
+    }
+    private void UpdateVipProgress(decimal bal, string tierName)
+    {
+        if (tierName == "VIP" || bal >= 500000)
+        {
+            VipBadge = "💎 VIP KIM CƯƠNG";
+            CurrentExp = 4800;
+            TargetExp = 5000;
+            ExpPercentage = 96.0;
+        }
+        else if (bal >= 200000)
+        {
+            VipBadge = "🏆 VIP VÀNG";
+            CurrentExp = 3600;
+            TargetExp = 5000;
+            ExpPercentage = 72.0;
+        }
+        else if (bal >= 50000)
+        {
+            VipBadge = "🥈 VIP BẠC";
+            CurrentExp = 2400;
+            TargetExp = 5000;
+            ExpPercentage = 48.0;
+        }
+        else
+        {
+            VipBadge = "🥉 HỘI VIÊN ĐỒNG";
+            CurrentExp = 1200;
+            TargetExp = 5000;
+            ExpPercentage = 24.0;
+        }
     }
     private async Task MutateAsync(Func<Task> action, string success)
     {
@@ -628,5 +940,27 @@ public sealed partial class MainViewModel : ObservableObject
         new GameItem { Id = "cs2", Name = "Counter-Strike 2", Category = "Bắn súng (FPS)", ExecutablePath = @"C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\game\bin\win64\cs2.exe", BannerUrl = "http://127.0.0.1:5055/images/games/cs2.jpg", Description = "Tựa game bắn súng góc nhìn thứ nhất kinh điển của Valve.", Active = true },
         new GameItem { Id = "pubg", Name = "PUBG: BATTLEGROUNDS", Category = "Sinh tồn", ExecutablePath = @"C:\Program Files (x86)\Steam\steamapps\common\PUBG\TslGame\Binaries\Win64\TslGame.exe", BannerUrl = "http://127.0.0.1:5055/images/games/pubg.jpg", Description = "Tựa game sinh tồn Battle Royale 100 người khốc liệt.", Active = true }
     ];
+    public void HandleRemoteCommand(string targetComputerId, string cmd)
+    {
+        if (IsMatchingMachine(targetComputerId))
+        {
+            OnRemoteCommand?.Invoke(cmd);
+        }
+    }
+
+    public bool IsMatchingMachine(string targetId)
+    {
+        if (string.Equals(targetId, MachineId, StringComparison.OrdinalIgnoreCase)) return true;
+        if (string.Equals(targetId, MachineName, StringComparison.OrdinalIgnoreCase)) return true;
+        
+        var num1 = System.Text.RegularExpressions.Regex.Match(MachineId, @"\d+").Value;
+        var num2 = System.Text.RegularExpressions.Regex.Match(targetId, @"\d+").Value;
+        if (!string.IsNullOrEmpty(num1) && !string.IsNullOrEmpty(num2) && int.TryParse(num1, out var n1) && int.TryParse(num2, out var n2))
+        {
+            return n1 == n2;
+        }
+        return false;
+    }
+
     private static void Replace<T>(ObservableCollection<T> target, IEnumerable<T> values) { target.Clear(); foreach (var value in values) target.Add(value); }
 }

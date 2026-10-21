@@ -1,0 +1,51 @@
+Section,Title,Type,Priority,Preconditions,Steps,Expected Result
+01. Authentication & Security,TC-AUTH-01: Đăng nhập thành công với vai trò Quản lý (Manager),Functional,High,Tài khoản manager/Demo@123 đã tồn tại trong CSDL,"1. Truy cập trang /login
+2. Nhập username: manager
+3. Nhập password: Demo@123
+4. Bấm Đăng nhập",Đăng nhập thành công; chuyển hướng đến /management/overview; hiển thị đầy đủ menu Quản lý; token được lưu vào session.
+01. Authentication & Security,TC-AUTH-02: Đăng nhập thất bại khi sai mật khẩu,Functional,Medium,Tài khoản admin tồn tại trong hệ thống,"1. Truy cập /login
+2. Nhập username: admin
+3. Nhập password: WrongPassword@999
+4. Bấm Đăng nhập",Hệ thống hiển thị thông báo lỗi 'Tên đăng nhập hoặc mật khẩu không đúng.'; không cấp token; giữ nguyên form đăng nhập.
+01. Authentication & Security,TC-AUTH-03: Chặn đăng nhập tài khoản Khách hàng (Customer) trên Web Admin,Security,High,Tài khoản gamer/Demo@123 tồn tại,"1. Truy cập /login
+2. Nhập username: gamer, password: Demo@123
+3. Bấm Đăng nhập",Hệ thống từ chối đăng nhập và hiển thị cảnh báo: 'Tài khoản khách sử dụng ứng dụng desktop InternetCafe Client.'; không cho phép truy cập Web Admin.
+01. Authentication & Security,TC-AUTH-04: Phòng chống tấn công SQL Injection trên form Login,Security,Critical,Backend đang hoạt động,"1. Nhập username: ' OR 1=1 --
+2. Nhập password: ' OR 1=1 --
+3. Bấm Đăng nhập",Hệ thống xử lý an toàn; trả về lỗi 401 Unauthorized; CSDL không bị vượt qua xác thực; không trả về lỗi 500 kèm stack trace.
+01. Authentication & Security,TC-AUTH-05: Chống tấn công Stored XSS trong Profile người dùng,Security,High,Đã đăng nhập tài khoản hội viên,"1. Gửi request cập nhật họ tên chứa <script>alert('XSS')</script>
+2. Tải lại trang thông tin tài khoản",Trình duyệt không thực thi mã Javascript; dữ liệu hiển thị an toàn dưới dạng text thuần; response có header X-Content-Type-Options: nosniff.
+02. Quản lý Phòng máy,TC-PC-01: Hiển thị danh sách máy trạm theo sơ đồ trực quan,Functional,High,Người dùng đăng nhập vai trò Thu ngân hoặc Quản lý,"1. Vào menu 'Phòng máy' (/management/computers)
+2. Quan sát lưới máy trạm",Hiển thị danh sách đầy đủ các máy (pc-001; pc-002;...); kèm trạng thái màu sắc rõ ràng (Available - Trống; Occupied - Có khách; Maintenance - Bảo trì).
+02. Quản lý Phòng máy,TC-PC-02: Chuyển máy trạm sang chế độ Bảo trì (Maintenance),Functional,Medium,Máy trạm mục tiêu đang ở trạng thái Trống (Available),"1. Tại máy pc-002; bấm nút 'Lệnh máy'
+2. Chọn lệnh 'Bảo trì'",Hệ thống cập nhật trạng thái máy sang Maintenance; giao diện đổi màu cảnh báo; ngăn chặn khách hàng mở máy trên máy này.
+02. Quản lý Phòng máy,TC-PC-03: Khôi phục máy trạm về Sẵn sàng (Available),Functional,Medium,Máy trạm đang ở trạng thái Maintenance,"1. Chọn máy đang bảo trì
+2. Bấm lệnh 'Sẵn sàng'",Máy trạm chuyển về trạng thái Available (màu xanh); cho phép khách hàng bắt đầu phiên chơi.
+03. Thu ngân & Tài chính ví,TC-POS-01: Thu ngân nạp tiền vào tài khoản hội viên thành công,Functional,High,Khách hàng c-001 tồn tại; số dư hiện tại đã biết,"1. Vào menu Khách hàng; chọn khách c-001
+2. Bấm 'Nạp tiền'
+3. Nhập số tiền: 50.000đ; phương thức: Tiền mặt
+4. Xác nhận nạp",Giao dịch nạp tiền thành công; số dư tài khoản khách tăng thêm 50.000đ; ghi nhận vào sổ cái giao dịch tài chính.
+03. Thu ngân & Tài chính ví,TC-POS-02: Chặn nạp tiền với số tiền âm (Bypass Validation),Security,Critical,Đã đăng nhập tài khoản Thu ngân,"1. Gửi lệnh nạp tiền với số tiền: -50.000đ vào tài khoản c-001
+2. Kiểm tra phản hồi",Hệ thống chặn với mã 422 VALIDATION_ERROR; số dư khách hàng không bị giảm lén; không tạo giao dịch bất hợp lệ.
+03. Thu ngân & Tài chính ví,TC-POS-03: Hoàn tiền / Rút tiền mặt từ ví hội viên,Functional,High,Hội viên c-001 có số dư khả dụng > 10.000đ,"1. Chọn khách hàng c-001
+2. Bấm 'Rút tiền / Hoàn tiền'
+3. Nhập số tiền: 10.000đ
+4. Xác nhận",Hệ thống tạo phiếu rút tiền loại Withdraw; trừ 10.000đ khỏi số dư ví; in biên lai thành công.
+03. Thu ngân & Tài chính ví,TC-POS-04: Chặn rút tiền vượt quá số dư khả dụng,Functional,High,Hội viên có số dư 500.000đ,"1. Thực hiện lệnh rút tiền 9.000.000đ cho khách hàng c-001",Hệ thống từ chối giao dịch với mã lỗi 409 INSUFFICIENT_BALANCE; thông báo số dư không đủ.
+04. Dịch vụ F&B & Bếp,TC-FB-01: Đặt món ăn/uống từ phiên chơi máy trạm,Functional,High,Khách hàng đang có phiên chơi mở tại pc-001; số dư ví đủ,"1. Khách chọn món Trà sữa (25.000đ)
+2. Nhập ghi chú: 'Ít đường đá'
+3. Bấm Đặt món",Đơn hàng tạo thành công ở trạng thái Pending; gửi thông báo realtime lên màn hình thu ngân/bếp; số dư ví tạm giữ số tiền tương ứng.
+04. Dịch vụ F&B & Bếp,TC-FB-02: Thu ngân duyệt đơn và chuyển trạng thái Đang chuẩn bị,Functional,High,Có đơn hàng ở trạng thái Pending,"1. Thu ngân mở danh sách Đơn hàng
+2. Chọn đơn hàng
+3. Bấm 'Bắt đầu chuẩn bị' (Transition to Preparing)",Đơn hàng chuyển sang Preparing; bếp bắt đầu pha chế; cập nhật trạng thái thời gian thực.
+04. Dịch vụ F&B & Bếp,TC-FB-03: Chặn đặt món với số lượng âm hoặc bằng 0,Security,High,Khách hàng có phiên chơi đang hoạt động,"1. Thêm món vào giỏ với số lượng: -2 hoặc 0
+2. Gửi request tạo đơn",Hệ thống trả về 422 VALIDATION_ERROR; đơn hàng bị từ chối; ngăn chặn gian lận làm giảm giá trị tổng giỏ hàng.
+05. Phân quyền & Chống IDOR,TC-SEC-01: Chặn tài khoản Hội viên gọi API xem danh sách tài khoản Admin,Security,Critical,Đã có Bearer Token của hội viên gamer,"1. Gửi request GET /api/v1/accounts kèm Bearer token của gamer",Backend trả về 403 Forbidden; không rò rỉ danh sách tài khoản hệ thống.
+05. Phân quyền & Chống IDOR,TC-SEC-02: Chặn truy cập trái phép xem dữ liệu khách hàng khác (IDOR),Security,Critical,Tài khoản gamer c-001 đã đăng nhập,"1. Gửi request GET /api/v1/customers/c-002 lấy thông tin khách c-002",Backend trả về 404 Not Found kèm thông điệp 'Không tìm thấy dữ liệu hoặc bạn không có quyền xem.'; bảo vệ quyền riêng tư người dùng.
+06. Nhân sự & Chấm công (HRM),TC-HRM-01: Nhân viên chấm công vào ca làm việc (Check-in),Functional,High,Nhân viên staff có lịch trực ca tương ứng hôm nay,"1. Nhân viên đăng nhập vào Cổng nhân viên (/staff/home)
+2. Bấm nút 'Chấm công vào ca' (Check-in)",Hệ thống ghi nhận thời gian bắt đầu ca; trạng thái ca chuyển sang 'Đang làm việc'.
+06. Nhân sự & Chấm công (HRM),TC-HRM-02: Chặn chấm công lặp lại khi đã check-in,Functional,Medium,Nhân viên đã check-in ca hiện tại,"1. Nhân viên bấm tiếp 'Chấm công vào ca' lần 2",Hệ thống báo lỗi 409 Conflict hoặc hiển thị cảnh báo nhân viên đã trong ca trực.
+07. Báo cáo & Hoá đơn,TC-REP-01: Xem báo cáo doanh thu tài chính tổng hợp,Functional,High,Người dùng đăng nhập quyền Quản lý (Manager),"1. Vào menu 'Báo cáo & thống kê' (/management/reports)
+2. Chọn khoảng thời gian từ ngày 01 đến ngày hiện tại",Hiển thị biểu đồ doanh thu; chia tách rõ rệt doanh thu giờ chơi (rentalRevenue) và doanh thu F&B (foodRevenue); hiển thị tổng lợi nhuận.
+07. Báo cáo & Hoá đơn,TC-REP-02: Tra cứu chi tiết hoá đơn dịch vụ,Functional,Medium,Đã có hoá đơn được tạo sau phiên chơi,"1. Vào danh sách Hoá đơn (/management/invoices)
+2. Bấm xem chi tiết một hoá đơn",Drawer hiển thị thông tin: Thời gian bắt đầu/kết thúc; tiền giờ chơi; danh sách chi tiết các món ăn uống và tổng tiền thanh toán.

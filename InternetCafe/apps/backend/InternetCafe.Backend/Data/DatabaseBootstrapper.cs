@@ -405,14 +405,19 @@ public sealed class DatabaseBootstrapper(SqlConnectionFactory connections)
             INSERT INTO dbo.Products (Category_ID, Product_Name, Price, Stock_Quantity, Status, Image_Url) VALUES (@FBCombo, N'Combo Bất Bại (Mì xào + Sting)', 45000, 30, 'Active', NULL);
 
         -- F&B Image URLs: Cập nhật hình ảnh món ăn đồ uống bắt mắt chuẩn quán Net
-        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/sting_dau.jpg' WHERE Product_Name LIKE N'%Sting%';
-        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/ca_phe_sua.jpg' WHERE Product_Name LIKE N'%Cà phê%' OR Product_Name LIKE N'%Redbull%';
+        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/pepsi.jpg' WHERE Product_Name LIKE N'%Pepsi%';
+        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/redbull.jpg' WHERE Product_Name LIKE N'%Redbull%';
+        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/sting_dau.jpg' WHERE Product_Name LIKE N'%Sting%' OR Product_Name LIKE N'%Tài Lộc%';
+        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/ca_phe_sua.jpg' WHERE Product_Name LIKE N'%Cà phê%';
         UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/tra_sua.jpg' WHERE Product_Name LIKE N'%Trà sữa%' OR Product_Name LIKE N'%Trà đào%';
-        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/sting_dau.jpg' WHERE Product_Name LIKE N'%Pepsi%' OR Product_Name LIKE N'%Tài Lộc%';
-        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/mi_xao_trung.jpg' WHERE Product_Name LIKE N'%Mì %' OR Product_Name LIKE N'%Combo Bất Bại%';
-        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/com_rang.jpg' WHERE Product_Name LIKE N'%Cơm%' OR Product_Name LIKE N'%Gà rán%';
         UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/banh_mi.jpg' WHERE Product_Name LIKE N'%Bánh mì%';
-        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/snack_xuc_xich.jpg' WHERE Product_Name LIKE N'%Xúc xích%' OR Product_Name LIKE N'%Snack%' OR Product_Name LIKE N'%Khô gà%' OR Product_Name LIKE N'%Trứng ốp la%';
+        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/com_rang.jpg' WHERE Product_Name LIKE N'%Cơm%' OR Product_Name LIKE N'%Gà rán%';
+        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/mi_xao_trung.jpg' WHERE Product_Name LIKE N'%Mì xào%' OR Product_Name LIKE N'%Combo Bất Bại%';
+        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/mi_tom.jpg' WHERE Product_Name LIKE N'%Mì tôm%' OR Product_Name LIKE N'%Mì cay%';
+        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/kho_ga.jpg' WHERE Product_Name LIKE N'%Khô gà%';
+        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/xuc_xich.jpg' WHERE Product_Name LIKE N'%Xúc xích%' AND Product_Name NOT LIKE N'%Mì tôm%';
+        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/trung_op_la.jpg' WHERE Product_Name LIKE N'%Trứng ốp la%';
+        UPDATE dbo.Products SET Image_Url = 'http://127.0.0.1:5055/images/food/snack.jpg' WHERE Product_Name LIKE N'%Snack%' OR Product_Name LIKE N'%Khoai tây%';
 
         -- F&B 1c: chuẩn hóa nhà cung cấp thực tế.
         IF EXISTS (SELECT 1 FROM dbo.Suppliers WHERE Name = N'PepsiCo Việt Nam')

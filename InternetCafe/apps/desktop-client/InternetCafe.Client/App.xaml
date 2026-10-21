@@ -6,12 +6,15 @@
   </ResourceDictionary.MergedDictionaries>
 
   <local:BooleanVisibilityConverter x:Key="BoolVisible"/><local:EmptyVisibilityConverter x:Key="EmptyVisible"/>
+  <local:ImageSourceConverter x:Key="ImageSrc"/>
+  <local:ImageSourceConverter x:Key="ImageSourceConverter"/>
   <SolidColorBrush x:Key="Ink" Color="#F2F7FF"/>
   <SolidColorBrush x:Key="MutedInk" Color="#94A3B8"/>
   <SolidColorBrush x:Key="Surface" Color="#101A31"/>
   <SolidColorBrush x:Key="SurfaceRaised" Color="#14213C"/>
   <SolidColorBrush x:Key="Stroke" Color="#27395D"/>
   <SolidColorBrush x:Key="Cyan" Color="#38D9FF"/>
+  <SolidColorBrush x:Key="NeonCyan" Color="#00F2FE"/>
   <SolidColorBrush x:Key="Mint" Color="#121F3A"/>
 
   <Style TargetType="Window"><Setter Property="FontFamily" Value="Inter, Segoe UI, sans-serif"/><Setter Property="FontSize" Value="13.5"/><Setter Property="Foreground" Value="{StaticResource Ink}"/><Setter Property="Background" Value="#080D1B"/></Style>
@@ -23,10 +26,160 @@
   <Style x:Key="Subheading" TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource Ink}"/><Setter Property="FontSize" Value="18"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Margin" Value="0,0,0,14"/></Style>
   <Style x:Key="Muted" TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource MutedInk}"/><Setter Property="TextWrapping" Value="Wrap"/><Setter Property="Margin" Value="0,0,0,10"/></Style>
 
+  <!-- Cyberpunk Gaming UI Styles -->
+    <Style x:Key="FoodCardBorder" TargetType="Border">
+    <Setter Property="Background" Value="#0D162C"/>
+    <Setter Property="BorderBrush" Value="#1E3156"/>
+    <Setter Property="BorderThickness" Value="1.5"/>
+    <Setter Property="CornerRadius" Value="16"/>
+    <Setter Property="Width" Value="210"/>
+    <Setter Property="Margin" Value="0,0,16,18"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+    <Setter Property="RenderTransform">
+      <Setter.Value>
+        <ScaleTransform ScaleX="1.0" ScaleY="1.0"/>
+      </Setter.Value>
+    </Setter>
+    <Setter Property="Effect">
+      <Setter.Value>
+        <DropShadowEffect Color="#000000" BlurRadius="12" ShadowDepth="4" Opacity="0.45"/>
+      </Setter.Value>
+    </Setter>
+    <Style.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="BorderBrush" Value="#00F2FE"/>
+        <Setter Property="Background" Value="#122244"/>
+        <Setter Property="Effect">
+          <Setter.Value>
+            <DropShadowEffect Color="#00F2FE" BlurRadius="22" ShadowDepth="0" Opacity="0.75"/>
+          </Setter.Value>
+        </Setter>
+        <Trigger.EnterActions>
+          <BeginStoryboard>
+            <Storyboard>
+              <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(ScaleTransform.ScaleX)" To="1.035" Duration="0:0:0.18">
+                <DoubleAnimation.EasingFunction><QuadraticEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+              </DoubleAnimation>
+              <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(ScaleTransform.ScaleY)" To="1.035" Duration="0:0:0.18">
+                <DoubleAnimation.EasingFunction><QuadraticEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+              </DoubleAnimation>
+            </Storyboard>
+          </BeginStoryboard>
+        </Trigger.EnterActions>
+        <Trigger.ExitActions>
+          <BeginStoryboard>
+            <Storyboard>
+              <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(ScaleTransform.ScaleX)" To="1.0" Duration="0:0:0.18">
+                <DoubleAnimation.EasingFunction><QuadraticEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+              </DoubleAnimation>
+              <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(ScaleTransform.ScaleY)" To="1.0" Duration="0:0:0.18">
+                <DoubleAnimation.EasingFunction><QuadraticEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+              </DoubleAnimation>
+            </Storyboard>
+          </BeginStoryboard>
+        </Trigger.ExitActions>
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
+    <Style x:Key="CyberButton" TargetType="Button">
+    <Setter Property="Foreground" Value="#080D1B"/>
+    <Setter Property="FontWeight" Value="Bold"/>
+    <Setter Property="FontSize" Value="13.5"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="MinHeight" Value="42"/>
+    <Setter Property="Padding" Value="18,8"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="BtnBorder" CornerRadius="12" Padding="{TemplateBinding Padding}">
+            <Border.Background>
+              <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#00F2FE" Offset="0"/>
+                <GradientStop Color="#0077FE" Offset="1"/>
+              </LinearGradientBrush>
+            </Border.Background>
+            <Border.Effect>
+              <DropShadowEffect x:Name="BtnShadow" Color="#00F2FE" BlurRadius="12" ShadowDepth="0" Opacity="0.5"/>
+            </Border.Effect>
+            <Border.Triggers>
+              <EventTrigger RoutedEvent="Border.Loaded">
+                <BeginStoryboard>
+                  <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                    <DoubleAnimation Storyboard.TargetName="BtnShadow" Storyboard.TargetProperty="BlurRadius" From="10" To="20" Duration="0:0:1.6">
+                      <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                    <DoubleAnimation Storyboard.TargetName="BtnShadow" Storyboard.TargetProperty="Opacity" From="0.45" To="0.85" Duration="0:0:1.6">
+                      <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                  </Storyboard>
+                </BeginStoryboard>
+              </EventTrigger>
+            </Border.Triggers>
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="BtnBorder" Property="Effect">
+                <Setter.Value>
+                  <DropShadowEffect Color="#00F2FE" BlurRadius="26" ShadowDepth="0" Opacity="0.95"/>
+                </Setter.Value>
+              </Setter>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="BtnBorder" Property="Opacity" Value="0.85"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="BtnBorder" Property="Opacity" Value="0.3"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style x:Key="CyberAddButton" TargetType="Button">
+    <Setter Property="Foreground" Value="#080D1B"/>
+    <Setter Property="FontWeight" Value="Bold"/>
+    <Setter Property="FontSize" Value="11.5"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Height" Value="30"/>
+    <Setter Property="Padding" Value="12,0"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="AddBorder" CornerRadius="15">
+            <Border.Background>
+              <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                <GradientStop Color="#00F2FE" Offset="0"/>
+                <GradientStop Color="#38D9FF" Offset="1"/>
+              </LinearGradientBrush>
+            </Border.Background>
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="AddBorder" Property="Effect">
+                <Setter.Value>
+                  <DropShadowEffect Color="#00F2FE" BlurRadius="14" ShadowDepth="0" Opacity="0.85"/>
+                </Setter.Value>
+              </Setter>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="AddBorder" Property="Opacity" Value="0.8"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <Style x:Key="Field" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}"><Setter Property="Foreground" Value="{StaticResource Ink}"/><Setter Property="Background" Value="#0D162A"/><Setter Property="Margin" Value="0,8,0,12"/><Setter Property="MinHeight" Value="52"/><Setter Property="VerticalContentAlignment" Value="Center"/></Style>
   <Style x:Key="Secret" TargetType="PasswordBox" BasedOn="{StaticResource MaterialDesignOutlinedPasswordBox}"><Setter Property="Foreground" Value="{StaticResource Ink}"/><Setter Property="Background" Value="#0D162A"/><Setter Property="Margin" Value="0,8,0,12"/><Setter Property="MinHeight" Value="52"/></Style>
   <Style TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignOutlinedComboBox}"><Setter Property="Foreground" Value="{StaticResource Ink}"/><Setter Property="Background" Value="#0D162A"/></Style>
   <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignRaisedButton}"><Setter Property="MinHeight" Value="40"/><Setter Property="Margin" Value="0,4,8,4"/><Setter Property="Padding" Value="16,6"/><Setter Property="Cursor" Value="Hand"/></Style>
+  <Style x:Key="Primary" TargetType="Button" BasedOn="{StaticResource MaterialDesignRaisedButton}"><Setter Property="Foreground" Value="#080D1B"/><Setter Property="FontWeight" Value="Bold"/><Setter Property="Background" Value="#00F2FE"/><Setter Property="BorderBrush" Value="#00F2FE"/><Setter Property="MinHeight" Value="40"/><Setter Property="Margin" Value="0,4,8,4"/><Setter Property="Padding" Value="18,6"/><Setter Property="Cursor" Value="Hand"/></Style>
   <Style x:Key="Secondary" TargetType="Button" BasedOn="{StaticResource MaterialDesignOutlinedButton}"><Setter Property="Foreground" Value="#BDEBFF"/><Setter Property="BorderBrush" Value="#39749A"/><Setter Property="MinHeight" Value="40"/><Setter Property="Margin" Value="0,4,8,4"/><Setter Property="Padding" Value="16,6"/></Style>
 
   <Style TargetType="DataGrid" BasedOn="{StaticResource MaterialDesignDataGrid}"><Setter Property="AutoGenerateColumns" Value="False"/><Setter Property="IsReadOnly" Value="True"/><Setter Property="CanUserAddRows" Value="False"/><Setter Property="SelectionMode" Value="Single"/><Setter Property="HeadersVisibility" Value="Column"/><Setter Property="MinHeight" Value="90"/><Setter Property="RowHeight" Value="44"/><Setter Property="BorderThickness" Value="0"/><Setter Property="GridLinesVisibility" Value="None"/><Setter Property="Foreground" Value="{StaticResource Ink}"/><Setter Property="Background" Value="#0D162A"/><Setter Property="RowBackground" Value="#101A31"/><Setter Property="AlternatingRowBackground" Value="#0D172B"/>

@@ -49,6 +49,7 @@ public sealed class StandaloneDemoApi : ICafeApi
         workspace.Games.Add(new GameItem
         {
             Id = "valorant",
+            Code = "VALORANT",
             Name = "VALORANT",
             Category = "Bắn súng (FPS)",
             ExecutablePath = @"D:\Riot Games\VALORANT\live\VALORANT.exe",
@@ -74,17 +75,17 @@ public sealed class StandaloneDemoApi : ICafeApi
 
         workspace.Products.AddRange(new[]
         {
-            new Product { Id = "p-001", Name = "Mì xào bò trứng ốp la", CategoryId = "cat-001", Price = 35000, Stock = 50, Active = true },
-            new Product { Id = "p-002", Name = "Cơm chiên dưa bò giòn", CategoryId = "cat-001", Price = 45000, Stock = 40, Active = true },
-            new Product { Id = "p-003", Name = "Bánh mì xúc xích pate", CategoryId = "cat-001", Price = 25000, Stock = 30, Active = true },
-            new Product { Id = "p-004", Name = "Mì cay hải sản cấp 3", CategoryId = "cat-001", Price = 42000, Stock = 25, Active = true },
-            new Product { Id = "p-005", Name = "Nước tăng lực Sting dâu", CategoryId = "cat-002", Price = 15000, Stock = 100, Active = true },
-            new Product { Id = "p-006", Name = "Nước tăng lực Red Bull Thái", CategoryId = "cat-002", Price = 20000, Stock = 80, Active = true },
-            new Product { Id = "p-007", Name = "Cà phê sữa đá pha phin", CategoryId = "cat-002", Price = 18000, Stock = 60, Active = true },
-            new Product { Id = "p-008", Name = "Trà sữa trân châu đường đen", CategoryId = "cat-002", Price = 25000, Stock = 50, Active = true },
-            new Product { Id = "p-009", Name = "Khoai tây chiên lắc phô mai", CategoryId = "cat-003", Price = 25000, Stock = 45, Active = true },
-            new Product { Id = "p-010", Name = "Xúc xích Đức nướng tiêu", CategoryId = "cat-003", Price = 15000, Stock = 70, Active = true },
-            new Product { Id = "p-011", Name = "Snack Oishi tôm cay", CategoryId = "cat-003", Price = 10000, Stock = 90, Active = true }
+            new Product { Id = "p-001", Name = "Mì xào bò trứng ốp la", CategoryId = "cat-001", Price = 35000, Stock = 50, Active = true, ImageUrl = "http://127.0.0.1:5055/images/food/mi_xao_trung.jpg" },
+            new Product { Id = "p-002", Name = "Cơm chiên dưa bò giòn", CategoryId = "cat-001", Price = 45000, Stock = 40, Active = true, ImageUrl = "http://127.0.0.1:5055/images/food/com_rang.jpg" },
+            new Product { Id = "p-003", Name = "Bánh mì xúc xích pate", CategoryId = "cat-001", Price = 25000, Stock = 30, Active = true, ImageUrl = "http://127.0.0.1:5055/images/food/banh_mi.jpg" },
+            new Product { Id = "p-004", Name = "Mì cay hải sản cấp 3", CategoryId = "cat-001", Price = 42000, Stock = 25, Active = true, ImageUrl = "http://127.0.0.1:5055/images/food/mi_tom.jpg" },
+            new Product { Id = "p-005", Name = "Nước tăng lực Sting dâu", CategoryId = "cat-002", Price = 15000, Stock = 100, Active = true, ImageUrl = "http://127.0.0.1:5055/images/food/sting_dau.jpg" },
+            new Product { Id = "p-006", Name = "Nước tăng lực Red Bull Thái", CategoryId = "cat-002", Price = 20000, Stock = 80, Active = true, ImageUrl = "http://127.0.0.1:5055/images/food/redbull.jpg" },
+            new Product { Id = "p-007", Name = "Cà phê sữa đá pha phin", CategoryId = "cat-002", Price = 18000, Stock = 60, Active = true, ImageUrl = "http://127.0.0.1:5055/images/food/ca_phe_sua.jpg" },
+            new Product { Id = "p-008", Name = "Trà sữa trân châu đường đen", CategoryId = "cat-002", Price = 25000, Stock = 50, Active = true, ImageUrl = "http://127.0.0.1:5055/images/food/tra_sua.jpg" },
+            new Product { Id = "p-009", Name = "Khoai tây chiên lắc phô mai", CategoryId = "cat-003", Price = 25000, Stock = 45, Active = true, ImageUrl = "http://127.0.0.1:5055/images/food/snack.jpg" },
+            new Product { Id = "p-010", Name = "Xúc xích Đức nướng tiêu", CategoryId = "cat-003", Price = 15000, Stock = 70, Active = true, ImageUrl = "http://127.0.0.1:5055/images/food/xuc_xich.jpg" },
+            new Product { Id = "p-011", Name = "Khô gà lá chanh hảo hạng", CategoryId = "cat-003", Price = 25000, Stock = 90, Active = true, ImageUrl = "http://127.0.0.1:5055/images/food/kho_ga.jpg" }
         });
 
         var now = DateTimeOffset.UtcNow;
@@ -149,6 +150,7 @@ public sealed class StandaloneDemoApi : ICafeApi
             {
                 "workspace" => workspace,
                 "combos" => workspace.Combos,
+                "health" => new { status = "ok", tables = 41 },
                 _ => throw new ApiException("NOT_FOUND", $"Không tìm thấy endpoint {path}", HttpStatusCode.NotFound)
             };
 

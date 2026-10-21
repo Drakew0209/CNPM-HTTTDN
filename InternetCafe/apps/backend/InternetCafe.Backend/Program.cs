@@ -32,7 +32,7 @@ builder.Services.AddRateLimiter(options =>
             partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 10,
+                PermitLimit = builder.Environment.IsDevelopment() ? 100 : 10,
                 Window = TimeSpan.FromMinutes(1),
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 QueueLimit = 0
@@ -87,6 +87,14 @@ app.MapGet("/health", async (SqlConnectionFactory connections, CancellationToken
 });
 
 var api = app.MapGroup("/api/v1");
+api.MapGet("/health", async (SqlConnectionFactory connections, CancellationToken ct) =>
+{
+    await using var connection = await connections.OpenAsync(ct);
+    await using var command = new SqlCommand("SELECT COUNT(*) FROM sys.tables", connection);
+    var tables = Convert.ToInt32(await command.ExecuteScalarAsync(ct));
+    return Results.Ok(Api.Data(new { status = "ok", source = "sql-server", persistent = true, tables }));
+}).AllowAnonymous();
+
 api.MapPost("/auth/login", async (LoginRequest request, AuthService auth, CancellationToken ct) =>
 {
     var result = await auth.LoginAsync(request, ct);

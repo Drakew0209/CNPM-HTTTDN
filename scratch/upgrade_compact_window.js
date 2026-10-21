@@ -1,0 +1,220 @@
+const fs = require('fs');
+
+// 1. Rewrite CompactWindow.xaml
+const newXaml = `<Window x:Class="InternetCafe.Client.CompactWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="InternetCafe · Cyber Gaming HUD"
+        Width="320" SizeToContent="Height"
+        ResizeMode="NoResize" WindowStyle="None" AllowsTransparency="True"
+        Topmost="True" ShowInTaskbar="False" Closing="OnClosing"
+        Background="Transparent" Foreground="White" Opacity="0.92"
+        MouseLeftButtonDown="OnDragMove">
+  <Window.Triggers>
+    <EventTrigger RoutedEvent="MouseEnter">
+      <BeginStoryboard>
+        <Storyboard>
+          <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1.0" Duration="0:0:0.18"/>
+        </Storyboard>
+      </BeginStoryboard>
+    </EventTrigger>
+    <EventTrigger RoutedEvent="MouseLeave">
+      <BeginStoryboard>
+        <Storyboard>
+          <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0.92" Duration="0:0:0.25"/>
+        </Storyboard>
+      </BeginStoryboard>
+    </EventTrigger>
+  </Window.Triggers>
+
+  <!-- Outer Glow Shell -->
+  <Border Margin="10" CornerRadius="18" Background="#F2080E1F" BorderBrush="#00F2FE" BorderThickness="1.5">
+    <Border.Effect>
+      <DropShadowEffect Color="#00F2FE" BlurRadius="16" ShadowDepth="0" Opacity="0.55"/>
+    </Border.Effect>
+
+    <StackPanel Padding="18,16">
+      <!-- Header Row: Station Name + Drag Indicator + Maximize & Close -->
+      <DockPanel Margin="0,0,0,14">
+        <!-- Station Identity Badge -->
+        <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+          <Border Background="#163155" BorderBrush="#00F2FE" BorderThickness="1" CornerRadius="8" Padding="8,3" Margin="0,0,8,0">
+            <StackPanel Orientation="Horizontal">
+              <md:PackIcon Kind="MonitorDashboard" Width="14" Height="14" Foreground="#00F2FE" VerticalAlignment="Center" Margin="0,0,4,0"/>
+              <TextBlock Text="{Binding MachineName}" Foreground="#00F2FE" FontWeight="Bold" FontSize="11.5" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Border>
+          <Border Background="#143528" BorderBrush="#10B981" BorderThickness="1" CornerRadius="8" Padding="6,3">
+            <StackPanel Orientation="Horizontal">
+              <Border Width="6" Height="6" CornerRadius="3" Background="#10B981" Margin="0,0,4,0" VerticalAlignment="Center">
+                <Border.Effect><DropShadowEffect Color="#10B981" BlurRadius="6" ShadowDepth="0" Opacity="0.9"/></Border.Effect>
+              </Border>
+              <TextBlock Text="LIVE" Foreground="#55F2A3" FontSize="10.5" FontWeight="Bold"/>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+        <!-- Window Actions (Restore & Close) -->
+        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+          <Button Click="Restore" ToolTip="Phóng to giao diện đầy đủ"
+                  Background="Transparent" BorderThickness="0" Foreground="#00F2FE"
+                  Cursor="Hand" Padding="4" Width="26" Height="26" Margin="0,0,4,0">
+            <md:PackIcon Kind="ArrowExpandAll" Width="16" Height="16"/>
+          </Button>
+          <Button Click="Restore" ToolTip="Đóng cửa sổ gọn"
+                  Background="Transparent" BorderThickness="0" Foreground="#94A3B8"
+                  Cursor="Hand" Padding="4" Width="26" Height="26">
+            <md:PackIcon Kind="Close" Width="16" Height="16"/>
+          </Button>
+        </StackPanel>
+      </DockPanel>
+
+      <!-- Drag Grip Hint -->
+      <Border HorizontalAlignment="Center" Width="36" Height="3" Background="#223A63" CornerRadius="1.5" Margin="0,-8,0,10" Cursor="SizeAll"/>
+
+      <!-- Hero Esports Countdown Timer Card -->
+      <Border Background="#0E1933" BorderBrush="#1E3766" BorderThickness="1.2" CornerRadius="14" Padding="14,10" Margin="0,0,0,12">
+        <StackPanel HorizontalAlignment="Center">
+          <TextBlock Text="⏱️ THỜI GIAN CÒN LẠI DỰ KIẾN" Foreground="#7FE8FF" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+          <TextBlock Text="{Binding RemainingLabel}" FontSize="28" FontWeight="Bold" Foreground="#00F2FE" HorizontalAlignment="Center" Margin="0,2,0,0">
+            <TextBlock.Effect>
+              <DropShadowEffect Color="#00F2FE" BlurRadius="10" ShadowDepth="0" Opacity="0.6"/>
+            </TextBlock.Effect>
+          </TextBlock>
+
+          <!-- Micro Divider -->
+          <Border Height="1" Background="#1C3056" Margin="0,8,0,8"/>
+
+          <!-- Sub Metrics: Elapsed & Balance -->
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="1"/>
+              <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Elapsed Time -->
+            <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+              <TextBlock Text="Đã sử dụng" Foreground="#8FAAC9" FontSize="10" HorizontalAlignment="Center"/>
+              <TextBlock Text="{Binding ElapsedLabel}" Foreground="#E2EDF9" FontWeight="SemiBold" FontSize="13.5" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+            </StackPanel>
+
+            <Border Grid.Column="1" Background="#1C3056" Margin="0,2"/>
+
+            <!-- Server Balance -->
+            <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+              <TextBlock Text="Số dư tài khoản" Foreground="#8FAAC9" FontSize="10" HorizontalAlignment="Center"/>
+              <TextBlock Text="{Binding BalanceLabel}" Foreground="#FFD700" FontWeight="Bold" FontSize="13.5" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+            </StackPanel>
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <!-- Low Balance Warning -->
+      <Border Background="#332412" BorderBrush="#F59E0B" BorderThickness="1" CornerRadius="8" Padding="10,6" Margin="0,0,0,10"
+              Visibility="{Binding LowBalance, Converter={StaticResource BoolVisible}}">
+        <StackPanel Orientation="Horizontal">
+          <md:PackIcon Kind="AlertCircleOutline" Width="16" Height="16" Foreground="#F59E0B" VerticalAlignment="Center" Margin="0,0,6,0"/>
+          <TextBlock Text="Số dư sắp hết · Vui lòng nạp thêm!" Foreground="#FDE68A" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+        </StackPanel>
+      </Border>
+
+      <!-- Primary Action: Restore Full Window -->
+      <Button Click="Restore" Style="{StaticResource CyberButton}" MinHeight="36" Height="38" Padding="0" Margin="0,0,0,8" Cursor="Hand">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+          <md:PackIcon Kind="WindowMaximize" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+          <TextBlock Text="MỞ GIAO DIỆN ĐẦY ĐỦ" FontWeight="Bold" FontSize="12.5" VerticalAlignment="Center"/>
+        </StackPanel>
+      </Button>
+
+      <!-- Secondary Quick Actions Row -->
+      <Grid Margin="0,0,0,8">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Lock Temporary Button -->
+        <Button Grid.Column="0" Command="{Binding LockTemporaryCommand}" IsEnabled="{Binding HasActiveSession}"
+                Background="#221C11" BorderBrush="#F59E0B" BorderThickness="1.2" Foreground="#FDE68A"
+                Cursor="Hand" MinHeight="32" Height="34" Padding="0" Margin="0,0,4,0">
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+            <md:PackIcon Kind="LockClock" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,4,0"/>
+            <TextBlock Text="Treo máy" FontWeight="SemiBold" FontSize="11.5" VerticalAlignment="Center"/>
+          </StackPanel>
+        </Button>
+
+        <!-- Request Support Button -->
+        <Button Grid.Column="1" Command="{Binding RequestSupportCommand}"
+                Background="#142842" BorderBrush="#38D9FF" BorderThickness="1.2" Foreground="#7FE8FF"
+                Cursor="Hand" MinHeight="32" Height="34" Padding="0" Margin="4,0,0,0">
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+            <md:PackIcon Kind="Headset" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,4,0"/>
+            <TextBlock Text="Gọi hỗ trợ" FontWeight="SemiBold" FontSize="11.5" VerticalAlignment="Center"/>
+          </StackPanel>
+        </Button>
+      </Grid>
+
+      <!-- Danger Action: End Session -->
+      <Button Command="{Binding EndSessionCommand}" IsEnabled="{Binding CanEndSession}"
+              Background="#24131C" BorderBrush="#EF4444" BorderThickness="1.2" Foreground="#FCA5A5"
+              Cursor="Hand" MinHeight="30" Height="32" Padding="0">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+          <md:PackIcon Kind="PowerStandby" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,4,0"/>
+          <TextBlock Text="Kết thúc phiên chơi" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+        </StackPanel>
+      </Button>
+    </StackPanel>
+  </Border>
+</Window>
+`;
+
+fs.writeFileSync('InternetCafe/apps/desktop-client/InternetCafe.Client/CompactWindow.xaml', newXaml, 'utf8');
+console.log('CompactWindow.xaml rewritten successfully!');
+
+// 2. Update CompactWindow.xaml.cs for drag move
+const newCs = `using System.ComponentModel;
+using System.Windows;
+using System.Windows.Input;
+using InternetCafe.Client.Core;
+
+namespace InternetCafe.Client;
+
+public partial class CompactWindow : Window
+{
+    private readonly MainWindow main;
+    public bool AllowClose { get; set; }
+
+    public CompactWindow(MainViewModel viewModel, MainWindow main)
+    {
+        InitializeComponent();
+        this.main = main;
+        DataContext = viewModel;
+        Left = SystemParameters.WorkArea.Right - Width - 16;
+        Top = SystemParameters.WorkArea.Top + 20;
+    }
+
+    private void OnDragMove(object sender, MouseButtonEventArgs e)
+    {
+        if (e.LeftButton == MouseButtonState.Pressed)
+        {
+            DragMove();
+        }
+    }
+
+    private void Restore(object sender, RoutedEventArgs e) => main.RestoreMain();
+
+    private void OnClosing(object? sender, CancelEventArgs e)
+    {
+        if (!AllowClose)
+        {
+            e.Cancel = true;
+            main.RestoreMain();
+        }
+    }
+}
+`;
+
+fs.writeFileSync('InternetCafe/apps/desktop-client/InternetCafe.Client/CompactWindow.xaml.cs', newCs, 'utf8');
+console.log('CompactWindow.xaml.cs updated successfully!');

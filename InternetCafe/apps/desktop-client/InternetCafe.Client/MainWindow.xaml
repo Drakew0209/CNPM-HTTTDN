@@ -3,94 +3,823 @@
   <Grid.RowDefinitions><RowDefinition Height="72"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="32"/></Grid.RowDefinitions>
   <Border Background="#0B1226" Padding="26,12"><DockPanel>
    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left"><md:PackIcon Kind="GamepadVariant" Width="34" Height="34" Foreground="#38D9FF" VerticalAlignment="Center" Margin="0,0,14,0"/><TextBlock Text="InternetCafe" Foreground="White" FontSize="23" FontWeight="SemiBold" VerticalAlignment="Center"/></StackPanel>
-   <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right" Orientation="Horizontal" Visibility="{Binding IsAuthenticated, Converter={StaticResource BoolVisible}}"><TextBlock Text="{Binding AccountName}" Foreground="White" VerticalAlignment="Center" Margin="18,0"/><Button Content="Cửa sổ gọn" Click="OpenCompact" Background="#38D9FF" Foreground="#0B1226"/><Button Content="Đăng xuất" Command="{Binding LogoutCommand}" Background="Transparent" Foreground="White" BorderBrush="#59759C"/></StackPanel>
+   <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right" Orientation="Horizontal" Visibility="{Binding IsAuthenticated, Converter={StaticResource BoolVisible}}">
+     <Border Background="#162E4A" BorderBrush="#00F2FE" BorderThickness="1.2" CornerRadius="8" Padding="10,4" Margin="0,0,12,0" VerticalAlignment="Center">
+      <TextBlock Text="{Binding VipBadge}" Foreground="#00F2FE" FontWeight="Bold" FontSize="11.5"/>
+     </Border>
+     <TextBlock Text="{Binding AccountName}" Foreground="White" VerticalAlignment="Center" Margin="0,0,14,0" FontWeight="SemiBold"/>
+     <Button Command="{Binding ToggleSoundCommand}" ToolTip="Bật / Tắt âm thanh Cyberpunk" Background="#132342" Foreground="#38D9FF" BorderBrush="#253E6B" MinHeight="32" Height="32" Padding="10,0" Margin="0,0,10,0">
+      <StackPanel Orientation="Horizontal">
+       <md:PackIcon Kind="VolumeHigh" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,4,0"/>
+       <TextBlock Text="SFX" FontWeight="Bold" FontSize="11.5" VerticalAlignment="Center"/>
+      </StackPanel>
+     </Button>
+     <Button Content="Cửa sổ gọn" Click="OpenCompact" Background="#38D9FF" Foreground="#0B1226"/>
+     <Button Content="Đăng xuất" Command="{Binding LogoutCommand}" Background="Transparent" Foreground="White" BorderBrush="#59759C"/>
+    </StackPanel>
   </DockPanel></Border>
   <StackPanel Grid.Row="1">
    <ProgressBar IsIndeterminate="True" Height="3" Visibility="{Binding IsBusy, Converter={StaticResource BoolVisible}}"/>
    <Border Background="#3A2A1A" Padding="24,10" Visibility="{Binding LowBalance, Converter={StaticResource BoolVisible}}"><TextBlock Text="Số dư hoặc thời gian thấp. Vui lòng nạp tại quầy." TextWrapping="Wrap" Foreground="#FFD18A"/></Border>
   </StackPanel>
-  <Grid Grid.Row="2" Visibility="{Binding IsAuthenticated, Converter={StaticResource BoolVisible}, ConverterParameter=Inverse}">
-   <Grid.RowDefinitions>
-    <RowDefinition Height="Auto"/>
-    <RowDefinition Height="*"/>
-   </Grid.RowDefinitions>
+  <!-- KIOSK ATTRACT MODE SCREENSAVER & CYBERPUNK LOGIN MODAL (Covers full window) -->
+  <Grid Grid.Row="0" Grid.RowSpan="4" Panel.ZIndex="2000"
+        Visibility="{Binding IsAuthenticated, Converter={StaticResource BoolVisible}, ConverterParameter=Inverse}">
    
-   <!-- Banner Khóa phòng máy Cybercafe -->
-   <Border Background="#101B33" BorderBrush="#38D9FF" BorderThickness="0,0,0,1" Padding="24,14">
-    <DockPanel MaxWidth="1100" HorizontalAlignment="Center">
-     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-      <md:PackIcon Kind="LockAlert" Width="38" Height="38" Foreground="#FF5C5C" VerticalAlignment="Center" Margin="0,0,14,0"/>
-      <StackPanel VerticalAlignment="Center">
-       <TextBlock Text="MÁY ĐANG KHÓA · CHƯA MỞ PHIÊN SỬ DỤNG" Foreground="#FF6B6B" FontSize="17" FontWeight="Bold"/>
-       <TextBlock Text="Vui lòng đăng nhập tài khoản hội viên hoặc liên hệ thu ngân tại quầy để nạp tiền mở máy." Foreground="#A8BFDF" FontSize="12" Margin="0,2,0,0"/>
-      </StackPanel>
-     </StackPanel>
-     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-      <Border Background="#193556" CornerRadius="8" Padding="12,6" Margin="0,0,12,0">
-       <TextBlock Text="{Binding MachineName, StringFormat='MÁY: {0}'}" Foreground="#38D9FF" FontWeight="Bold" FontSize="13"/>
-      </Border>
-      <Border Background="#214022" CornerRadius="8" Padding="12,6">
-       <TextBlock Text="{Binding HourlyRateLabel, StringFormat='GIÁ GIỜ: {0}'}" Foreground="#55F2A3" FontWeight="Bold" FontSize="13"/>
-      </Border>
-     </StackPanel>
-    </DockPanel>
-   </Border>
+   <!-- 1. Background Banner Carousel (Full Screen 16:9 Image with Dark Gradient Vignette) -->
+   <Grid MouseDown="OnScreensaverClicked" Cursor="Hand" Background="#080D1B">
+    <Image Source="{Binding CurrentBannerImage, Converter={StaticResource ImageSourceConverter}}"
+           Stretch="UniformToFill"
+           HorizontalAlignment="Center"
+           VerticalAlignment="Center"/>
+    
+    <!-- Dark Cyber Vignette Overlay for Crisp Readability -->
+    <Grid>
+     <Grid.Background>
+      <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+       <GradientStop Color="#B0050A14" Offset="0"/>
+       <GradientStop Color="#40080D1B" Offset="0.3"/>
+       <GradientStop Color="#30080D1B" Offset="0.6"/>
+       <GradientStop Color="#E6050914" Offset="1"/>
+      </LinearGradientBrush>
+     </Grid.Background>
+    </Grid>
 
-   <!-- Khung đăng nhập trung tâm phong cách Gaming Cybercafe -->
-   <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-    <Border Background="#0C152B" BorderBrush="#233B6B" BorderThickness="1.5" CornerRadius="20" Padding="40,32" MaxWidth="460" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,20">
-     <StackPanel>
-      <md:PackIcon Kind="AccountCircle" Width="52" Height="52" Foreground="#38D9FF" HorizontalAlignment="Center" Margin="0,0,0,10"/>
-      <TextBlock Text="HỘI VIÊN ĐĂNG NHẬP" Style="{StaticResource Heading}" HorizontalAlignment="Center" FontSize="22" Visibility="{Binding IsRegistering, Converter={StaticResource BoolVisible}, ConverterParameter=Inverse}"/>
-      <TextBlock Text="ĐĂNG KÝ HỘI VIÊN MỚI" Style="{StaticResource Heading}" HorizontalAlignment="Center" FontSize="22" Visibility="{Binding IsRegistering, Converter={StaticResource BoolVisible}}"/>
-      <TextBlock Text="Nhập tài khoản để mở khóa sử dụng máy tính." Style="{StaticResource Muted}" HorizontalAlignment="Center" Margin="0,4,0,14"/>
-      <Border Background="#162746" CornerRadius="8" Padding="12,6" Margin="0,0,0,16" HorizontalAlignment="Center">
-       <TextBlock Text="💡 Quý khách vui lòng đăng nhập hoặc đăng ký tài khoản hội viên" Foreground="#7FE8FF" FontSize="11" FontWeight="SemiBold"/>
+    <!-- Top HUD Header (Station Info & Cyber Branding) -->
+    <Grid VerticalAlignment="Top" Margin="32,24,32,0">
+     <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="Auto"/>
+      <ColumnDefinition Width="*"/>
+      <ColumnDefinition Width="Auto"/>
+     </Grid.ColumnDefinitions>
+
+     <!-- Left: Logo & Cyber Brand -->
+     <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center">
+      <Border Background="#122544" BorderBrush="#00F2FE" BorderThickness="1.5" CornerRadius="12" Padding="8" Margin="0,0,14,0">
+       <Border.Effect>
+        <DropShadowEffect Color="#00F2FE" BlurRadius="12" ShadowDepth="0" Opacity="0.8"/>
+       </Border.Effect>
+       <md:PackIcon Kind="GamepadVariant" Width="28" Height="28" Foreground="#00F2FE"/>
       </Border>
-      
-      <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Tên đăng nhập" MaxLength="30" AutomationProperties.Name="Tên đăng nhập"/>
-      <PasswordBox x:Name="LoginPassword" Style="{StaticResource Secret}" md:HintAssist.Hint="Mật khẩu" PasswordChanged="OnPasswordChanged" Tag="Password" MaxLength="100" AutomationProperties.Name="Mật khẩu"/>
-      
-      <StackPanel Visibility="{Binding IsRegistering, Converter={StaticResource BoolVisible}}">
-       <PasswordBox Style="{StaticResource Secret}" md:HintAssist.Hint="Nhập lại mật khẩu" PasswordChanged="OnPasswordChanged" Tag="PasswordConfirmation" MaxLength="100" AutomationProperties.Name="Nhập lại mật khẩu"/>
-       <TextBox Text="{Binding FullName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Họ và tên" MaxLength="100"/>
-       <TextBox Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Số điện thoại" MaxLength="13"/>
-       <TextBox Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Email" MaxLength="150"/>
-       <TextBox Text="{Binding DateOfBirth, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Ngày sinh (yyyy-MM-dd)" MaxLength="10"/>
-       <TextBox Text="{Binding Hobbies, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Sở thích" MaxLength="500" TextWrapping="Wrap"/>
-       <Button Content="Tạo tài khoản mới" Command="{Binding RegisterCommand}" Margin="0,14,0,0"/>
+      <StackPanel VerticalAlignment="Center">
+       <StackPanel Orientation="Horizontal">
+        <TextBlock Text="CYBER" Foreground="#00F2FE" FontSize="19" FontWeight="Black" Margin="0,0,6,0"/>
+        <TextBlock Text="MATRIX GAMING" Foreground="White" FontSize="19" FontWeight="Black"/>
+       </StackPanel>
+       <TextBlock Text="HỆ THỐNG PHÒNG MÁY ESPORTS CHUYÊN NGHIỆP" Foreground="#7AA4D4" FontSize="10.5" FontWeight="SemiBold" Margin="0,2,0,0"/>
       </StackPanel>
+     </StackPanel>
+
+     <!-- Right: Station Badges -->
+     <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Center">
+      <!-- Machine ID Badge -->
+      <Border Background="#132442" BorderBrush="#38D9FF" BorderThickness="1.2" CornerRadius="10" Padding="14,6" Margin="0,0,10,0">
+       <StackPanel Orientation="Horizontal">
+        <md:PackIcon Kind="Monitor" Width="18" Height="18" Foreground="#38D9FF" VerticalAlignment="Center" Margin="0,0,6,0"/>
+        <TextBlock Text="{Binding MachineName, StringFormat='MÁY: {0}'}" Foreground="#38D9FF" FontWeight="Bold" FontSize="13" VerticalAlignment="Center"/>
+       </StackPanel>
+      </Border>
+
+      <!-- Hardware Specs Chip -->
+      <Border Background="#0E192E" BorderBrush="#2A4370" BorderThickness="1" CornerRadius="10" Padding="12,6" Margin="0,0,10,0">
+       <StackPanel Orientation="Horizontal">
+        <md:PackIcon Kind="LightningBolt" Width="16" Height="16" Foreground="#FFD700" VerticalAlignment="Center" Margin="0,0,4,0"/>
+        <TextBlock Text="RTX 4070 · 240Hz 1ms · Fiber 1G" Foreground="#A9C7EC" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+       </StackPanel>
+      </Border>
+
+      <!-- Hourly Rate Badge -->
+      <Border Background="#113620" BorderBrush="#34D399" BorderThickness="1.2" CornerRadius="10" Padding="14,6">
+       <StackPanel Orientation="Horizontal">
+        <md:PackIcon Kind="CashFast" Width="18" Height="18" Foreground="#34D399" VerticalAlignment="Center" Margin="0,0,6,0"/>
+        <TextBlock Text="{Binding HourlyRateLabel, StringFormat='GIÁ: {0}'}" Foreground="#34D399" FontWeight="Bold" FontSize="13" VerticalAlignment="Center"/>
+       </StackPanel>
+      </Border>
+     </StackPanel>
+    </Grid>
+
+    <!-- Center & Bottom Screensaver Attract Content (Hidden when Login Modal is Open) -->
+    <Grid VerticalAlignment="Bottom" Margin="0,0,0,46"
+          Visibility="{Binding IsLoginModalOpen, Converter={StaticResource BoolVisible}, ConverterParameter=Inverse}">
+     <StackPanel HorizontalAlignment="Center">
       
-      <Button Content="ĐĂNG NHẬP MỞ MÁY" Command="{Binding LoginCommand}" Visibility="{Binding IsRegistering, Converter={StaticResource BoolVisible}, ConverterParameter=Inverse}" Margin="0,14,0,0" Background="#38D9FF" Foreground="#080D1B" FontWeight="Bold"/>
-      <Button Content="Chuyển đăng nhập / đăng ký" Command="{Binding ToggleRegistrationCommand}" Style="{StaticResource Secondary}" Margin="0,12,0,0"/>
-      <Button Content="Thoát ứng dụng (Esc)" Click="OnExitClick" Style="{StaticResource Secondary}" Margin="0,10,0,0" Foreground="#FF8A8A"/>
+      <!-- Live Cyber HUD Digital Clock -->
+      <TextBlock Text="{Binding DigitalClock}"
+                 FontSize="68"
+                 FontWeight="Black"
+                 Foreground="#FFFFFF"
+                 HorizontalAlignment="Center"
+                 TextAlignment="Center">
+       <TextBlock.Effect>
+        <DropShadowEffect Color="#00F2FE" BlurRadius="24" ShadowDepth="0" Opacity="0.85"/>
+       </TextBlock.Effect>
+      </TextBlock>
+
+      <!-- Vietnamese Date -->
+      <TextBlock Text="{Binding DigitalDate}"
+                 FontSize="17"
+                 FontWeight="SemiBold"
+                 Foreground="#A6C8EE"
+                 HorizontalAlignment="Center"
+                 Margin="0,2,0,26"/>
+
+      <!-- Pulsing Call-To-Action Button -->
+      <Button Command="{Binding OpenLoginModalCommand}"
+              Height="54"
+              Padding="36,0"
+              Background="#00F2FE"
+              Foreground="#040914"
+              FontWeight="Black"
+              FontSize="15"
+              BorderThickness="0"
+              Cursor="Hand">
+       <Button.Resources>
+        <Style TargetType="Border">
+         <Setter Property="CornerRadius" Value="27"/>
+        </Style>
+       </Button.Resources>
+       <Button.Effect>
+        <DropShadowEffect Color="#00F2FE" BlurRadius="28" ShadowDepth="0" Opacity="0.95"/>
+       </Button.Effect>
+       <StackPanel Orientation="Horizontal">
+        <md:PackIcon Kind="CursorPointer" Width="22" Height="22" VerticalAlignment="Center" Margin="0,0,10,0"/>
+        <TextBlock Text="CHẠM CHUỘT HOẶC NHẤN PHÍM BẤT KỲ ĐỂ BẮT ĐẦU" VerticalAlignment="Center"/>
+       </StackPanel>
+      </Button>
+
+      <!-- Banner 3-Dot Indicators -->
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,32,0,0">
+       <!-- Dot 0 -->
+       <Button Command="{Binding SelectBannerCommand}" CommandParameter="0"
+               Margin="5,0" Padding="0" Background="Transparent" BorderThickness="0" Cursor="Hand" Height="14">
+        <Border Height="8" CornerRadius="4">
+         <Border.Style>
+          <Style TargetType="Border">
+           <Setter Property="Background" Value="#355075"/>
+           <Setter Property="Width" Value="8"/>
+           <Style.Triggers>
+            <DataTrigger Binding="{Binding CurrentBannerIndex}" Value="0">
+             <Setter Property="Background" Value="#00F2FE"/>
+             <Setter Property="Width" Value="28"/>
+            </DataTrigger>
+           </Style.Triggers>
+          </Style>
+         </Border.Style>
+        </Border>
+       </Button>
+
+       <!-- Dot 1 -->
+       <Button Command="{Binding SelectBannerCommand}" CommandParameter="1"
+               Margin="5,0" Padding="0" Background="Transparent" BorderThickness="0" Cursor="Hand" Height="14">
+        <Border Height="8" CornerRadius="4">
+         <Border.Style>
+          <Style TargetType="Border">
+           <Setter Property="Background" Value="#355075"/>
+           <Setter Property="Width" Value="8"/>
+           <Style.Triggers>
+            <DataTrigger Binding="{Binding CurrentBannerIndex}" Value="1">
+             <Setter Property="Background" Value="#00F2FE"/>
+             <Setter Property="Width" Value="28"/>
+            </DataTrigger>
+           </Style.Triggers>
+          </Style>
+         </Border.Style>
+        </Border>
+       </Button>
+
+       <!-- Dot 2 -->
+       <Button Command="{Binding SelectBannerCommand}" CommandParameter="2"
+               Margin="5,0" Padding="0" Background="Transparent" BorderThickness="0" Cursor="Hand" Height="14">
+        <Border Height="8" CornerRadius="4">
+         <Border.Style>
+          <Style TargetType="Border">
+           <Setter Property="Background" Value="#355075"/>
+           <Setter Property="Width" Value="8"/>
+           <Style.Triggers>
+            <DataTrigger Binding="{Binding CurrentBannerIndex}" Value="2">
+             <Setter Property="Background" Value="#00F2FE"/>
+             <Setter Property="Width" Value="28"/>
+            </DataTrigger>
+           </Style.Triggers>
+          </Style>
+         </Border.Style>
+        </Border>
+       </Button>
+      </StackPanel>
+
+     </StackPanel>
+    </Grid>
+
+    <!-- Bottom Right: Quick Exit (Screensaver Mode) -->
+    <Button Click="OnExitClick"
+            VerticalAlignment="Bottom"
+            HorizontalAlignment="Right"
+            Margin="0,0,24,20"
+            Background="Transparent"
+            BorderBrush="#354968"
+            BorderThickness="1"
+            Foreground="#8FAACD"
+            Padding="12,6"
+            Cursor="Hand"
+            Visibility="{Binding IsLoginModalOpen, Converter={StaticResource BoolVisible}, ConverterParameter=Inverse}">
+     <StackPanel Orientation="Horizontal">
+      <md:PackIcon Kind="Power" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+      <TextBlock Text="Thoát (Esc)" FontSize="12" VerticalAlignment="Center"/>
+     </StackPanel>
+    </Button>
+
+   </Grid>
+
+   <!-- 2. Dark Glassmorphism Modal Backdrop & Cyber Mini Login Card (Active when IsLoginModalOpen == true) -->
+   <Grid Visibility="{Binding IsLoginModalOpen, Converter={StaticResource BoolVisible}}">
+    <!-- Dark Dimming Backdrop (Click to return to screensaver) -->
+    <Border Background="#C4050914" MouseDown="OnScreensaverBackgroundClicked"/>
+
+    <!-- Centered Cyber Mini Login Card -->
+    <Border Background="#F20D172E"
+            BorderBrush="#00F2FE"
+            BorderThickness="1.5"
+            CornerRadius="24"
+            Padding="36,30"
+            Width="440"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center">
+     <Border.Effect>
+      <DropShadowEffect Color="#00F2FE" BlurRadius="36" ShadowDepth="0" Opacity="0.6"/>
+     </Border.Effect>
+     <StackPanel>
+      <!-- Modal Header with Close Button -->
+      <DockPanel LastChildFill="False" Margin="0,0,0,16">
+       <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+        <Border Background="#142848" CornerRadius="10" Padding="8" Margin="0,0,12,0">
+         <md:PackIcon Kind="AccountKey" Width="26" Height="26" Foreground="#00F2FE"/>
+        </Border>
+        <StackPanel VerticalAlignment="Center">
+         <TextBlock Text="HỘI VIÊN ĐĂNG NHẬP"
+                    Foreground="White"
+                    FontSize="19"
+                    FontWeight="Bold"
+                    Visibility="{Binding IsRegistering, Converter={StaticResource BoolVisible}, ConverterParameter=Inverse}"/>
+         <TextBlock Text="ĐĂNG KÝ HỘI VIÊN MỚI"
+                    Foreground="White"
+                    FontSize="19"
+                    FontWeight="Bold"
+                    Visibility="{Binding IsRegistering, Converter={StaticResource BoolVisible}}"/>
+         <TextBlock Text="Nhập tài khoản để mở khóa sử dụng"
+                    Foreground="#7FA0C8"
+                    FontSize="11.5"
+                    Margin="0,2,0,0"/>
+        </StackPanel>
+       </StackPanel>
+       
+       <!-- Close Button (✕) -->
+       <Button DockPanel.Dock="Right"
+               Command="{Binding CloseLoginModalCommand}"
+               Width="32"
+               Height="32"
+               Padding="0"
+               Background="#182A4A"
+               BorderThickness="0"
+               Foreground="#A4C4E8"
+               ToolTip="Quay lại màn hình chờ"
+               Cursor="Hand"
+               VerticalAlignment="Center">
+        <Button.Resources>
+         <Style TargetType="Border">
+          <Setter Property="CornerRadius" Value="16"/>
+         </Style>
+        </Button.Resources>
+        <md:PackIcon Kind="Close" Width="18" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+       </Button>
+      </DockPanel>
+
+      <!-- Error / Notice Banner in Login Card -->
+      <Border Background="#451818" BorderBrush="#FF5C5C" BorderThickness="1" CornerRadius="10" Padding="12,8" Margin="0,0,0,14"
+              Visibility="{Binding Error, Converter={StaticResource EmptyVisible}, ConverterParameter=Inverse}">
+       <StackPanel Orientation="Horizontal">
+        <md:PackIcon Kind="AlertCircle" Width="18" Height="18" Foreground="#FF6B6B" VerticalAlignment="Center" Margin="0,0,8,0"/>
+        <TextBlock Text="{Binding Error}" Foreground="#FFC1C1" FontSize="11.5" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center"/>
+       </StackPanel>
+      </Border>
+
+      <!-- Input Fields -->
+      <TextBox x:Name="LoginUsername"
+               Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
+               Style="{StaticResource Field}"
+               md:HintAssist.Hint="Tên đăng nhập"
+               MaxLength="30"
+               KeyDown="OnLoginFieldKeyDown"
+               AutomationProperties.Name="Tên đăng nhập"
+               Margin="0,0,0,14"/>
+
+      <PasswordBox x:Name="LoginPassword"
+                   Style="{StaticResource Secret}"
+                   md:HintAssist.Hint="Mật khẩu"
+                   PasswordChanged="OnPasswordChanged"
+                   KeyDown="OnLoginFieldKeyDown"
+                   Tag="Password"
+                   MaxLength="100"
+                   AutomationProperties.Name="Mật khẩu"
+                   Margin="0,0,0,14"/>
+
+      <!-- Registration Extra Fields -->
+      <StackPanel Visibility="{Binding IsRegistering, Converter={StaticResource BoolVisible}}">
+       <PasswordBox Style="{StaticResource Secret}"
+                    md:HintAssist.Hint="Nhập lại mật khẩu"
+                    PasswordChanged="OnPasswordChanged"
+                    KeyDown="OnLoginFieldKeyDown"
+                    Tag="PasswordConfirmation"
+                    MaxLength="100"
+                    AutomationProperties.Name="Nhập lại mật khẩu"
+                    Margin="0,0,0,14"/>
+       <TextBox Text="{Binding FullName, UpdateSourceTrigger=PropertyChanged}"
+                Style="{StaticResource Field}"
+                md:HintAssist.Hint="Họ và tên"
+                MaxLength="100"
+                KeyDown="OnLoginFieldKeyDown"
+                Margin="0,0,0,14"/>
+       <TextBox Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}"
+                Style="{StaticResource Field}"
+                md:HintAssist.Hint="Số điện thoại"
+                MaxLength="13"
+                KeyDown="OnLoginFieldKeyDown"
+                Margin="0,0,0,14"/>
+       <TextBox Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"
+                Style="{StaticResource Field}"
+                md:HintAssist.Hint="Email"
+                MaxLength="150"
+                KeyDown="OnLoginFieldKeyDown"
+                Margin="0,0,0,14"/>
+       <TextBox Text="{Binding DateOfBirth, UpdateSourceTrigger=PropertyChanged}"
+                Style="{StaticResource Field}"
+                md:HintAssist.Hint="Ngày sinh (yyyy-MM-dd)"
+                MaxLength="10"
+                KeyDown="OnLoginFieldKeyDown"
+                Margin="0,0,0,14"/>
+       <TextBox Text="{Binding Hobbies, UpdateSourceTrigger=PropertyChanged}"
+                Style="{StaticResource Field}"
+                md:HintAssist.Hint="Sở thích"
+                MaxLength="500"
+                TextWrapping="Wrap"
+                Margin="0,0,0,14"/>
+       
+       <Button Content="TẠO TÀI KHOẢN MỚI"
+               Command="{Binding RegisterCommand}"
+               Height="46"
+               Background="#00F2FE"
+               Foreground="#040914"
+               FontWeight="Bold"
+               FontSize="14"
+               Margin="0,6,0,0"
+               Cursor="Hand"/>
+      </StackPanel>
+
+      <!-- Login Button -->
+      <Button Content="ĐĂNG NHẬP MỞ MÁY"
+              Command="{Binding LoginCommand}"
+              Visibility="{Binding IsRegistering, Converter={StaticResource BoolVisible}, ConverterParameter=Inverse}"
+              Height="48"
+              Background="#00F2FE"
+              Foreground="#040914"
+              FontWeight="Black"
+              FontSize="15"
+              Margin="0,4,0,0"
+              Cursor="Hand">
+       <Button.Resources>
+        <Style TargetType="Border">
+         <Setter Property="CornerRadius" Value="12"/>
+        </Style>
+       </Button.Resources>
+       <Button.Effect>
+        <DropShadowEffect Color="#00F2FE" BlurRadius="20" ShadowDepth="0" Opacity="0.8"/>
+       </Button.Effect>
+      </Button>
+
+      <!-- Toggle Login / Register Button -->
+      <Button Content="Chuyển đăng nhập / đăng ký"
+              Command="{Binding ToggleRegistrationCommand}"
+              Style="{StaticResource Secondary}"
+              Margin="0,14,0,0"
+              Cursor="Hand"/>
+
+      <!-- Back to Screensaver Button -->
+      <Button Content="Quay lại màn hình chờ"
+              Command="{Binding CloseLoginModalCommand}"
+              Style="{StaticResource Secondary}"
+              Foreground="#8FAACD"
+              Margin="0,8,0,0"
+              Cursor="Hand"/>
      </StackPanel>
     </Border>
-   </ScrollViewer>
+   </Grid>
+
   </Grid>
   <Grid Grid.Row="2" Visibility="{Binding IsAuthenticated, Converter={StaticResource BoolVisible}}">
    <TabControl x:Name="MainTabs" SelectedIndex="{Binding SelectedTab}" TabStripPlacement="Left" Margin="14,20,24,0" Background="#080D1B" BorderThickness="0">
-    <TabControl.Resources><Style TargetType="TabItem" BasedOn="{StaticResource MaterialDesignTabItem}"><Setter Property="MinWidth" Value="158"/><Setter Property="MinHeight" Value="50"/><Setter Property="Padding" Value="16,0"/><Setter Property="Foreground" Value="#AFC3E2"/><Setter Property="HorizontalContentAlignment" Value="Left"/><Style.Triggers><Trigger Property="IsSelected" Value="True"><Setter Property="Foreground" Value="#39D8FF"/><Setter Property="FontWeight" Value="SemiBold"/></Trigger></Style.Triggers></Style></TabControl.Resources>
-    <TabItem Header="Tổng quan"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="24,0,0,20">
+    <TabControl.Resources>
+      <Style TargetType="TabItem">
+       <Setter Property="MinWidth" Value="176"/>
+       <Setter Property="MinHeight" Value="44"/>
+       <Setter Property="Margin" Value="0,0,0,5"/>
+       <Setter Property="Foreground" Value="#8FAACD"/>
+       <Setter Property="Cursor" Value="Hand"/>
+       <Setter Property="Template">
+        <Setter.Value>
+         <ControlTemplate TargetType="TabItem">
+          <Border x:Name="TabBorder" CornerRadius="10" Background="Transparent" Padding="12,9" Margin="0,0,14,0">
+           <Grid>
+            <!-- Left Neon Accent Bar for Active State -->
+            <Border x:Name="ActiveBar" Width="3.2" HorizontalAlignment="Left" CornerRadius="1.6" Background="#00F2FE" Opacity="0" Margin="-12,-2,0,-2">
+             <Border.Effect>
+              <DropShadowEffect Color="#00F2FE" BlurRadius="8" ShadowDepth="0" Opacity="0.95"/>
+             </Border.Effect>
+            </Border>
+            <ContentPresenter ContentSource="Header" VerticalAlignment="Center" Margin="6,0,0,0"/>
+           </Grid>
+          </Border>
+          <ControlTemplate.Triggers>
+           <Trigger Property="IsMouseOver" Value="True">
+            <Setter TargetName="TabBorder" Property="Background" Value="#13233E"/>
+            <Setter Property="Foreground" Value="#E2EDF9"/>
+           </Trigger>
+           <Trigger Property="IsSelected" Value="True">
+            <Setter TargetName="TabBorder" Property="Background">
+             <Setter.Value>
+              <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+               <GradientStop Color="#183158" Offset="0"/>
+               <GradientStop Color="#0F1E38" Offset="1"/>
+              </LinearGradientBrush>
+             </Setter.Value>
+            </Setter>
+            <Setter TargetName="ActiveBar" Property="Opacity" Value="1"/>
+            <Setter Property="Foreground" Value="#00F2FE"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+           </Trigger>
+          </ControlTemplate.Triggers>
+         </ControlTemplate>
+        </Setter.Value>
+       </Setter>
+      </Style>
+      <Style TargetType="ScrollViewer">
+       <Setter Property="RenderTransform">
+        <Setter.Value>
+         <TranslateTransform Y="0"/>
+        </Setter.Value>
+       </Setter>
+       <Style.Triggers>
+        <EventTrigger RoutedEvent="Loaded">
+         <BeginStoryboard>
+          <Storyboard>
+           <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.3" To="1.0" Duration="0:0:0.22">
+            <DoubleAnimation.EasingFunction><QuadraticEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+           </DoubleAnimation>
+           <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(TranslateTransform.Y)" From="14" To="0" Duration="0:0:0.25">
+            <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+           </DoubleAnimation>
+          </Storyboard>
+         </BeginStoryboard>
+        </EventTrigger>
+       </Style.Triggers>
+      </Style>
+     </TabControl.Resources>
+    <TabItem>
+     <TabItem.Header>
+      <DockPanel Width="146">
+       <md:PackIcon Kind="ViewDashboardOutline" Width="18" Height="18" Foreground="#00F2FE" VerticalAlignment="Center" Margin="0,0,10,0"/>
+       <TextBlock Text="Tổng quan" FontSize="13" VerticalAlignment="Center"/>
+      </DockPanel>
+     </TabItem.Header><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="24,0,0,20">
      <TextBlock Text="Tổng quan" Style="{StaticResource Heading}"/>
-     <Border Style="{StaticResource Card}" Padding="0"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="6"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Border Background="#39D8FF" CornerRadius="16,0,0,16"/><StackPanel Grid.Column="1" Margin="28,24"><StackPanel Orientation="Horizontal" Margin="0,0,0,12"><Border Background="#163B50" CornerRadius="10" Padding="10,5"><TextBlock Text="TRẠNG THÁI MÁY" Foreground="#7FE8FF" FontSize="11" FontWeight="SemiBold"/></Border></StackPanel><TextBlock Text="{Binding MachineName}" FontSize="34" FontWeight="SemiBold"/><TextBlock Text="{Binding SessionStatus}" Foreground="#B8CBE8" Margin="0,6,0,0"/><TextBlock Text="{Binding HourlyRateLabel}" Foreground="#7FE8FF" FontWeight="SemiBold" Margin="0,6,0,18"/><WrapPanel><Button Content="Kết thúc phiên" Command="{Binding EndSessionCommand}" IsEnabled="{Binding CanEndSession}" Style="{StaticResource Secondary}"/><Button Content="Thu gọn" Click="OpenCompact" Style="{StaticResource Secondary}"/><Button Content="Treo máy" Command="{Binding LockTemporaryCommand}" IsEnabled="{Binding HasActiveSession}" Style="{StaticResource Secondary}" Margin="6,0,0,0"/></WrapPanel></StackPanel><StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="24,0,30,0"><md:PackIcon Kind="Monitor" Width="72" Height="72" Foreground="#59DFFB" HorizontalAlignment="Center"/></StackPanel></Grid></Border>
+     <Border Style="{StaticResource Card}" Padding="0" Background="#0C152B" BorderBrush="#1C2E52" BorderThickness="1.5">
+      <Grid>
+       <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="6"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+       </Grid.ColumnDefinitions>
+
+       <!-- Left Cyan Accent Line -->
+       <Border Background="#00F2FE" CornerRadius="16,0,0,16">
+        <Border.Effect>
+         <DropShadowEffect Color="#00F2FE" BlurRadius="10" ShadowDepth="0" Opacity="0.8"/>
+        </Border.Effect>
+       </Border>
+
+       <!-- Left Info & Actions -->
+       <StackPanel Grid.Column="1" Margin="28,20">
+        <!-- Status Badge Row -->
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+         <Border Background="#14352E" BorderBrush="#10B981" BorderThickness="1" CornerRadius="8" Padding="10,4" Margin="0,0,10,0">
+          <StackPanel Orientation="Horizontal">
+           <Border Width="6" Height="6" CornerRadius="3" Background="#10B981" Margin="0,0,6,0" VerticalAlignment="Center">
+            <Border.Effect><DropShadowEffect Color="#10B981" BlurRadius="6" ShadowDepth="0" Opacity="0.9"/></Border.Effect>
+           </Border>
+           <TextBlock Text="ĐANG HOẠT ĐỘNG · BẢO VỆ PHÒNG MÁY" Foreground="#55F2A3" FontSize="11" FontWeight="Bold"/>
+          </StackPanel>
+         </Border>
+
+         <Border Background="#162E4A" BorderBrush="#00F2FE" BorderThickness="1" CornerRadius="8" Padding="10,4">
+          <TextBlock Text="{Binding HourlyRateLabel, StringFormat='🏷️ ĐƠN GIÁ: {0}'}" Foreground="#38D9FF" FontSize="11" FontWeight="Bold"/>
+         </Border>
+        </StackPanel>
+
+        <!-- Machine Name & Status -->
+        <TextBlock Text="{Binding MachineName}" FontSize="36" FontWeight="Bold" Foreground="White" Margin="0,0,0,2"/>
+        <TextBlock Text="{Binding SessionStatus}" Foreground="#94A3B8" FontSize="13" Margin="0,0,0,16"/>
+
+        <!-- Action Buttons -->
+        <WrapPanel>
+         <Button Command="{Binding EndSessionCommand}" IsEnabled="{Binding CanEndSession}"
+                 Background="#2E1724" BorderBrush="#EF4444" BorderThickness="1.2" Foreground="#FCA5A5"
+                 Cursor="Hand" MinHeight="36" Height="36" Padding="14,0" Margin="0,0,10,0">
+          <StackPanel Orientation="Horizontal">
+           <md:PackIcon Kind="PowerStandby" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+           <TextBlock Text="Kết thúc phiên" FontWeight="SemiBold" FontSize="12.5" VerticalAlignment="Center"/>
+          </StackPanel>
+         </Button>
+
+         <Button Click="OpenCompact"
+                 Background="#132B45" BorderBrush="#00F2FE" BorderThickness="1.2" Foreground="#38D9FF"
+                 Cursor="Hand" MinHeight="36" Height="36" Padding="14,0" Margin="0,0,10,0">
+          <StackPanel Orientation="Horizontal">
+           <md:PackIcon Kind="ArrowCollapseAll" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+           <TextBlock Text="Cửa sổ gọn" FontWeight="SemiBold" FontSize="12.5" VerticalAlignment="Center"/>
+          </StackPanel>
+         </Button>
+
+         <Button Command="{Binding LockTemporaryCommand}" IsEnabled="{Binding HasActiveSession}"
+                 Background="#2B2416" BorderBrush="#F59E0B" BorderThickness="1.2" Foreground="#FDE68A"
+                 Cursor="Hand" MinHeight="36" Height="36" Padding="14,0">
+          <StackPanel Orientation="Horizontal">
+           <md:PackIcon Kind="LockClock" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+           <TextBlock Text="Treo máy" FontWeight="SemiBold" FontSize="12.5" VerticalAlignment="Center"/>
+          </StackPanel>
+         </Button>
+        </WrapPanel>
+       </StackPanel>
+
+       <!-- Right Column: Holographic Gaming Battlestation HUD -->
+       <Border Grid.Column="2" Background="#080E1F" BorderBrush="#1C2E52" BorderThickness="1.2" CornerRadius="14"
+               Padding="16,12" Margin="14,16,24,16" VerticalAlignment="Center">
+        <Border.Effect>
+         <DropShadowEffect Color="#00F2FE" BlurRadius="16" ShadowDepth="0" Opacity="0.3"/>
+        </Border.Effect>
+        <Grid>
+         <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="Auto"/>
+         </Grid.ColumnDefinitions>
+
+         <!-- Animated Tech Hologram Avatar with Rotating Ring -->
+         <Grid Width="84" Height="84" Margin="0,0,16,0" VerticalAlignment="Center">
+          <!-- Outer Rotating Tech Hexagon / Circle -->
+          <Ellipse Width="82" Height="82" Stroke="#00F2FE" StrokeThickness="1.5" StrokeDashArray="4 3" RenderTransformOrigin="0.5,0.5">
+           <Ellipse.RenderTransform>
+            <RotateTransform Angle="0"/>
+           </Ellipse.RenderTransform>
+           <Ellipse.Triggers>
+            <EventTrigger RoutedEvent="Ellipse.Loaded">
+             <BeginStoryboard>
+              <Storyboard RepeatBehavior="Forever">
+               <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(RotateTransform.Angle)"
+                                From="0" To="360" Duration="0:0:10"/>
+              </Storyboard>
+             </BeginStoryboard>
+            </EventTrigger>
+           </Ellipse.Triggers>
+          </Ellipse>
+
+          <!-- Inner Pulsing Glow Background -->
+          <Border Width="64" Height="64" CornerRadius="32" Background="#112445" BorderBrush="#254A80" BorderThickness="1.5"
+                  HorizontalAlignment="Center" VerticalAlignment="Center">
+           <Border.Effect>
+            <DropShadowEffect Color="#00F2FE" BlurRadius="14" ShadowDepth="0" Opacity="0.6"/>
+           </Border.Effect>
+           <Grid>
+            <!-- Battlestation Icon -->
+            <md:PackIcon Kind="MonitorDashboard" Width="34" Height="34" Foreground="#00F2FE" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <!-- Little Gamepad Badge at Corner -->
+            <Border Background="#A855F7" CornerRadius="7" Width="16" Height="16" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,4,4">
+             <md:PackIcon Kind="LightningBolt" Width="10" Height="10" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+           </Grid>
+          </Border>
+         </Grid>
+
+         <!-- Station Live Hardware Specs -->
+         <StackPanel Grid.Column="1" VerticalAlignment="Center" MinWidth="180">
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+           <Border Background="#163C2E" BorderBrush="#10B981" BorderThickness="1" CornerRadius="6" Padding="6,2" Margin="0,0,6,0">
+            <StackPanel Orientation="Horizontal">
+             <Border Width="5" Height="5" CornerRadius="2.5" Background="#10B981" Margin="0,0,4,0" VerticalAlignment="Center"/>
+             <TextBlock Text="PRO GAMING RIG" Foreground="#34D399" FontSize="9.5" FontWeight="Bold"/>
+            </StackPanel>
+           </Border>
+           <Border Background="#1E2A4A" CornerRadius="6" Padding="6,2">
+            <TextBlock Text="240Hz Fast-IPS" Foreground="#38D9FF" FontSize="9.5" FontWeight="Bold"/>
+           </Border>
+          </StackPanel>
+
+          <!-- Spec Lines -->
+          <Grid Margin="0,2,0,2">
+           <Grid.ColumnDefinitions><ColumnDefinition Width="65"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+           <TextBlock Text="Cấu hình:" Foreground="#8FAAC9" FontSize="11"/>
+           <TextBlock Grid.Column="1" Text="RTX 4070 · i7 14700F" Foreground="#E2EDF9" FontWeight="SemiBold" FontSize="11"/>
+          </Grid>
+          <Grid Margin="0,2,0,2">
+           <Grid.ColumnDefinitions><ColumnDefinition Width="65"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+           <TextBlock Text="Độ trễ Ping:" Foreground="#8FAAC9" FontSize="11"/>
+           <StackPanel Grid.Column="1" Orientation="Horizontal">
+            <TextBlock Text="⚡ 1 ms" Foreground="#10B981" FontWeight="Bold" FontSize="11"/>
+            <TextBlock Text="(Cực nhạy)" Foreground="#64748B" FontSize="10" Margin="4,0,0,0" VerticalAlignment="Center"/>
+           </StackPanel>
+          </Grid>
+          <Grid Margin="0,2,0,0">
+           <Grid.ColumnDefinitions><ColumnDefinition Width="65"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+           <TextBlock Text="Âm thanh:" Foreground="#8FAAC9" FontSize="11"/>
+           <TextBlock Grid.Column="1" Text="Cyber SFX Engine" Foreground="#A78BFA" FontWeight="SemiBold" FontSize="11"/>
+          </Grid>
+         </StackPanel>
+        </Grid>
+       </Border>
+      </Grid>
+     </Border>
      <UniformGrid Columns="3" Margin="0,0,0,4"><Border Style="{StaticResource Card}" Margin="0,0,14,18"><StackPanel><TextBlock Text="Số dư máy chủ" Style="{StaticResource Muted}"/><TextBlock Text="{Binding BalanceLabel}" FontSize="27" FontWeight="SemiBold"/></StackPanel></Border><Border Style="{StaticResource Card}" Margin="0,0,14,18"><StackPanel><TextBlock Text="Đã sử dụng" Style="{StaticResource Muted}"/><TextBlock Text="{Binding ElapsedLabel}" FontSize="27" FontWeight="SemiBold"/></StackPanel></Border><Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Còn lại dự kiến" Style="{StaticResource Muted}"/><TextBlock Text="{Binding RemainingLabel}" FontSize="27" FontWeight="SemiBold"/></StackPanel></Border></UniformGrid>
      <TextBlock Text="Thời gian còn lại là ước tính." Style="{StaticResource Muted}"/>
      <TextBlock Text="{Binding SessionSummary}" TextWrapping="Wrap" Margin="0,0,0,16"/>
+      <!-- Gamification VIP Rank & Cyber Lucky Wheel -->
+      <Border Style="{StaticResource Card}" Background="#0C152B" BorderBrush="#203864" Padding="20" Margin="0,0,0,18">
+       <Grid>
+        <Grid.ColumnDefinitions>
+         <ColumnDefinition Width="*"/>
+         <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Column="0" Margin="0,0,24,0">
+         <DockPanel Margin="0,0,0,8">
+          <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+           <Border Background="#162E4A" BorderBrush="#00F2FE" BorderThickness="1.2" CornerRadius="10" Padding="10,4" Margin="0,0,12,0">
+            <TextBlock Text="{Binding VipBadge}" Foreground="#00F2FE" FontWeight="Bold" FontSize="12.5"/>
+           </Border>
+           <TextBlock Text="Đẳng cấp hội viên Cybercafe" Foreground="#A0B8DE" FontSize="13" VerticalAlignment="Center"/>
+          </StackPanel>
+          <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Foreground="#55F2A3" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"
+                     Text="{Binding DailyStreak, StringFormat='🔥 Chuỗi điểm danh: {0} ngày liên tiếp'}"/>
+         </DockPanel>
+
+         <!-- EXP Progress Bar -->
+         <DockPanel Margin="0,4,0,4">
+          <TextBlock Text="Tiến độ tích lũy thăng hạng VIP:" Foreground="#8FAACD" FontSize="11.5"/>
+          <TextBlock HorizontalAlignment="Right" Foreground="#00F2FE" FontWeight="SemiBold" FontSize="11.5">
+           <TextBlock.Text>
+            <MultiBinding StringFormat="{}{0} / {1} EXP ({2:0}%)">
+             <Binding Path="CurrentExp"/>
+             <Binding Path="TargetExp"/>
+             <Binding Path="ExpPercentage"/>
+            </MultiBinding>
+           </TextBlock.Text>
+          </TextBlock>
+         </DockPanel>
+         <Grid Margin="0,2,0,0">
+          <ProgressBar Value="{Binding ExpPercentage}" Maximum="100" Height="8" Foreground="#00F2FE" Background="#14213D" BorderThickness="0"/>
+          <Border ClipToBounds="True" Height="8" HorizontalAlignment="Stretch">
+           <Border Width="70" HorizontalAlignment="Left" Opacity="0.55">
+            <Border.Background>
+             <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+              <GradientStop Color="Transparent" Offset="0"/>
+              <GradientStop Color="#FFFFFF" Offset="0.5"/>
+              <GradientStop Color="Transparent" Offset="1"/>
+             </LinearGradientBrush>
+            </Border.Background>
+            <Border.RenderTransform>
+             <TranslateTransform x:Name="ShimmerTranslate" X="-70"/>
+            </Border.RenderTransform>
+            <Border.Triggers>
+             <EventTrigger RoutedEvent="Border.Loaded">
+              <BeginStoryboard>
+               <Storyboard RepeatBehavior="Forever">
+                <DoubleAnimation Storyboard.TargetName="ShimmerTranslate"
+                                 Storyboard.TargetProperty="X"
+                                 From="-70" To="480" Duration="0:0:2.8">
+                 <DoubleAnimation.EasingFunction>
+                  <QuadraticEase EasingMode="EaseInOut"/>
+                 </DoubleAnimation.EasingFunction>
+                </DoubleAnimation>
+                <DoubleAnimation Storyboard.TargetName="ShimmerTranslate"
+                                 Storyboard.TargetProperty="X"
+                                 From="480" To="480" Duration="0:0:0.8"/>
+               </Storyboard>
+              </BeginStoryboard>
+             </EventTrigger>
+            </Border.Triggers>
+           </Border>
+          </Border>
+         </Grid>
+        </StackPanel>
+
+        <!-- Lucky Spin Action -->
+        <Border Grid.Column="1" Background="#111F38" BorderBrush="#243D69" BorderThickness="1" CornerRadius="12" Padding="16,12" VerticalAlignment="Center">
+         <StackPanel HorizontalAlignment="Center">
+          <TextBlock Text="{Binding LuckySpins, StringFormat='🎁 {0} lượt quay miễn phí'}" Foreground="#FFD700" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+          <Button Content="🎲 QUAY THƯỞNG CYBER" Command="{Binding PlayLuckySpinCommand}" Style="{StaticResource CyberButton}" MinHeight="34" Height="34" Padding="14,0" FontSize="11.5"/>
+         </StackPanel>
+        </Border>
+       </Grid>
+      </Border>
      <Border Style="{StaticResource Card}"><StackPanel><DockPanel><TextBlock Text="Lịch sử sử dụng" Style="{StaticResource Subheading}"/><Button Content="Gọi hỗ trợ" Command="{Binding RequestSupportCommand}" HorizontalAlignment="Right" Style="{StaticResource Secondary}"/></DockPanel><TextBlock Text="Chưa có phiên sử dụng." Style="{StaticResource Muted}" Visibility="{Binding Sessions.Count, Converter={StaticResource EmptyVisible}}"/><DataGrid ItemsSource="{Binding Sessions}" MaxHeight="270"><DataGrid.Columns><DataGridTextColumn Header="Máy" Binding="{Binding ComputerId}" Width="100"/><DataGridTextColumn Header="Bắt đầu" Binding="{Binding Started}" Width="*"/><DataGridTextColumn Header="Kết thúc" Binding="{Binding Ended}" Width="*"/><DataGridTextColumn Header="Phí máy chủ" Binding="{Binding Billed}" Width="140"/></DataGrid.Columns></DataGrid></StackPanel></Border>
     </StackPanel></ScrollViewer></TabItem>
-    <TabItem Header="Menu Game">
+    <TabItem>
+     <TabItem.Header>
+      <DockPanel Width="146">
+       <md:PackIcon Kind="GamepadVariantOutline" Width="18" Height="18" Foreground="#C084FC" VerticalAlignment="Center" Margin="0,0,10,0"/>
+       <Border DockPanel.Dock="Right" Background="#B91C1C" CornerRadius="6" Padding="5,1" VerticalAlignment="Center">
+        <TextBlock Text="HOT" Foreground="White" FontSize="9" FontWeight="Bold"/>
+       </Border>
+       <TextBlock Text="Menu Game" FontSize="13" VerticalAlignment="Center"/>
+      </DockPanel>
+     </TabItem.Header>
      <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="24,0,24,20">
        <DockPanel Margin="0,0,0,16">
         <StackPanel DockPanel.Dock="Left">
          <TextBlock Text="Menu Game Cybercafe" Style="{StaticResource Heading}"/>
-         <TextBlock Text="Chọn biểu tượng game để khởi động nhanh và vào trận ngay lập tức:" Style="{StaticResource Muted}"/>
+         <TextBlock Text="Dàn máy RTX 4070 · Màn hình 240Hz 1ms · Tối ưu hóa 1-Click Launch:" Style="{StaticResource Muted}"/>
         </StackPanel>
         <TextBox DockPanel.Dock="Right" HorizontalAlignment="Right" Width="260"
                  Text="{Binding GameSearch, UpdateSourceTrigger=PropertyChanged}"
                  Style="{StaticResource Field}" md:HintAssist.Hint="🔍 Tìm game nhanh..." MinHeight="42" Margin="0"/>
        </DockPanel>
+
+       <!-- Featured Hero Game Banner -->
+       <Border Margin="0,0,0,20" CornerRadius="20" BorderThickness="1.5" BorderBrush="#2A3F6D" Background="#0C152B" ClipToBounds="True">
+        <Border.Effect>
+         <DropShadowEffect Color="#00F2FE" BlurRadius="25" ShadowDepth="0" Opacity="0.25"/>
+        </Border.Effect>
+        <Grid MinHeight="160">
+         <Grid.Background>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+           <GradientStop Color="#14213D" Offset="0"/>
+           <GradientStop Color="#091224" Offset="0.6"/>
+           <GradientStop Color="#170F2C" Offset="1"/>
+          </LinearGradientBrush>
+         </Grid.Background>
+         
+         <Grid Margin="24,18">
+          <Grid.ColumnDefinitions>
+           <ColumnDefinition Width="*"/>
+           <ColumnDefinition Width="Auto"/>
+          </Grid.ColumnDefinitions>
+
+          <!-- Hero Left Details -->
+          <StackPanel VerticalAlignment="Center">
+           <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+            <Border Background="#DC2626" CornerRadius="6" Padding="8,3" Margin="0,0,8,0">
+             <TextBlock Text="🔥 TÂM ĐIỂM ESPORTS CYBERCAFE" Foreground="White" FontSize="10.5" FontWeight="Bold"/>
+            </Border>
+            <Border Background="#1E293B" BorderBrush="#38BDF8" BorderThickness="1" CornerRadius="6" Padding="8,3">
+             <TextBlock Text="⚡ 240 FPS · 1MS FIBER" Foreground="#38BDF8" FontSize="10.5" FontWeight="SemiBold"/>
+            </Border>
+           </StackPanel>
+
+           <TextBlock Text="VALORANT &amp; LIÊN MINH HUYỀN THOẠI" FontSize="21" FontWeight="Bold" Foreground="White"/>
+           <TextBlock Text="Đã cập nhật phiên bản mới nhất · Sẵn sàng vào trận ngay tức thì không cần chờ tải!" 
+                      Foreground="#94A3B8" FontSize="12.5" Margin="0,4,0,14" TextWrapping="Wrap"/>
+
+           <StackPanel Orientation="Horizontal">
+            <Button Command="{Binding LaunchFeaturedGameCommand}"
+                    Background="#00F2FE" Foreground="#080D1B" FontWeight="Bold" FontSize="13"
+                    Padding="20,8" Cursor="Hand" Style="{StaticResource Primary}">
+             <StackPanel Orientation="Horizontal">
+              <md:PackIcon Kind="PlayCircle" Width="18" Height="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
+              <TextBlock Text="KHỞI ĐỘNG VÀO TRẬN NGAY" VerticalAlignment="Center"/>
+             </StackPanel>
+            </Button>
+
+            <Button Command="{Binding RequestSupportCommand}" Margin="12,0,0,0"
+                    BorderBrush="#334155" Background="#1E293B" Foreground="#E2E8F0"
+                    FontSize="12.5" Padding="14,8" Style="{StaticResource Secondary}">
+             <StackPanel Orientation="Horizontal">
+              <md:PackIcon Kind="TrophyOutline" Width="16" Height="16" Foreground="#F59E0B" Margin="0,0,6,0" VerticalAlignment="Center"/>
+              <TextBlock Text="Đăng ký giải đấu" VerticalAlignment="Center"/>
+             </StackPanel>
+            </Button>
+           </StackPanel>
+          </StackPanel>
+
+          <!-- Hero Right Artwork Cutout / Icon Badge -->
+          <Border Grid.Column="1" Margin="20,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right">
+           <Grid Width="160" Height="124">
+            <Border CornerRadius="16" Background="#13203C" BorderBrush="#38D9FF" BorderThickness="1.5" ClipToBounds="True">
+             <Image Source="/Assets/Games/valorant.jpg" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+            </Border>
+            <Border Background="#D90F172A" CornerRadius="8" Padding="6,2" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,8">
+             <TextBlock Text="120+ máy đang chơi" Foreground="#38D9FF" FontSize="10" FontWeight="Bold"/>
+            </Border>
+           </Grid>
+          </Border>
+         </Grid>
+        </Grid>
+       </Border>
 
        <!-- Game Category Chips (Image 1 Style) -->
        <ListBox ItemsSource="{Binding GameCategories}" SelectedItem="{Binding SelectedGameCategory}"
@@ -132,7 +861,7 @@
        <TextBlock Text="Không tìm thấy game phù hợp." Style="{StaticResource Muted}"
                   Visibility="{Binding FilteredGames.Count, Converter={StaticResource EmptyVisible}}"/>
 
-       <!-- Game Icon Grid (Image 1 Cybercafe Apps Grid) -->
+       <!-- Game Icon Grid (Cybercafe Apps Grid) -->
        <ItemsControl ItemsSource="{Binding FilteredGames}">
         <ItemsControl.ItemsPanel>
          <ItemsPanelTemplate>
@@ -144,24 +873,30 @@
           <Button Command="{Binding DataContext.LaunchGameCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                   CommandParameter="{Binding}"
                   ToolTip="{Binding Description}"
-                  Padding="0" Margin="0,0,14,16" Width="104" Height="124"
+                  Padding="0" Margin="0,0,14,16" Width="110" Height="130"
                   Background="Transparent" BorderThickness="0" Cursor="Hand">
            <Button.Template>
             <ControlTemplate TargetType="Button">
-             <Border x:Name="GameTile" Background="#0C152B" BorderBrush="#1C2F52" BorderThickness="1.2" CornerRadius="16" Padding="6,8">
+             <Border x:Name="GameTile" Background="#0C152B" BorderBrush="#1C2F52" BorderThickness="1.2" CornerRadius="16" Padding="6,8" RenderTransformOrigin="0.5,0.5">
+              <Border.RenderTransform>
+               <ScaleTransform ScaleX="1.0" ScaleY="1.0"/>
+              </Border.RenderTransform>
               <Grid>
                <Grid.RowDefinitions>
-                <RowDefinition Height="68"/>
+                <RowDefinition Height="74"/>
                 <RowDefinition Height="*"/>
                </Grid.RowDefinitions>
                
                <!-- Game Icon (Squircle) -->
-               <Border Grid.Row="0" Width="68" Height="68" CornerRadius="15" ClipToBounds="True" Background="#14223E" HorizontalAlignment="Center">
+               <Border Grid.Row="0" Width="72" Height="72" CornerRadius="15" ClipToBounds="True" Background="#14223E" HorizontalAlignment="Center">
                 <Grid>
-                 <md:PackIcon Kind="GamepadVariant" Width="38" Height="38" Foreground="#38D9FF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                 <Image Source="{Binding BannerUrl}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                 <md:PackIcon Kind="GamepadVariant" Width="40" Height="40" Foreground="#38D9FF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                 <Image Source="{Binding BannerUrl, Converter={StaticResource ImageSrc}}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                 <Border Background="#B3050A15" CornerRadius="6" Padding="4,1" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="3">
+                  <TextBlock Text="⚡ 144+" Foreground="#38D9FF" FontSize="8.5" FontWeight="Bold"/>
+                 </Border>
                  <Border x:Name="PlayOverlay" Background="#AA000000" Opacity="0">
-                  <md:PackIcon Kind="PlayCircle" Width="36" Height="36" Foreground="#38D9FF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                  <md:PackIcon Kind="PlayCircle" Width="38" Height="38" Foreground="#38D9FF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                  </Border>
                 </Grid>
                </Border>
@@ -169,7 +904,7 @@
                <!-- Game Name -->
                <TextBlock Grid.Row="1" Text="{Binding Name}" FontWeight="SemiBold" FontSize="11.5"
                           Foreground="#E2EDF9" TextAlignment="Center" TextTrimming="CharacterEllipsis"
-                          TextWrapping="Wrap" MaxHeight="32" Margin="0,5,0,0" VerticalAlignment="Center"/>
+                          TextWrapping="Wrap" MaxHeight="34" Margin="0,6,0,0" VerticalAlignment="Center"/>
               </Grid>
              </Border>
              <ControlTemplate.Triggers>
@@ -187,8 +922,17 @@
        </ItemsControl>
       </StackPanel>
      </ScrollViewer>
-    </TabItem>
-    <TabItem Header="Thực đơn">
+    </TabItem><TabItem>
+     <TabItem.Header>
+      <DockPanel Width="146">
+       <md:PackIcon Kind="FoodForkDrink" Width="18" Height="18" Foreground="#FB923C" VerticalAlignment="Center" Margin="0,0,10,0"/>
+       <Border DockPanel.Dock="Right" Background="#0284C7" CornerRadius="8" Padding="6,1" VerticalAlignment="Center"
+               Visibility="{Binding Cart.Count, Converter={StaticResource EmptyVisible}, ConverterParameter=Inverse}">
+        <TextBlock Text="{Binding Cart.Count, StringFormat='🛒 {0}'}" Foreground="White" FontSize="9.5" FontWeight="Bold"/>
+       </Border>
+       <TextBlock Text="Thực đơn" FontSize="13" VerticalAlignment="Center"/>
+      </DockPanel>
+     </TabItem.Header>
      <Grid Margin="24,0,0,18">
       <Grid.ColumnDefinitions>
        <ColumnDefinition Width="*"/>
@@ -259,23 +1003,40 @@
          </ItemsControl.ItemsPanel>
          <ItemsControl.ItemTemplate>
           <DataTemplate>
-           <Border Width="195" Margin="0,0,14,16" Background="#0C152B" BorderBrush="#203357" BorderThickness="1.2" CornerRadius="14">
+           <Border Style="{StaticResource FoodCardBorder}">
             <Grid>
              <Grid.RowDefinitions>
-              <RowDefinition Height="110"/>
-              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="125"/>
+              <RowDefinition Height="*"/>
              </Grid.RowDefinitions>
 
-             <!-- Dish Photo Banner -->
-             <Border Grid.Row="0" CornerRadius="13,13,0,0" ClipToBounds="True" Background="#14213D">
+             <!-- Dish Photo Banner with Bottom Vignette -->
+             <Border Grid.Row="0" CornerRadius="14,14,0,0" ClipToBounds="True" Background="#14213D">
               <Grid>
                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                 <md:PackIcon Kind="FoodForkDrink" Width="36" Height="36" Foreground="#38D9FF" HorizontalAlignment="Center"/>
                </StackPanel>
-               <Image Source="{Binding ImageUrl}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+               <Image Source="{Binding ImageUrl, Converter={StaticResource ImageSrc}}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+               <Border VerticalAlignment="Bottom" Height="35">
+                <Border.Background>
+                 <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                  <GradientStop Color="#00000000" Offset="0"/>
+                  <GradientStop Color="#CC0D162C" Offset="1"/>
+                 </LinearGradientBrush>
+                </Border.Background>
+               </Border>
 
-               <!-- Floating Price Badge (Top Right) -->
-               <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8" Background="#00D2FF" CornerRadius="6" Padding="8,3">
+               <!-- Floating Neon Price Badge (Top Right) -->
+               <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8" CornerRadius="8" Padding="9,4">
+                <Border.Background>
+                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                  <GradientStop Color="#00F2FE" Offset="0"/>
+                  <GradientStop Color="#0077FE" Offset="1"/>
+                 </LinearGradientBrush>
+                </Border.Background>
+                <Border.Effect>
+                 <DropShadowEffect Color="#00F2FE" BlurRadius="10" ShadowDepth="0" Opacity="0.8"/>
+                </Border.Effect>
                 <TextBlock Text="{Binding PriceLabel}" Foreground="#080D1B" FontWeight="Bold" FontSize="11.5"/>
                </Border>
               </Grid>
@@ -285,13 +1046,12 @@
              <StackPanel Grid.Row="1" Margin="12,10">
               <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="13.5" Foreground="White"
                          TextTrimming="CharacterEllipsis" TextWrapping="Wrap" MaxHeight="38" MinHeight="34"/>
-              <DockPanel Margin="0,6,0,0">
+              <DockPanel Margin="0,8,0,0">
                <TextBlock Text="{Binding StockLabel}" Style="{StaticResource Muted}" FontSize="11" VerticalAlignment="Center"/>
                <Button Content="+ Thêm" Command="{Binding DataContext.AddToCartCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                        CommandParameter="{Binding}"
                        DockPanel.Dock="Right" HorizontalAlignment="Right"
-                       Background="#38D9FF" Foreground="#080D1B" FontWeight="Bold" FontSize="11"
-                       MinHeight="28" Height="28" Padding="10,0" Margin="0"/>
+                       Style="{StaticResource CyberAddButton}"/>
               </DockPanel>
              </StackPanel>
             </Grid>
@@ -392,14 +1152,959 @@
       </Border>
      </Grid>
     </TabItem>
-    <TabItem Header="Đơn của tôi"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="24,0,0,20"><TextBlock Text="Đơn của tôi" Style="{StaticResource Heading}"/><Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Chưa có đơn hàng." Style="{StaticResource Muted}" Visibility="{Binding Orders.Count, Converter={StaticResource EmptyVisible}}"/><DataGrid ItemsSource="{Binding Orders}" SelectedItem="{Binding SelectedOrder}" MaxHeight="460"><DataGrid.Columns><DataGridTextColumn Header="Thời gian" Binding="{Binding Created}" Width="150"/><DataGridTextColumn Header="Món" Binding="{Binding Details}" Width="*"/><DataGridTextColumn Header="Tổng" Binding="{Binding TotalLabel}" Width="120"/><DataGridTextColumn Header="Trạng thái" Binding="{Binding StatusLabel}" Width="150"/></DataGrid.Columns></DataGrid><TextBlock Text="{Binding SelectedOrder.Note}" TextWrapping="Wrap" Margin="0,12,0,4"/><Button Content="Hủy đơn đã chọn" Command="{Binding CancelOrderCommand}" IsEnabled="{Binding CanCancelOrder}" HorizontalAlignment="Left" Style="{StaticResource Secondary}"/></StackPanel></Border></StackPanel></ScrollViewer></TabItem>
-    <TabItem Header="Ví và nạp tiền"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="24,0,0,20"><TextBlock Text="Ví và nạp tiền" Style="{StaticResource Heading}"/><Border Style="{StaticResource Card}" Visibility="{Binding Combos.Count, Converter={StaticResource EmptyVisible}, ConverterParameter=Inverse}"><StackPanel><TextBlock Text="Gói Combo khuyến mãi nạp tiền" Style="{StaticResource Subheading}"/><TextBlock Text="Chọn nhanh gói khuyến mãi nhận thêm tiền thưởng giờ chơi:" Style="{StaticResource Muted}" Margin="0,0,0,12"/><ItemsControl ItemsSource="{Binding Combos}"><ItemsControl.ItemTemplate><DataTemplate><Border Background="#162746" CornerRadius="10" Padding="14,10" Margin="0,0,0,8"><DockPanel><Button Content="Chọn gói" Command="{Binding DataContext.SelectComboCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" DockPanel.Dock="Right" Padding="14,4" MinHeight="32" Background="#38D9FF" Foreground="#0B1226"/><StackPanel VerticalAlignment="Center"><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="15" Foreground="White"/><Border Background="#255438" CornerRadius="6" Padding="6,2" Margin="10,0,0,0" Visibility="{Binding BonusValue, Converter={StaticResource BoolVisible}}"><TextBlock Text="{Binding BonusLabel, StringFormat='Tặng {0}'}" Foreground="#55F2A3" FontSize="11" FontWeight="SemiBold"/></Border></StackPanel><TextBlock Text="{Binding Description}" Style="{StaticResource Muted}" FontSize="12" Margin="0,3,0,0"/></StackPanel></DockPanel></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel></Border><Border Style="{StaticResource Card}" Background="#121F3A"><StackPanel><TextBlock Text="{Binding BalanceLabel}" FontSize="36" FontWeight="SemiBold"/><TextBlock Text="Số dư hiện tại của tài khoản" Margin="0,4,0,16" Foreground="#8FAAC9"/><TextBlock Text="Chọn hình thức nạp tiền:" FontWeight="SemiBold" FontSize="14" Foreground="#E2EDF9" Margin="0,0,0,8"/><WrapPanel Margin="0,0,0,16"><Button Content="💵 TIỀN MẶT TẠI QUẦY" Command="{Binding SetCashPaymentCommand}" Margin="0,0,10,0" Padding="16,8" FontWeight="Bold" Cursor="Hand"/><Button Content="💳 CHUYỂN KHOẢN VIETQR" Command="{Binding SetTransferPaymentCommand}" Padding="16,8" FontWeight="Bold" Cursor="Hand"/></WrapPanel><Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><TextBox Text="{Binding TopupAmount, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Số tiền cần nạp (VND)" MaxLength="8" Margin="0,0,18,0"/><TextBox Grid.Column="1" Text="{Binding TopupNote, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Ghi chú thêm (không bắt buộc)" MaxLength="2000"/></Grid><Border Visibility="{Binding IsTransferMethod, Converter={StaticResource BoolVisible}}" Background="#091428" BorderBrush="#00D2FF" BorderThickness="1.5" CornerRadius="12" Padding="16" Margin="0,0,0,16"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Background="White" CornerRadius="8" Padding="6" Margin="0,0,16,0" VerticalAlignment="Center"><Image Source="{Binding VietQrUrl}" Width="150" Height="150" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/></Border><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="QUÉT MÃ VIETQR QUA APP NGÂN HÀNG" FontWeight="Bold" FontSize="15" Foreground="#00D2FF"/><TextBlock Text="Chuyển khoản chính xác theo thông tin bên dưới:" Foreground="#A8BFDF" FontSize="12" Margin="0,4,0,10"/><Grid Margin="0,0,0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Ngân hàng:" Foreground="#8FAAC9"/><TextBlock Grid.Column="1" Text="{Binding BankName}" FontWeight="SemiBold" Foreground="White"/></Grid><Grid Margin="0,0,0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Số tài khoản:" Foreground="#8FAAC9"/><TextBlock Grid.Column="1" Text="{Binding BankAccount}" FontWeight="Bold" FontSize="14" Foreground="#FFD700"/></Grid><Grid Margin="0,0,0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Chủ tài khoản:" Foreground="#8FAAC9"/><TextBlock Grid.Column="1" Text="{Binding BankAccountName}" FontWeight="SemiBold" Foreground="White"/></Grid><Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="Cú pháp CK:" Foreground="#8FAAC9"/><TextBlock Grid.Column="1" Text="{Binding TransferSyntax}" FontWeight="Bold" FontSize="14" Foreground="#39D8FF"/></Grid><TextBlock Text="💡 Sau khi hoàn tất chuyển khoản trên app ngân hàng, vui lòng bấm nút bên dưới để thông báo cho thu ngân duyệt nạp ngay." TextWrapping="Wrap" Foreground="#7FE8FF" FontSize="11" Margin="0,4,0,0"/></StackPanel></Grid></Border><Border Visibility="{Binding IsCashMethod, Converter={StaticResource BoolVisible}}" Background="#1A2B4C" CornerRadius="10" Padding="14,12" Margin="0,0,0,16"><DockPanel><md:PackIcon Kind="CashMultiple" Width="28" Height="28" Foreground="#FFD700" VerticalAlignment="Center" Margin="0,0,12,0"/><TextBlock Text="Quý khách vui lòng gửi yêu cầu và mang tiền mặt thanh toán trực tiếp tại quầy thu ngân. Thu ngân sẽ nhận tiền và cộng vào tài khoản của bạn ngay lập tức." TextWrapping="Wrap" Foreground="#D5E3F7" VerticalAlignment="Center"/></DockPanel></Border><Button Content="GỬI YÊU CẦU NẠP TIỀN" Command="{Binding RequestTopupCommand}" IsEnabled="{Binding CanMutate}" HorizontalAlignment="Left" Padding="24,10" FontWeight="Bold" Background="#00D2FF" Foreground="#080D1B"/><TextBlock Text="Yêu cầu sẽ được gửi tới màn hình thu ngân và xử lý ngay khi nhận được thanh toán." Style="{StaticResource Muted}" Margin="0,10,0,0"/></StackPanel></Border><Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Yêu cầu nạp tiền" Style="{StaticResource Subheading}"/><TextBlock Text="Chưa có yêu cầu nạp." Style="{StaticResource Muted}" Visibility="{Binding Topups.Count, Converter={StaticResource EmptyVisible}}"/><DataGrid ItemsSource="{Binding Topups}" MaxHeight="250"><DataGrid.Columns><DataGridTextColumn Header="Thời gian" Binding="{Binding Created}" Width="*"/><DataGridTextColumn Header="Số tiền" Binding="{Binding AmountLabel}" Width="150"/><DataGridTextColumn Header="Trạng thái" Binding="{Binding StatusLabel}" Width="150"/><DataGridTextColumn Header="Ghi chú" Binding="{Binding Note}" Width="*"/></DataGrid.Columns></DataGrid></StackPanel></Border><Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Lịch sử giao dịch" Style="{StaticResource Subheading}"/><TextBlock Text="Chưa có giao dịch." Style="{StaticResource Muted}" Visibility="{Binding Transactions.Count, Converter={StaticResource EmptyVisible}}"/><DataGrid ItemsSource="{Binding Transactions}" MaxHeight="250"><DataGrid.Columns><DataGridTextColumn Header="Thời gian" Binding="{Binding Created}" Width="*"/><DataGridTextColumn Header="Loại" Binding="{Binding Type}" Width="150"/><DataGridTextColumn Header="Số tiền" Binding="{Binding AmountLabel}" Width="150"/><DataGridTextColumn Header="Tham chiếu" Binding="{Binding ReferenceId}" Width="*"/></DataGrid.Columns></DataGrid></StackPanel></Border></StackPanel></ScrollViewer></TabItem>
-    <TabItem Header="Hồ sơ"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="24,0,0,20"><TextBlock Text="Hồ sơ của bạn" Style="{StaticResource Heading}"/><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><Border Style="{StaticResource Card}" Margin="0,0,18,18"><StackPanel><TextBlock Text="Thông tin cá nhân" Style="{StaticResource Subheading}"/><TextBlock Text="{Binding Tier}" Style="{StaticResource Muted}"/><TextBox Text="{Binding FullName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Họ và tên" MaxLength="100"/><TextBox Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Số điện thoại" MaxLength="13"/><TextBox Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Email" MaxLength="150"/><TextBox Text="{Binding DateOfBirth, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Ngày sinh (yyyy-MM-dd)" MaxLength="10"/><TextBox Text="{Binding Hobbies, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Sở thích" MaxLength="500" TextWrapping="Wrap"/><Button Content="Lưu hồ sơ" Command="{Binding SaveProfileCommand}" IsEnabled="{Binding CanMutate}"/></StackPanel></Border><Border Grid.Column="1" Style="{StaticResource Card}" VerticalAlignment="Top"><StackPanel><TextBlock Text="Đổi mật khẩu" Style="{StaticResource Subheading}"/><PasswordBox Style="{StaticResource Secret}" md:HintAssist.Hint="Mật khẩu hiện tại" Tag="CurrentPassword" PasswordChanged="OnPasswordChanged" MaxLength="100"/><PasswordBox Style="{StaticResource Secret}" md:HintAssist.Hint="Mật khẩu mới" Tag="NewPassword" PasswordChanged="OnPasswordChanged" MaxLength="100"/><PasswordBox Style="{StaticResource Secret}" md:HintAssist.Hint="Xác nhận mật khẩu mới" Tag="NewPasswordConfirmation" PasswordChanged="OnPasswordChanged" MaxLength="100"/><TextBlock Text="Tối thiểu 8 ký tự và khác mật khẩu đang sử dụng." Style="{StaticResource Muted}"/><Button Content="Đổi mật khẩu" Command="{Binding ChangePasswordCommand}" IsEnabled="{Binding CanMutate}"/></StackPanel></Border></Grid></StackPanel></ScrollViewer></TabItem>
-    <TabItem Header="Hỗ trợ"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="24,0,0,20"><TextBlock Text="Luôn có người hỗ trợ" Style="{StaticResource Heading}"/><Border Style="{StaticResource Card}"><StackPanel><TextBox Text="{Binding FeedbackSubject, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Chủ đề" MaxLength="200"/><TextBox Text="{Binding FeedbackContent, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Bạn cần hỗ trợ điều gì?" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="110" MaxLength="4000" VerticalScrollBarVisibility="Auto"/><Button Content="Gửi hỗ trợ" Command="{Binding SendFeedbackCommand}" IsEnabled="{Binding CanMutate}" HorizontalAlignment="Left"/></StackPanel></Border><TextBlock Text="Phản hồi của bạn" Style="{StaticResource Subheading}"/><TextBlock Text="Chưa có phản hồi." Style="{StaticResource Muted}" Visibility="{Binding FeedbackItems.Count, Converter={StaticResource EmptyVisible}}"/><ItemsControl ItemsSource="{Binding FeedbackItems}"><ItemsControl.ItemTemplate><DataTemplate><Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="{Binding Subject}" FontWeight="SemiBold" FontSize="17"/><TextBlock Text="{Binding Created}" Style="{StaticResource Muted}" Margin="0,8,0,4"/><TextBlock Text="{Binding Content}" TextWrapping="Wrap"/><TextBlock Text="{Binding StatusLabel}" Margin="0,12,0,4" Foreground="#45E5AE"/><TextBlock Text="{Binding Response}" TextWrapping="Wrap" FontWeight="SemiBold"/></StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel></ScrollViewer></TabItem>
-    <TabItem Header="Khảo sát"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="24,0,0,20"><TextBlock Text="Trải nghiệm tốt hơn, cùng bạn" Style="{StaticResource Heading}"/><TextBlock Text="Hiện chưa có khảo sát dành cho bạn." Style="{StaticResource Muted}" Visibility="{Binding Surveys.Count, Converter={StaticResource EmptyVisible}}"/><ComboBox ItemsSource="{Binding Surveys}" SelectedItem="{Binding SelectedSurvey}" DisplayMemberPath="Title" MinHeight="48" Margin="0,10,0,18" AutomationProperties.Name="Chọn khảo sát"/><Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="{Binding SelectedSurvey.Title}" Style="{StaticResource Subheading}"/><TextBlock Text="{Binding SelectedSurvey.Description}" Style="{StaticResource Muted}"/><TextBlock Text="{Binding SurveyState}" Margin="0,0,0,18" TextWrapping="Wrap"/><ItemsControl ItemsSource="{Binding Answers}" IsEnabled="{Binding CanAnswerSurvey}"><ItemsControl.ItemTemplate><DataTemplate><StackPanel Margin="0,0,0,22"><TextBlock Text="{Binding Text}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,12"/><ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedAnswer}" MinHeight="44" AutomationProperties.Name="{Binding Text}"/></StackPanel></DataTemplate></ItemsControl.ItemTemplate></ItemsControl><Button Content="Gửi câu trả lời" Command="{Binding SubmitSurveyCommand}" IsEnabled="{Binding CanAnswerSurvey}" HorizontalAlignment="Left"/></StackPanel></Border></StackPanel></ScrollViewer></TabItem>
+    <TabItem>
+     <TabItem.Header>
+      <DockPanel Width="146">
+       <md:PackIcon Kind="ReceiptTextOutline" Width="18" Height="18" Foreground="#34D399" VerticalAlignment="Center" Margin="0,0,10,0"/>
+       <TextBlock Text="Đơn của tôi" FontSize="13" VerticalAlignment="Center"/>
+      </DockPanel>
+     </TabItem.Header>
+     <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel Margin="24,0,24,20">
+       <DockPanel Margin="0,0,0,16">
+        <StackPanel DockPanel.Dock="Left">
+         <TextBlock Text="Đơn của tôi &amp; Trạng thái phục vụ" Style="{StaticResource Heading}"/>
+         <TextBlock Text="Theo dõi trực tiếp quá trình chuẩn bị món ăn và đồ uống tại phòng máy:" Style="{StaticResource Muted}"/>
+        </StackPanel>
+        <Button DockPanel.Dock="Right" HorizontalAlignment="Right" Command="{Binding RefreshCommand}" Style="{StaticResource Secondary}" MinHeight="36" Padding="14,4">
+         <StackPanel Orientation="Horizontal">
+          <md:PackIcon Kind="Refresh" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
+          <TextBlock Text="Cập nhật trạng thái" VerticalAlignment="Center"/>
+         </StackPanel>
+        </Button>
+       </DockPanel>
+
+       <!-- Visual Food Delivery Stepper Pipeline -->
+       <Border Style="{StaticResource Card}" Background="#0D162B" BorderBrush="#1C2F52" Margin="0,0,0,20" Padding="20,16">
+        <StackPanel>
+         <TextBlock Text="TIẾN ĐỘ GIAO MÓN TẬN BÀN · MÁY ĐANG NGỒI" FontWeight="Bold" FontSize="11" Foreground="#38D9FF" Margin="0,0,0,14"/>
+         <Grid>
+          <Grid.ColumnDefinitions>
+           <ColumnDefinition Width="*"/>
+           <ColumnDefinition Width="Auto"/>
+           <ColumnDefinition Width="*"/>
+           <ColumnDefinition Width="Auto"/>
+           <ColumnDefinition Width="*"/>
+           <ColumnDefinition Width="Auto"/>
+           <ColumnDefinition Width="*"/>
+          </Grid.ColumnDefinitions>
+
+          <!-- Step 1: Đã nhận đơn -->
+          <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+           <Border Width="40" Height="40" CornerRadius="20" Background="#1E293B" BorderBrush="#38BDF8" BorderThickness="2" HorizontalAlignment="Center">
+            <md:PackIcon Kind="ClipboardCheckOutline" Width="20" Height="20" Foreground="#38BDF8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+           </Border>
+           <TextBlock Text="1. ĐÃ TIẾP NHẬN" Foreground="White" FontWeight="Bold" FontSize="11" HorizontalAlignment="Center" Margin="0,6,0,2"/>
+           <TextBlock Text="Hệ thống đã nhận" Foreground="#94A3B8" FontSize="10" HorizontalAlignment="Center"/>
+          </StackPanel>
+
+          <!-- Connector 1 -->
+          <Border Grid.Column="1" Height="2" Width="36" Background="#334155" VerticalAlignment="Center" Margin="4,0,4,18"/>
+
+          <!-- Step 2: Đang chế biến -->
+          <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+           <Border Width="40" Height="40" CornerRadius="20" Background="#1E293B" BorderBrush="#F59E0B" BorderThickness="2" HorizontalAlignment="Center">
+            <md:PackIcon Kind="ChefHat" Width="20" Height="20" Foreground="#F59E0B" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+           </Border>
+           <TextBlock Text="2. ĐANG CHẾ BIẾN" Foreground="White" FontWeight="Bold" FontSize="11" HorizontalAlignment="Center" Margin="0,6,0,2"/>
+           <TextBlock Text="Bếp đang nấu nóng" Foreground="#94A3B8" FontSize="10" HorizontalAlignment="Center"/>
+          </StackPanel>
+
+          <!-- Connector 2 -->
+          <Border Grid.Column="3" Height="2" Width="36" Background="#334155" VerticalAlignment="Center" Margin="4,0,4,18"/>
+
+          <!-- Step 3: Bưng tới máy -->
+          <StackPanel Grid.Column="4" HorizontalAlignment="Center">
+           <Border Width="40" Height="40" CornerRadius="20" Background="#1E293B" BorderBrush="#A855F7" BorderThickness="2" HorizontalAlignment="Center">
+            <md:PackIcon Kind="Walk" Width="20" Height="20" Foreground="#A855F7" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+           </Border>
+           <TextBlock Text="3. ĐANG BƯNG TỚI" Foreground="White" FontWeight="Bold" FontSize="11" HorizontalAlignment="Center" Margin="0,6,0,2"/>
+           <TextBlock Text="Đến bàn máy của bạn" Foreground="#94A3B8" FontSize="10" HorizontalAlignment="Center"/>
+          </StackPanel>
+
+          <!-- Connector 3 -->
+          <Border Grid.Column="5" Height="2" Width="36" Background="#334155" VerticalAlignment="Center" Margin="4,0,4,18"/>
+
+          <!-- Step 4: Hoàn tất -->
+          <StackPanel Grid.Column="6" HorizontalAlignment="Center">
+           <Border Width="40" Height="40" CornerRadius="20" Background="#1E293B" BorderBrush="#10B981" BorderThickness="2" HorizontalAlignment="Center">
+            <md:PackIcon Kind="CheckCircleOutline" Width="20" Height="20" Foreground="#10B981" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+           </Border>
+           <TextBlock Text="4. HOÀN TẤT" Foreground="White" FontWeight="Bold" FontSize="11" HorizontalAlignment="Center" Margin="0,6,0,2"/>
+           <TextBlock Text="Chúc bạn ngon miệng!" Foreground="#94A3B8" FontSize="10" HorizontalAlignment="Center"/>
+          </StackPanel>
+         </Grid>
+        </StackPanel>
+       </Border>
+
+       <!-- Empty Orders State -->
+       <Border Style="{StaticResource Card}" Visibility="{Binding Orders.Count, Converter={StaticResource EmptyVisible}}" Padding="32" HorizontalAlignment="Stretch">
+        <StackPanel HorizontalAlignment="Center">
+         <md:PackIcon Kind="FoodOff" Width="48" Height="48" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+         <TextBlock Text="Bạn chưa có đơn đặt món nào gần đây" Foreground="White" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+         <TextBlock Text="Đói bụng hay khát nước trong lúc leo rank? Mời bạn ghé menu món ngon để thưởng thức ngay!" Foreground="#94A3B8" Margin="0,4,0,16" HorizontalAlignment="Center"/>
+         <Button Content="🍜 MỞ MENU MÓN ĂN &amp; NƯỚC UỐNG" Command="{Binding RequestSupportCommand}" Style="{StaticResource CyberAddButton}" Padding="20,0" Height="36" HorizontalAlignment="Center"/>
+        </StackPanel>
+       </Border>
+
+       <!-- Orders List Cards -->
+       <ItemsControl ItemsSource="{Binding Orders}" Visibility="{Binding Orders.Count, Converter={StaticResource EmptyVisible}, ConverterParameter=Inverse}">
+        <ItemsControl.ItemTemplate>
+         <DataTemplate>
+          <Border Style="{StaticResource Card}" Margin="0,0,0,14" Background="#0C152B" BorderBrush="#1C2E52" Padding="20,16">
+           <Grid>
+            <Grid.RowDefinitions>
+             <RowDefinition Height="Auto"/>
+             <RowDefinition Height="Auto"/>
+             <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            
+            <!-- Card Header: Time & Status -->
+            <DockPanel Grid.Row="0" Margin="0,0,0,12">
+             <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+              <Border Background="#1E293B" CornerRadius="6" Padding="8,3" Margin="0,0,10,0">
+               <TextBlock Text="{Binding Created}" Foreground="#94A3B8" FontSize="11.5" FontWeight="SemiBold"/>
+              </Border>
+              <TextBlock Text="ĐƠN HÀNG PHÒNG MÁY" Foreground="#38D9FF" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"/>
+             </StackPanel>
+
+             <!-- Status Badge -->
+             <Border DockPanel.Dock="Right" HorizontalAlignment="Right" CornerRadius="8" Padding="10,4" Background="#1E293B" BorderBrush="#38D9FF" BorderThickness="1">
+              <TextBlock Text="{Binding StatusLabel}" Foreground="#38D9FF" FontWeight="Bold" FontSize="11.5"/>
+             </Border>
+            </DockPanel>
+
+            <!-- Card Body: Details & Total -->
+            <Grid Grid.Row="1" Margin="0,0,0,12">
+             <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+             </Grid.ColumnDefinitions>
+
+             <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="{Binding Details}" Foreground="White" FontSize="14.5" FontWeight="SemiBold" TextWrapping="Wrap"/>
+              <TextBlock Text="{Binding Note, StringFormat='Ghi chú: {0}'}" Foreground="#94A3B8" FontSize="12" Margin="0,4,0,0"
+                         Visibility="{Binding Note, Converter={StaticResource EmptyVisible}, ConverterParameter=Inverse}"/>
+             </StackPanel>
+
+             <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="16,0,0,0">
+              <TextBlock Text="{Binding TotalLabel}" Foreground="#FFD700" FontWeight="Bold" FontSize="18" HorizontalAlignment="Right"/>
+              <TextBlock Text="Đã thanh toán từ số dư" Foreground="#64748B" FontSize="10.5" HorizontalAlignment="Right"/>
+             </StackPanel>
+            </Grid>
+
+            <!-- Card Actions -->
+            <DockPanel Grid.Row="2" Margin="0,4,0,0">
+             <Button Command="{Binding DataContext.RushKitchenCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                     CommandParameter="{Binding}"
+                     Background="#1E293B" BorderBrush="#F59E0B" BorderThickness="1" Foreground="#F59E0B"
+                     Padding="14,4" Height="32" FontSize="11.5" Cursor="Hand" Style="{StaticResource Secondary}">
+              <StackPanel Orientation="Horizontal">
+               <md:PackIcon Kind="BellRingOutline" Width="14" Height="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+               <TextBlock Text="Giục bếp bưng nhanh giùm" VerticalAlignment="Center"/>
+              </StackPanel>
+             </Button>
+
+             <Button DockPanel.Dock="Right" HorizontalAlignment="Right"
+                     Command="{Binding DataContext.CancelOrderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                     IsEnabled="{Binding DataContext.CanCancelOrder, RelativeSource={RelativeSource AncestorType=Window}}"
+                     Background="Transparent" BorderBrush="#EF4444" BorderThickness="1" Foreground="#EF4444"
+                     Padding="14,4" Height="32" FontSize="11.5" Style="{StaticResource Secondary}">
+              <StackPanel Orientation="Horizontal">
+               <md:PackIcon Kind="CloseCircleOutline" Width="14" Height="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+               <TextBlock Text="Hủy đơn đã chọn" VerticalAlignment="Center"/>
+              </StackPanel>
+             </Button>
+            </DockPanel>
+           </Grid>
+          </Border>
+         </DataTemplate>
+        </ItemsControl.ItemTemplate>
+       </ItemsControl>
+      </StackPanel>
+     </ScrollViewer>
+    </TabItem>
+    <TabItem>
+     <TabItem.Header>
+      <DockPanel Width="146">
+       <md:PackIcon Kind="WalletOutline" Width="18" Height="18" Foreground="#FBBF24" VerticalAlignment="Center" Margin="0,0,10,0"/>
+       <Border DockPanel.Dock="Right" Background="#166534" CornerRadius="6" Padding="5,1" VerticalAlignment="Center">
+        <TextBlock Text="+KM" Foreground="#86EFAC" FontSize="9" FontWeight="Bold"/>
+       </Border>
+       <TextBlock Text="Ví và nạp tiền" FontSize="13" VerticalAlignment="Center"/>
+      </DockPanel>
+     </TabItem.Header>
+     <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel Margin="24,0,24,20">
+       <DockPanel Margin="0,0,0,16">
+        <StackPanel DockPanel.Dock="Left">
+         <TextBlock Text="Ví điện tử &amp; Nạp tiền tài khoản" Style="{StaticResource Heading}"/>
+         <TextBlock Text="Quét mã VietQR chuyển khoản tự động hoặc thanh toán tiền mặt tại quầy thu ngân:" Style="{StaticResource Muted}"/>
+        </StackPanel>
+       </DockPanel>
+
+       <!-- Holographic VIP Gamer Balance Card -->
+       <Border Margin="0,0,0,20" CornerRadius="20" BorderThickness="1.5" BorderBrush="#00F2FE" Background="#0C152B" ClipToBounds="True">
+        <Border.Effect>
+         <DropShadowEffect Color="#00F2FE" BlurRadius="25" ShadowDepth="0" Opacity="0.3"/>
+        </Border.Effect>
+        <Grid>
+         <Grid.Background>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+           <GradientStop Color="#0F1F3D" Offset="0"/>
+           <GradientStop Color="#091224" Offset="0.5"/>
+           <GradientStop Color="#141938" Offset="1"/>
+          </LinearGradientBrush>
+         </Grid.Background>
+
+         <Grid>
+          <Grid.RowDefinitions>
+           <RowDefinition Height="Auto"/>
+           <RowDefinition Height="Auto"/>
+           <RowDefinition Height="Auto"/>
+          </Grid.RowDefinitions>
+
+          <!-- Top Row: Card Title & VIP Badge -->
+          <DockPanel Grid.Row="0" Margin="0,0,0,12">
+           <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+            <md:PackIcon Kind="CreditCardChipOutline" Width="28" Height="28" Foreground="#FFD700" Margin="0,0,10,0" VerticalAlignment="Center"/>
+            <TextBlock Text="CYBERCAFE GAMER WALLET" Foreground="#94A3B8" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"/>
+           </StackPanel>
+           <Border DockPanel.Dock="Right" Background="#1E293B" BorderBrush="#00F2FE" BorderThickness="1" CornerRadius="12" Padding="12,4">
+            <TextBlock Text="{Binding VipBadge}" Foreground="#00F2FE" FontWeight="Bold" FontSize="11.5"/>
+           </Border>
+          </DockPanel>
+
+          <!-- Middle Row: Massive Balance -->
+          <StackPanel Grid.Row="1" Margin="0,4,0,14">
+           <TextBlock Text="SỐ DƯ KHẢ DỤNG HIỆN TẠI" Foreground="#64748B" FontSize="11" FontWeight="Bold"/>
+           <TextBlock Text="{Binding BalanceLabel}" FontSize="36" FontWeight="Bold" Foreground="#00F2FE"/>
+          </StackPanel>
+
+          <!-- Bottom Row: Machine & Account Info -->
+          <DockPanel Grid.Row="2">
+           <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+            <TextBlock Text="Chủ tài khoản: " Foreground="#94A3B8" FontSize="12"/>
+            <TextBlock Text="{Binding AccountName}" Foreground="White" FontWeight="Bold" FontSize="12" Margin="4,0,18,0"/>
+            <TextBlock Text="Đang ngồi tại: " Foreground="#94A3B8" FontSize="12"/>
+            <TextBlock Text="{Binding MachineName}" Foreground="#38D9FF" FontWeight="Bold" FontSize="12" Margin="4,0,0,0"/>
+           </StackPanel>
+
+           <Button DockPanel.Dock="Right" Command="{Binding PlayLuckySpinCommand}"
+                   HorizontalAlignment="Right" Background="#F59E0B" Foreground="#080D1B"
+                   FontWeight="Bold" FontSize="12" Padding="14,4" Height="32" Cursor="Hand" Style="{StaticResource Primary}">
+            <StackPanel Orientation="Horizontal">
+             <md:PackIcon Kind="FerrisWheel" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
+             <TextBlock Text="Vòng quay nhận thưởng" VerticalAlignment="Center"/>
+            </StackPanel>
+           </Button>
+          </DockPanel>
+         </Grid>
+        </Grid>
+       </Border>
+
+       <!-- Gói Combo Khuyến Mãi Nạp Tiền -->
+       <Border Style="{StaticResource Card}" Visibility="{Binding Combos.Count, Converter={StaticResource EmptyVisible}, ConverterParameter=Inverse}" Margin="0,0,0,20">
+        <StackPanel>
+         <DockPanel LastChildFill="False" Margin="0,0,0,12">
+          <TextBlock Text="🎁 GÓI COMBO KHUYẾN MÃI NẠP TIỀN" Style="{StaticResource Subheading}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+          <Border DockPanel.Dock="Right" Background="#B91C1C" CornerRadius="6" Padding="6,2" VerticalAlignment="Center">
+           <TextBlock Text="TẶNG ĐẾN +40% TIỀN THƯỞNG" Foreground="White" FontSize="10" FontWeight="Bold"/>
+          </Border>
+         </DockPanel>
+
+         <ItemsControl ItemsSource="{Binding Combos}">
+          <ItemsControl.ItemsPanel>
+           <ItemsPanelTemplate>
+            <WrapPanel/>
+           </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+           <DataTemplate>
+            <Border Width="260" Background="#0C152B" BorderBrush="#1F345C" BorderThickness="1.5" CornerRadius="16" Padding="16" Margin="0,0,14,14">
+             <Grid>
+              <Grid.RowDefinitions>
+               <RowDefinition Height="Auto"/>
+               <RowDefinition Height="Auto"/>
+               <RowDefinition Height="Auto"/>
+               <RowDefinition Height="Auto"/>
+              </Grid.RowDefinitions>
+
+              <DockPanel Grid.Row="0">
+               <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="15" Foreground="White" VerticalAlignment="Center"/>
+               <Border DockPanel.Dock="Right" Background="#166534" CornerRadius="6" Padding="6,2" VerticalAlignment="Center"
+                       Visibility="{Binding BonusValue, Converter={StaticResource BoolVisible}}">
+                <TextBlock Text="{Binding BonusLabel, StringFormat='Tặng {0}'}" Foreground="#86EFAC" FontSize="10.5" FontWeight="Bold"/>
+               </Border>
+              </DockPanel>
+
+              <TextBlock Grid.Row="1" Text="{Binding Description}" Foreground="#94A3B8" FontSize="12" Margin="0,6,0,12" TextWrapping="Wrap" MinHeight="34"/>
+
+              <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,12">
+               <TextBlock Text="Giá nạp: " Foreground="#64748B" FontSize="12" VerticalAlignment="Center"/>
+               <TextBlock Text="{Binding Price, ConverterCulture='vi-VN', StringFormat='{}{0:N0} ₫'}" Foreground="#FFD700" FontWeight="Bold" FontSize="16" Margin="4,0,0,0"/>
+              </StackPanel>
+
+              <Button Grid.Row="3" Command="{Binding DataContext.SelectComboCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                      CommandParameter="{Binding}"
+                      Content="CHỌN NẠP GÓI NÀY" Background="#00F2FE" Foreground="#080D1B" FontWeight="Bold" FontSize="12" Height="34" Cursor="Hand" Style="{StaticResource Primary}"/>
+             </Grid>
+            </Border>
+           </DataTemplate>
+          </ItemsControl.ItemTemplate>
+         </ItemsControl>
+        </StackPanel>
+       </Border>
+
+       <!-- Nạp tiền thủ công & Chọn hình thức -->
+       <Border Style="{StaticResource Card}" Background="#0C152B" BorderBrush="#1C2E52" Margin="0,0,0,20">
+        <StackPanel>
+         <TextBlock Text="HÌNH THỨC NẠP TIỀN" Style="{StaticResource Subheading}"/>
+
+         <!-- Payment Method Selector Tabs -->
+         <WrapPanel Margin="0,0,0,16">
+          <Button Content="💳 CHUYỂN KHOẢN VIETQR (TỰ ĐỘNG)" Command="{Binding SetTransferPaymentCommand}"
+                  Margin="0,0,12,0" Padding="18,10" FontWeight="Bold" Cursor="Hand"/>
+          <Button Content="💵 TIỀN MẶT TẠI QUẦY THU NGÂN" Command="{Binding SetCashPaymentCommand}"
+                  Padding="18,10" FontWeight="Bold" Cursor="Hand" Style="{StaticResource Secondary}"/>
+         </WrapPanel>
+
+         <!-- 1-Click Quick Amount Selection Chips -->
+         <TextBlock Text="Chọn nhanh số tiền nạp:" Foreground="#94A3B8" FontSize="12" Margin="0,0,0,8"/>
+         <WrapPanel Margin="0,0,0,16">
+          <Button Content="+20.000 ₫" Command="{Binding SelectTopupAmountCommand}" CommandParameter="20000" Margin="0,0,8,8" Height="32" Padding="12,2" Style="{StaticResource Secondary}"/>
+          <Button Content="+50.000 ₫" Command="{Binding SelectTopupAmountCommand}" CommandParameter="50000" Margin="0,0,8,8" Height="32" Padding="12,2" Style="{StaticResource Secondary}"/>
+          <Button Content="+100.000 ₫ ⭐" Command="{Binding SelectTopupAmountCommand}" CommandParameter="100000" Margin="0,0,8,8" Height="32" Padding="12,2" Background="#1E293B" BorderBrush="#00F2FE" Foreground="#00F2FE" FontWeight="Bold"/>
+          <Button Content="+200.000 ₫" Command="{Binding SelectTopupAmountCommand}" CommandParameter="200000" Margin="0,0,8,8" Height="32" Padding="12,2" Style="{StaticResource Secondary}"/>
+          <Button Content="+500.000 ₫ 👑" Command="{Binding SelectTopupAmountCommand}" CommandParameter="500000" Margin="0,0,8,8" Height="32" Padding="12,2" Style="{StaticResource Secondary}"/>
+         </WrapPanel>
+
+         <!-- Amount & Note Inputs -->
+         <Grid Margin="0,0,0,14">
+          <Grid.ColumnDefinitions>
+           <ColumnDefinition Width="*"/>
+           <ColumnDefinition Width="*"/>
+          </Grid.ColumnDefinitions>
+          <TextBox Text="{Binding TopupAmount, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Số tiền cần nạp (VND)" MaxLength="8" Margin="0,0,16,0"/>
+          <TextBox Grid.Column="1" Text="{Binding TopupNote, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Ghi chú thêm (không bắt buộc)" MaxLength="2000"/>
+         </Grid>
+
+         <!-- VietQR Details Panel -->
+         <Border Visibility="{Binding IsTransferMethod, Converter={StaticResource BoolVisible}}"
+                 Background="#080E1E" BorderBrush="#00F2FE" BorderThickness="1.5" CornerRadius="16" Padding="20" Margin="0,0,0,16">
+          <Grid>
+           <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+           </Grid.ColumnDefinitions>
+
+           <!-- QR Frame -->
+           <Border Background="White" CornerRadius="12" Padding="8" Margin="0,0,20,0" VerticalAlignment="Center">
+            <Image Source="{Binding VietQrUrl}" Width="160" Height="160" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+           </Border>
+
+           <StackPanel Grid.Column="1" VerticalAlignment="Center">
+            <TextBlock Text="QUÉT MÃ VIETQR QUA APP NGÂN HÀNG HOẶC VÍ ĐIỆN TỬ" FontWeight="Bold" FontSize="14.5" Foreground="#00F2FE"/>
+            <TextBlock Text="Mã QR tự động chứa số tài khoản, số tiền và cú pháp chính xác:" Foreground="#94A3B8" FontSize="12" Margin="0,3,0,12"/>
+
+            <Grid Margin="0,0,0,6">
+             <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+             <TextBlock Text="Ngân hàng:" Foreground="#94A3B8" VerticalAlignment="Center"/>
+             <TextBlock Grid.Column="1" Text="{Binding BankName}" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+            </Grid>
+
+            <Grid Margin="0,0,0,6">
+             <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+             <TextBlock Text="Số tài khoản:" Foreground="#94A3B8" VerticalAlignment="Center"/>
+             <TextBlock Grid.Column="1" Text="{Binding BankAccount}" FontWeight="Bold" FontSize="15" Foreground="#FFD700" VerticalAlignment="Center"/>
+             <Button Grid.Column="2" Command="{Binding CopyTextCommand}" CommandParameter="{Binding BankAccount}"
+                     Content="Sao chép" Height="26" Padding="8,1" FontSize="11" Style="{StaticResource Secondary}"/>
+            </Grid>
+
+            <Grid Margin="0,0,0,6">
+             <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+             <TextBlock Text="Chủ tài khoản:" Foreground="#94A3B8" VerticalAlignment="Center"/>
+             <TextBlock Grid.Column="1" Text="{Binding BankAccountName}" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+            </Grid>
+
+            <Grid Margin="0,0,0,10">
+             <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+             <TextBlock Text="Cú pháp CK:" Foreground="#94A3B8" VerticalAlignment="Center"/>
+             <TextBlock Grid.Column="1" Text="{Binding TransferSyntax}" FontWeight="Bold" FontSize="14" Foreground="#38D9FF" VerticalAlignment="Center"/>
+             <Button Grid.Column="2" Command="{Binding CopyTextCommand}" CommandParameter="{Binding TransferSyntax}"
+                     Content="Sao chép" Height="26" Padding="8,1" FontSize="11" Style="{StaticResource Secondary}"/>
+            </Grid>
+
+            <TextBlock Text="💡 Sau khi chuyển khoản thành công trên app ngân hàng, vui lòng bấm nút bên dưới để gửi thông báo cho quầy thu ngân duyệt cộng tiền ngay."
+                       TextWrapping="Wrap" Foreground="#7DD3FC" FontSize="11.5"/>
+           </StackPanel>
+          </Grid>
+         </Border>
+
+         <!-- Cash Details Panel -->
+         <Border Visibility="{Binding IsCashMethod, Converter={StaticResource BoolVisible}}"
+                 Background="#162544" CornerRadius="12" Padding="16,14" Margin="0,0,0,16">
+          <DockPanel Margin="24,18">
+           <md:PackIcon Kind="CashMultiple" Width="32" Height="32" Foreground="#FFD700" VerticalAlignment="Center" Margin="0,0,14,0"/>
+           <TextBlock Text="Quý khách vui lòng gửi yêu cầu và mang tiền mặt thanh toán trực tiếp tại quầy thu ngân. Thu ngân sẽ nhận tiền và cộng vào tài khoản của bạn ngay lập tức." TextWrapping="Wrap" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+          </DockPanel>
+         </Border>
+
+         <Button Content="🚀 GỬI YÊU CẦU NẠP TIỀN" Command="{Binding RequestTopupCommand}" IsEnabled="{Binding CanMutate}"
+                 HorizontalAlignment="Left" Padding="24,10" FontWeight="Bold" Background="#00F2FE" Foreground="#080D1B" Style="{StaticResource Primary}"/>
+        </StackPanel>
+       </Border>
+
+       <!-- Tables Grid for Topups & Transactions -->
+       <Grid>
+        <Grid.ColumnDefinitions>
+         <ColumnDefinition Width="*"/>
+         <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Topup Requests Table -->
+        <Border Style="{StaticResource Card}" Margin="0,0,10,0">
+         <StackPanel>
+          <TextBlock Text="Yêu cầu nạp tiền gần đây" Style="{StaticResource Subheading}"/>
+          <TextBlock Text="Chưa có yêu cầu nạp." Style="{StaticResource Muted}" Visibility="{Binding Topups.Count, Converter={StaticResource EmptyVisible}}"/>
+          <DataGrid ItemsSource="{Binding Topups}" MaxHeight="220">
+           <DataGrid.Columns>
+            <DataGridTextColumn Header="Thời gian" Binding="{Binding Created}" Width="*"/>
+            <DataGridTextColumn Header="Số tiền" Binding="{Binding AmountLabel}" Width="120"/>
+            <DataGridTextColumn Header="Trạng thái" Binding="{Binding StatusLabel}" Width="120"/>
+           </DataGrid.Columns>
+          </DataGrid>
+         </StackPanel>
+        </Border>
+
+        <!-- Transactions History Table -->
+        <Border Grid.Column="1" Style="{StaticResource Card}" Margin="10,0,0,0">
+         <StackPanel>
+          <TextBlock Text="Lịch sử biến động số dư" Style="{StaticResource Subheading}"/>
+          <TextBlock Text="Chưa có giao dịch." Style="{StaticResource Muted}" Visibility="{Binding Transactions.Count, Converter={StaticResource EmptyVisible}}"/>
+          <DataGrid ItemsSource="{Binding Transactions}" MaxHeight="220">
+           <DataGrid.Columns>
+            <DataGridTextColumn Header="Thời gian" Binding="{Binding Created}" Width="*"/>
+            <DataGridTextColumn Header="Loại" Binding="{Binding Type}" Width="110"/>
+            <DataGridTextColumn Header="Số tiền" Binding="{Binding AmountLabel}" Width="120"/>
+           </DataGrid.Columns>
+          </DataGrid>
+         </StackPanel>
+        </Border>
+       </Grid>
+      </StackPanel>
+     </ScrollViewer>
+    </TabItem>
+    <TabItem>
+     <TabItem.Header>
+      <DockPanel Width="146">
+       <md:PackIcon Kind="AccountCircleOutline" Width="18" Height="18" Foreground="#60A5FA" VerticalAlignment="Center" Margin="0,0,10,0"/>
+       <TextBlock Text="Hồ sơ" FontSize="13" VerticalAlignment="Center"/>
+      </DockPanel>
+     </TabItem.Header>
+     <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel Margin="24,0,24,20">
+       <DockPanel Margin="0,0,0,16">
+        <StackPanel DockPanel.Dock="Left">
+         <TextBlock Text="Hồ sơ Game thủ &amp; Căn cước Gamer" Style="{StaticResource Heading}"/>
+         <TextBlock Text="Quản lý thẻ hội viên, thông tin tài khoản và bảo mật mật khẩu:" Style="{StaticResource Muted}"/>
+        </StackPanel>
+       </DockPanel>
+
+       <!-- Gamer Passport Identity Card -->
+       <Border Margin="0,0,0,20" CornerRadius="20" BorderThickness="1.5" BorderBrush="#38BDF8" Background="#0C152B" ClipToBounds="True">
+        <Border.Effect>
+         <DropShadowEffect Color="#38BDF8" BlurRadius="25" ShadowDepth="0" Opacity="0.25"/>
+        </Border.Effect>
+        <Grid>
+         <Grid.Background>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+           <GradientStop Color="#111C3A" Offset="0"/>
+           <GradientStop Color="#091122" Offset="0.6"/>
+           <GradientStop Color="#1E1438" Offset="1"/>
+          </LinearGradientBrush>
+         </Grid.Background>
+
+         <Grid>
+          <Grid.ColumnDefinitions>
+           <ColumnDefinition Width="Auto"/>
+           <ColumnDefinition Width="*"/>
+          </Grid.ColumnDefinitions>
+
+          <!-- Avatar & Rank Ring -->
+          <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+           <Border Width="88" Height="88" CornerRadius="44" BorderBrush="#00F2FE" BorderThickness="2.5" Background="#14213D" HorizontalAlignment="Center">
+            <Border.Effect>
+             <DropShadowEffect Color="#00F2FE" BlurRadius="18" ShadowDepth="0" Opacity="0.8"/>
+            </Border.Effect>
+            <Grid>
+             <md:PackIcon Kind="Account" Width="54" Height="54" Foreground="#38D9FF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Grid>
+           </Border>
+           <Border Background="#1E293B" BorderBrush="#00F2FE" BorderThickness="1" CornerRadius="10" Padding="8,3" Margin="0,8,0,0" HorizontalAlignment="Center">
+            <TextBlock Text="{Binding VipBadge}" Foreground="#00F2FE" FontSize="10.5" FontWeight="Bold"/>
+           </Border>
+          </StackPanel>
+
+          <!-- Gamer Info & Stats HUD -->
+          <StackPanel Grid.Column="1" VerticalAlignment="Center">
+           <DockPanel LastChildFill="False" Margin="0,0,0,6">
+            <TextBlock Text="{Binding AccountName}" Foreground="White" FontSize="22" FontWeight="Bold" VerticalAlignment="Center"/>
+            <Border DockPanel.Dock="Right" Background="#B91C1C" CornerRadius="6" Padding="8,2" HorizontalAlignment="Right">
+             <TextBlock Text="{Binding DailyStreak, StringFormat='🔥 STREAK {0} NGÀY'}" Foreground="White" FontSize="11" FontWeight="Bold"/>
+            </Border>
+           </DockPanel>
+
+           <TextBlock Text="{Binding Tier, StringFormat='Cấp độ hội viên: {0}'}" Foreground="#94A3B8" FontSize="12.5" Margin="0,0,0,14"/>
+
+           <!-- Gamer Stats Grid -->
+           <UniformGrid Columns="3" Margin="0,0,0,12">
+            <Border Background="#13203C" CornerRadius="12" Padding="12,10" Margin="0,0,10,0">
+             <StackPanel>
+              <TextBlock Text="⏱️ TỔNG GIỜ LEO RANK" Foreground="#64748B" FontSize="10" FontWeight="Bold"/>
+              <TextBlock Text="128 Giờ" Foreground="#38D9FF" FontSize="15" FontWeight="Bold" Margin="0,2,0,0"/>
+             </StackPanel>
+            </Border>
+
+            <Border Background="#13203C" CornerRadius="12" Padding="12,10" Margin="0,0,10,0">
+             <StackPanel>
+              <TextBlock Text="🎮 GAME YÊU THÍCH" Foreground="#64748B" FontSize="10" FontWeight="Bold"/>
+              <TextBlock Text="LMHT &amp; Valorant" Foreground="#F59E0B" FontSize="14" FontWeight="Bold" Margin="0,2,0,0"/>
+             </StackPanel>
+            </Border>
+
+            <Border Background="#13203C" CornerRadius="12" Padding="12,10">
+             <StackPanel>
+              <TextBlock Text="🍜 MÓN RUỘT PHÒNG MÁY" Foreground="#64748B" FontSize="10" FontWeight="Bold"/>
+              <TextBlock Text="Mì Indomie + Sting" Foreground="#34D399" FontSize="13.5" FontWeight="Bold" Margin="0,2,0,0"/>
+             </StackPanel>
+            </Border>
+           </UniformGrid>
+
+           <!-- XP Progress Bar -->
+           <Grid>
+            <ProgressBar Value="{Binding ExpPercentage}" Height="8" Foreground="#00F2FE" Background="#1E293B" BorderThickness="0"/>
+           </Grid>
+           <DockPanel Margin="0,4,0,0">
+            <TextBlock Text="{Binding CurrentExp, StringFormat='Tiến độ cấp VIP: {0} XP'}" Foreground="#94A3B8" FontSize="11"/>
+            <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding ExpPercentage, StringFormat='{}{0}%'}" Foreground="#00F2FE" FontWeight="Bold" FontSize="11"/>
+           </DockPanel>
+          </StackPanel>
+         </Grid>
+        </Grid>
+       </Border>
+
+       <!-- Two Columns: Profile Editor & Password Change -->
+       <Grid>
+        <Grid.ColumnDefinitions>
+         <ColumnDefinition Width="*"/>
+         <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Profile Edit Card -->
+        <Border Style="{StaticResource Card}" Margin="0,0,10,0">
+         <StackPanel>
+          <TextBlock Text="Thông tin cá nhân" Style="{StaticResource Subheading}"/>
+          <TextBox Text="{Binding FullName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Họ và tên" MaxLength="100"/>
+          <TextBox Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Số điện thoại" MaxLength="13"/>
+          <TextBox Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Email" MaxLength="150"/>
+          <TextBox Text="{Binding DateOfBirth, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Ngày sinh (yyyy-MM-dd)" MaxLength="10"/>
+          <TextBox Text="{Binding Hobbies, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Sở thích game thủ" MaxLength="500" TextWrapping="Wrap"/>
+          <Button Content="💾 LƯU HỒ SƠ" Command="{Binding SaveProfileCommand}" IsEnabled="{Binding CanMutate}"
+                  HorizontalAlignment="Left" Padding="20,8" FontWeight="Bold" Background="#00F2FE" Foreground="#080D1B" Style="{StaticResource Primary}"/>
+         </StackPanel>
+        </Border>
+
+        <!-- Security & Password Change Card -->
+        <Border Grid.Column="1" Style="{StaticResource Card}" Margin="10,0,0,0" VerticalAlignment="Top">
+         <StackPanel>
+          <TextBlock Text="Bảo mật &amp; Đổi mật khẩu" Style="{StaticResource Subheading}"/>
+          <PasswordBox Style="{StaticResource Secret}" md:HintAssist.Hint="Mật khẩu hiện tại" Tag="CurrentPassword" PasswordChanged="OnPasswordChanged" MaxLength="100"/>
+          <PasswordBox Style="{StaticResource Secret}" md:HintAssist.Hint="Mật khẩu mới" Tag="NewPassword" PasswordChanged="OnPasswordChanged" MaxLength="100"/>
+          <PasswordBox Style="{StaticResource Secret}" md:HintAssist.Hint="Xác nhận mật khẩu mới" Tag="NewPasswordConfirmation" PasswordChanged="OnPasswordChanged" MaxLength="100"/>
+          <TextBlock Text="Tối thiểu 8 ký tự và khác mật khẩu đang sử dụng." Style="{StaticResource Muted}" Margin="0,0,0,14"/>
+          <Button Content="🔒 ĐỔI MẬT KHẨU" Command="{Binding ChangePasswordCommand}" IsEnabled="{Binding CanMutate}"
+                  HorizontalAlignment="Left" Padding="20,8" FontWeight="Bold" Background="#38BDF8" Foreground="#080D1B" Style="{StaticResource Primary}"/>
+         </StackPanel>
+        </Border>
+       </Grid>
+      </StackPanel>
+     </ScrollViewer>
+    </TabItem>
+    <TabItem>
+     <TabItem.Header>
+      <DockPanel Width="146">
+       <md:PackIcon Kind="Headset" Width="18" Height="18" Foreground="#F472B6" VerticalAlignment="Center" Margin="0,0,10,0"/>
+       <TextBlock Text="Hỗ trợ" FontSize="13" VerticalAlignment="Center"/>
+      </DockPanel>
+     </TabItem.Header>
+     <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel Margin="24,0,24,20">
+       <DockPanel Margin="0,0,0,16">
+        <StackPanel DockPanel.Dock="Left">
+         <TextBlock Text="Trung tâm Hỗ trợ Game thủ" Style="{StaticResource Heading}"/>
+         <TextBlock Text="Nhân viên luôn túc trực 24/7 để phục vụ bạn tận nơi:" Style="{StaticResource Muted}"/>
+        </StackPanel>
+       </DockPanel>
+
+       <!-- One-Tap Quick Support Chips -->
+       <Border Style="{StaticResource Card}" Background="#0C152B" BorderBrush="#F472B6" BorderThickness="1.5" Margin="0,0,0,20">
+        <Border.Effect>
+         <DropShadowEffect Color="#F472B6" BlurRadius="20" ShadowDepth="0" Opacity="0.2"/>
+        </Border.Effect>
+        <StackPanel>
+         <DockPanel LastChildFill="False" Margin="0,0,0,12">
+          <TextBlock Text="⚡ HỖ TRỢ KHẨN CẤP 1 CHẠM TẠI BÀN" Style="{StaticResource Subheading}" Foreground="#F472B6" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+          <Border DockPanel.Dock="Right" Background="#831843" CornerRadius="6" Padding="8,2" VerticalAlignment="Center">
+           <TextBlock Text="THU NGÂN ĐẾN NGAY" Foreground="#FBCFE8" FontSize="10" FontWeight="Bold"/>
+          </Border>
+         </DockPanel>
+         <TextBlock Text="Đang trong trận đấu không tiện gõ phím? Bấm ngay biểu tượng bên dưới để gửi cảnh báo trực tiếp:" Foreground="#94A3B8" FontSize="12.5" Margin="0,0,0,14"/>
+
+         <!-- 6 Quick One-Tap Buttons -->
+         <WrapPanel>
+          <Button Command="{Binding QuickSupportCommand}" CommandParameter="Tai nghe một bên rè hoặc mất tiếng" Margin="0,0,10,10" Padding="14,8" Height="36" Style="{StaticResource Secondary}">
+           <StackPanel Orientation="Horizontal">
+            <TextBlock Text="🎧 Tai nghe rè / mất tiếng" VerticalAlignment="Center"/>
+           </StackPanel>
+          </Button>
+
+          <Button Command="{Binding QuickSupportCommand}" CommandParameter="Bàn phím bị kẹt phím hoặc chuột double-click" Margin="0,0,10,10" Padding="14,8" Height="36" Style="{StaticResource Secondary}">
+           <StackPanel Orientation="Horizontal">
+            <TextBlock Text="⌨️ Kẹt phím / Chuột giật" VerticalAlignment="Center"/>
+           </StackPanel>
+          </Button>
+
+          <Button Command="{Binding QuickSupportCommand}" CommandParameter="Máy bị drop FPS hoặc ping mạng tăng đột biến" Margin="0,0,10,10" Padding="14,8" Height="36" Style="{StaticResource Secondary}">
+           <StackPanel Orientation="Horizontal">
+            <TextBlock Text="⚡ Giật lag FPS / Ping cao" VerticalAlignment="Center"/>
+           </StackPanel>
+          </Button>
+
+          <Button Command="{Binding QuickSupportCommand}" CommandParameter="Cho xin thêm khăn giấy hoặc lau dọn bàn máy" Margin="0,0,10,10" Padding="14,8" Height="36" Style="{StaticResource Secondary}">
+           <StackPanel Orientation="Horizontal">
+            <TextBlock Text="🧻 Xin khăn giấy / Lau dọn bàn" VerticalAlignment="Center"/>
+           </StackPanel>
+          </Button>
+
+          <Button Command="{Binding QuickSupportCommand}" CommandParameter="Đơn món của tôi lâu quá, vui lòng giục bếp bưng nhanh giùm" Margin="0,0,10,10" Padding="14,8" Height="36" Style="{StaticResource Secondary}">
+           <StackPanel Orientation="Horizontal">
+            <TextBlock Text="🍜 Giục đồ ăn bưng nhanh" VerticalAlignment="Center"/>
+           </StackPanel>
+          </Button>
+
+          <Button Command="{Binding QuickSupportCommand}" CommandParameter="Mượn củ sạc hoặc dây cáp sạc điện thoại" Margin="0,0,10,10" Padding="14,8" Height="36" Style="{StaticResource Secondary}">
+           <StackPanel Orientation="Horizontal">
+            <TextBlock Text="🔌 Mượn dây sạc điện thoại" VerticalAlignment="Center"/>
+           </StackPanel>
+          </Button>
+         </WrapPanel>
+        </StackPanel>
+       </Border>
+
+       <!-- Custom Feedback Form -->
+       <Border Style="{StaticResource Card}" Margin="0,0,0,20">
+        <StackPanel>
+         <TextBlock Text="Gửi yêu cầu hoặc phản hồi chi tiết" Style="{StaticResource Subheading}"/>
+         <TextBox Text="{Binding FeedbackSubject, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Chủ đề yêu cầu" MaxLength="200"/>
+         <TextBox Text="{Binding FeedbackContent, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" md:HintAssist.Hint="Mô tả chi tiết vấn đề bạn đang gặp phải..." AcceptsReturn="True" TextWrapping="Wrap" MinHeight="90" MaxLength="4000" VerticalScrollBarVisibility="Auto"/>
+         <Button Content="📨 GỬI HỖ TRỢ CHO THU NGÂN" Command="{Binding SendFeedbackCommand}" IsEnabled="{Binding CanMutate}"
+                 HorizontalAlignment="Left" Padding="20,8" FontWeight="Bold" Background="#00F2FE" Foreground="#080D1B" Style="{StaticResource Primary}"/>
+        </StackPanel>
+       </Border>
+
+       <!-- Feedback History & Staff Replies -->
+       <TextBlock Text="Lịch sử trao đổi với nhân viên quầy" Style="{StaticResource Subheading}"/>
+       <TextBlock Text="Chưa có yêu cầu hỗ trợ nào." Style="{StaticResource Muted}" Visibility="{Binding FeedbackItems.Count, Converter={StaticResource EmptyVisible}}"/>
+       <ItemsControl ItemsSource="{Binding FeedbackItems}">
+        <ItemsControl.ItemTemplate>
+         <DataTemplate>
+          <Border Style="{StaticResource Card}" Background="#0C152B" BorderBrush="#1C2E52" Padding="20,16" Margin="0,0,0,12">
+           <StackPanel>
+            <DockPanel Margin="0,0,0,6">
+             <TextBlock Text="{Binding Subject}" FontWeight="Bold" FontSize="16" Foreground="White" VerticalAlignment="Center"/>
+             <Border DockPanel.Dock="Right" Background="#1E293B" CornerRadius="6" Padding="8,2">
+              <TextBlock Text="{Binding Created}" Foreground="#94A3B8" FontSize="11"/>
+             </Border>
+            </DockPanel>
+
+            <TextBlock Text="{Binding Content}" TextWrapping="Wrap" Foreground="#CBD5E1" Margin="0,0,0,10"/>
+
+            <!-- Staff Response Box -->
+            <Border Visibility="{Binding Response, Converter={StaticResource EmptyVisible}, ConverterParameter=Inverse}"
+                    Background="#0D231A" BorderBrush="#10B981" BorderThickness="1" CornerRadius="10" Padding="14,10" Margin="0,6,0,0">
+             <StackPanel>
+              <TextBlock Text="👮 PHẢN HỒI TỪ NHÂN VIÊN QUẦY THU NGÂN:" FontWeight="Bold" FontSize="11" Foreground="#34D399" Margin="0,0,0,4"/>
+              <TextBlock Text="{Binding Response}" TextWrapping="Wrap" FontWeight="SemiBold" Foreground="White" FontSize="13"/>
+             </StackPanel>
+            </Border>
+           </StackPanel>
+          </Border>
+         </DataTemplate>
+        </ItemsControl.ItemTemplate>
+       </ItemsControl>
+      </StackPanel>
+     </ScrollViewer>
+    </TabItem>
+    <TabItem>
+     <TabItem.Header>
+      <DockPanel Width="146">
+       <md:PackIcon Kind="ClipboardCheckOutline" Width="18" Height="18" Foreground="#2DD4BF" VerticalAlignment="Center" Margin="0,0,10,0"/>
+       <TextBlock Text="Khảo sát" FontSize="13" VerticalAlignment="Center"/>
+      </DockPanel>
+     </TabItem.Header>
+     <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel Margin="24,0,24,20">
+       <DockPanel Margin="0,0,0,16">
+        <StackPanel DockPanel.Dock="Left">
+         <TextBlock Text="Khảo sát &amp; Trải nghiệm Khách hàng" Style="{StaticResource Heading}"/>
+         <TextBlock Text="Đóng góp ý kiến để cùng nâng tầm trải nghiệm phòng máy Cybercafe:" Style="{StaticResource Muted}"/>
+        </StackPanel>
+       </DockPanel>
+
+       <!-- Survey Reward Banner -->
+       <Border Margin="0,0,0,20" CornerRadius="18" BorderThickness="1.5" BorderBrush="#2DD4BF" Background="#0C152B" ClipToBounds="True">
+        <Border.Effect>
+         <DropShadowEffect Color="#2DD4BF" BlurRadius="20" ShadowDepth="0" Opacity="0.25"/>
+        </Border.Effect>
+        <Grid>
+         <Grid.Background>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+           <GradientStop Color="#0F2426" Offset="0"/>
+           <GradientStop Color="#09131F" Offset="0.6"/>
+           <GradientStop Color="#12182B" Offset="1"/>
+          </LinearGradientBrush>
+         </Grid.Background>
+         <DockPanel>
+          <md:PackIcon Kind="GiftOutline" Width="38" Height="38" Foreground="#2DD4BF" VerticalAlignment="Center" Margin="0,0,16,0"/>
+          <StackPanel VerticalAlignment="Center">
+           <TextBlock Text="🎁 NHẬN PHẦN THƯỞNG TRI ÂN KHI HOÀN THÀNH KHẢO SÁT" FontWeight="Bold" FontSize="14" Foreground="#2DD4BF"/>
+           <TextBlock Text="Mỗi ý kiến đóng góp của bạn giúp chúng tôi nâng cấp chất lượng máy tính, đường truyền và thực đơn mỗi ngày!" Foreground="#94A3B8" FontSize="12" Margin="0,3,0,0"/>
+          </StackPanel>
+         </DockPanel>
+        </Grid>
+       </Border>
+
+       <Border Style="{StaticResource Card}" Visibility="{Binding Surveys.Count, Converter={StaticResource EmptyVisible}}" Padding="36" Background="#0C152B" BorderBrush="#1C2E52" Margin="0,0,0,20">
+        <StackPanel HorizontalAlignment="Center">
+         <Border Width="64" Height="64" CornerRadius="32" Background="#14233C" BorderBrush="#2DD4BF" BorderThickness="1.5" HorizontalAlignment="Center" Margin="0,0,0,14">
+          <md:PackIcon Kind="ClipboardCheckOutline" Width="32" Height="32" Foreground="#2DD4BF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+         </Border>
+         <TextBlock Text="Hiện chưa có đợt khảo sát mới dành cho tài khoản của bạn" Foreground="White" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
+         <TextBlock Text="Bạn đã hoàn thành tất cả phiếu khảo sát gần đây hoặc chưa có đợt khảo sát mới. Cảm ơn bạn đã luôn đồng hành cùng Cybercafe!" 
+                    Foreground="#94A3B8" FontSize="12.5" Margin="0,6,0,18" HorizontalAlignment="Center" TextAlignment="Center" MaxWidth="520" TextWrapping="Wrap"/>
+         <Button Content="🎧 GỬI PHẢN ÁNH HOẶC GÓP Ý TRỰC TIẾP" Command="{Binding RequestSupportCommand}"
+                 Height="36" Padding="18,0" Style="{StaticResource Secondary}" Foreground="#2DD4BF" BorderBrush="#2DD4BF" HorizontalAlignment="Center"/>
+        </StackPanel>
+       </Border>
+
+       <!-- Survey Selection Dropdown -->
+       <ComboBox ItemsSource="{Binding Surveys}" SelectedItem="{Binding SelectedSurvey}" DisplayMemberPath="Title"
+                 MinHeight="48" Margin="0,0,0,18" AutomationProperties.Name="Chọn khảo sát"
+                 Visibility="{Binding Surveys.Count, Converter={StaticResource EmptyVisible}, ConverterParameter=Inverse}"/>
+
+       <!-- Survey Card -->
+       <Border Style="{StaticResource Card}" Visibility="{Binding Surveys.Count, Converter={StaticResource EmptyVisible}, ConverterParameter=Inverse}">
+        <StackPanel>
+         <DockPanel Margin="0,0,0,8">
+          <TextBlock Text="{Binding SelectedSurvey.Title}" Style="{StaticResource Subheading}" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+          <Border DockPanel.Dock="Right" Background="#1E293B" CornerRadius="6" Padding="8,3" VerticalAlignment="Center">
+           <TextBlock Text="{Binding SurveyState}" Foreground="#38D9FF" FontSize="11" FontWeight="SemiBold"/>
+          </Border>
+         </DockPanel>
+
+         <TextBlock Text="{Binding SelectedSurvey.Description}" Style="{StaticResource Muted}" Margin="0,0,0,18"/>
+
+         <!-- Question Items -->
+         <ItemsControl ItemsSource="{Binding Answers}" IsEnabled="{Binding CanAnswerSurvey}">
+          <ItemsControl.ItemTemplate>
+           <DataTemplate>
+            <Border Background="#0C152B" BorderBrush="#1C2E52" BorderThickness="1" CornerRadius="12" Padding="18,14" Margin="0,0,0,14">
+             <StackPanel>
+              <TextBlock Text="{Binding Text}" FontWeight="Bold" FontSize="13.5" Foreground="White" TextWrapping="Wrap" Margin="0,0,0,10"/>
+              <ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedAnswer}" MinHeight="42" AutomationProperties.Name="{Binding Text}"/>
+             </StackPanel>
+            </Border>
+           </DataTemplate>
+          </ItemsControl.ItemTemplate>
+         </ItemsControl>
+
+         <Button Content="🚀 GỬI CÂU TRẢ LỜI KHẢO SÁT" Command="{Binding SubmitSurveyCommand}" IsEnabled="{Binding CanAnswerSurvey}"
+                 HorizontalAlignment="Left" Padding="22,10" FontWeight="Bold" Background="#2DD4BF" Foreground="#080D1B" Style="{StaticResource Primary}"/>
+        </StackPanel>
+       </Border>
+      </StackPanel>
+     </ScrollViewer>
+    </TabItem>
    </TabControl>
    <Border Background="#FF668232" Visibility="{Binding IsAppLocked, Converter={StaticResource BoolVisible}}" Padding="36"><Border Background="#080D1B" CornerRadius="24" Padding="38" MaxWidth="620" HorizontalAlignment="Center" VerticalAlignment="Center"><StackPanel><md:PackIcon Kind="LockOutline" Width="48" Height="48" Margin="0,0,0,20"/><TextBlock Text="Phiên sử dụng đã kết thúc" Style="{StaticResource Heading}" TextWrapping="Wrap"/><TextBlock Text="{Binding SessionSummary}" Style="{StaticResource Muted}"/><Button Content="Trở về ứng dụng / nạp thêm" Command="{Binding UnlockAppCommand}"/></StackPanel></Border></Border>
     <Border Background="#F2080D1B" Visibility="{Binding IsTemporaryLocked, Converter={StaticResource BoolVisible}}" Padding="36" Panel.ZIndex="1000"><Border Background="#0D172E" BorderBrush="#38D9FF" BorderThickness="1.5" CornerRadius="20" Padding="36" MaxWidth="500" HorizontalAlignment="Center" VerticalAlignment="Center"><StackPanel HorizontalAlignment="Center"><md:PackIcon Kind="LockClock" Width="54" Height="54" Foreground="#38D9FF" HorizontalAlignment="Center" Margin="0,0,0,14"/><TextBlock Text="MÁY ĐANG ĐƯỢC TREO BỞI KHÁCH HÀNG" Foreground="White" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/><TextBlock Text="Phiên chơi vẫn đang được tính giờ. Nhập mật khẩu tài khoản để mở khóa tiếp tục sử dụng." Foreground="#A8BFDF" Margin="0,8,0,18" TextWrapping="Wrap" TextAlignment="Center"/><PasswordBox Style="{StaticResource Secret}" md:HintAssist.Hint="Mật khẩu tài khoản" PasswordChanged="OnPasswordChanged" Tag="TemporaryLockPassword" MaxLength="100" AutomationProperties.Name="Mật khẩu mở khóa"/><Button Content="Mở khóa máy" Command="{Binding UnlockTemporaryCommand}" Margin="0,12,0,0"/></StackPanel></Border></Border>  </Grid>
-  <Border Grid.Row="3" BorderBrush="#27395D" BorderThickness="0,1,0,0" Padding="24,3"><DockPanel><TextBlock Text="{Binding ConnectionStatus}" FontSize="11" VerticalAlignment="Center"/><Button Content="Thử kết nối lại" Command="{Binding RefreshCommand}" MinHeight="22" Height="24" Padding="8,0" FontSize="11" Margin="16,0,0,0" Style="{StaticResource Secondary}" DockPanel.Dock="Right" Visibility="{Binding IsAuthenticated, Converter={StaticResource BoolVisible}}"/><TextBlock Text="{Binding LastSyncLabel}" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="12,0,0,0"/></DockPanel></Border>
- </Grid>
-</Window>
+  <Border Grid.Row="3" Background="#0A1020" BorderBrush="#1C2E50" BorderThickness="0,1,0,0" Padding="20,4">
+    <DockPanel>
+     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+      <Border Width="8" Height="8" CornerRadius="4" Margin="0,0,10,0" VerticalAlignment="Center">
+       <Border.Style>
+        <Style TargetType="Border">
+         <Setter Property="Background" Value="#10B981"/>
+         <Setter Property="Effect">
+          <Setter.Value>
+           <DropShadowEffect Color="#10B981" BlurRadius="8" ShadowDepth="0" Opacity="0.9"/>
+          </Setter.Value>
+         </Setter>
+         <Style.Triggers>
+          <DataTrigger Binding="{Binding IsConnected}" Value="False">
+           <Setter Property="Background" Value="#EF4444"/>
+           <Setter Property="Effect">
+            <Setter.Value>
+             <DropShadowEffect Color="#EF4444" BlurRadius="8" ShadowDepth="0" Opacity="0.9"/>
+            </Setter.Value>
+           </Setter>
+          </DataTrigger>
+         </Style.Triggers>
+        </Style>
+       </Border.Style>
+      </Border>
+      <TextBlock Text="{Binding ConnectionStatus}" FontSize="11.5" FontWeight="SemiBold" Foreground="#CFDEF3" VerticalAlignment="Center"/>
+     </StackPanel>
+     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center">
+      <Button Content="⚡ Thử kết nối lại" Command="{Binding RefreshCommand}" MinHeight="22" Height="24" Padding="10,0" FontSize="11" Margin="0,0,12,0" Style="{StaticResource Secondary}"/>
+      <Border Background="#132244" CornerRadius="10" Padding="10,3" BorderBrush="#253E6B" BorderThickness="1">
+       <TextBlock Text="{Binding LastSyncLabel}" FontSize="11" Foreground="#00F2FE" FontWeight="SemiBold" VerticalAlignment="Center"/>
+      </Border>
+     </StackPanel>
+    </DockPanel>
+   </Border>
+ 
+   <!-- Modal Vòng Quay May Mắn Cyberpunk Gacha Wheel (Toàn màn hình) -->
+   <Border Background="#E6050A15" Visibility="{Binding IsLuckyWheelOpen, Converter={StaticResource BoolVisible}}"
+           Grid.RowSpan="4" Panel.ZIndex="3000" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+    <Border Background="#0C152B" BorderBrush="#00F2FE" BorderThickness="2" CornerRadius="24"
+            Padding="36,24" MaxWidth="540" HorizontalAlignment="Center" VerticalAlignment="Center">
+     <Border.Effect>
+      <DropShadowEffect Color="#00F2FE" BlurRadius="30" ShadowDepth="0" Opacity="0.65"/>
+     </Border.Effect>
+     <StackPanel HorizontalAlignment="Center">
+      <!-- Modal Header -->
+      <DockPanel Margin="0,0,0,16" Width="460">
+       <StackPanel DockPanel.Dock="Left">
+        <TextBlock Text="🎡 VÒNG QUAY MAY MẮN CYBERPUNK" Foreground="#00F2FE" FontSize="18" FontWeight="Bold"/>
+        <TextBlock Text="Thử vận may mỗi ngày · Nhận quà tặng và giờ chơi giá trị" Foreground="#94A3B8" FontSize="11.5" Margin="0,2,0,0"/>
+       </StackPanel>
+       <Button DockPanel.Dock="Right" Command="{Binding CloseLuckyWheelCommand}" HorizontalAlignment="Right"
+               Background="Transparent" BorderThickness="0" Foreground="#A8BFDF" Cursor="Hand" Padding="4">
+        <md:PackIcon Kind="Close" Width="22" Height="22"/>
+       </Button>
+      </DockPanel>
+
+      <!-- The Wheel Visual -->
+      <Grid Width="280" Height="280" Margin="0,8,0,16">
+       <!-- Rotating Container Border -->
+       <Border x:Name="WheelContainer" Width="280" Height="280" CornerRadius="140"
+               BorderBrush="#00F2FE" BorderThickness="3.5" Background="#080E1F" ClipToBounds="True"
+               RenderTransformOrigin="0.5,0.5">
+        <Border.RenderTransform>
+         <RotateTransform Angle="{Binding WheelAngle}"/>
+        </Border.RenderTransform>
+        <Border.Effect>
+         <DropShadowEffect Color="#00F2FE" BlurRadius="18" ShadowDepth="0" Opacity="0.75"/>
+        </Border.Effect>
+        <Grid>
+         <!-- 8 Radially positioned prize sectors -->
+         <!-- 0 deg: Top -->
+         <StackPanel VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,18,0,0">
+          <md:PackIcon Kind="ClockFast" Width="22" Height="22" Foreground="#00F2FE" HorizontalAlignment="Center"/>
+          <TextBlock Text="+30 Phút" FontSize="10.5" FontWeight="Bold" Foreground="#00F2FE" HorizontalAlignment="Center"/>
+         </StackPanel>
+         <!-- 45 deg: Top-Right -->
+         <StackPanel VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,46,40,0" RenderTransformOrigin="0.5,0.5">
+          <StackPanel.RenderTransform><RotateTransform Angle="45"/></StackPanel.RenderTransform>
+          <md:PackIcon Kind="BottleSodaClassic" Width="22" Height="22" Foreground="#FF5C8A" HorizontalAlignment="Center"/>
+          <TextBlock Text="Sting Dâu" FontSize="10.5" FontWeight="Bold" Foreground="#FF5C8A" HorizontalAlignment="Center"/>
+         </StackPanel>
+         <!-- 90 deg: Right -->
+         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,16,0" RenderTransformOrigin="0.5,0.5">
+          <StackPanel.RenderTransform><RotateTransform Angle="90"/></StackPanel.RenderTransform>
+          <md:PackIcon Kind="CashPlus" Width="22" Height="22" Foreground="#FFD700" HorizontalAlignment="Center"/>
+          <TextBlock Text="+10.000 ₫" FontSize="10.5" FontWeight="Bold" Foreground="#FFD700" HorizontalAlignment="Center"/>
+         </StackPanel>
+         <!-- 135 deg: Bottom-Right -->
+         <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,40,46" RenderTransformOrigin="0.5,0.5">
+          <StackPanel.RenderTransform><RotateTransform Angle="135"/></StackPanel.RenderTransform>
+          <md:PackIcon Kind="FoodHotDog" Width="22" Height="22" Foreground="#FFA040" HorizontalAlignment="Center"/>
+          <TextBlock Text="Xúc Xích" FontSize="10.5" FontWeight="Bold" Foreground="#FFA040" HorizontalAlignment="Center"/>
+         </StackPanel>
+         <!-- 180 deg: Bottom -->
+         <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,18" RenderTransformOrigin="0.5,0.5">
+          <StackPanel.RenderTransform><RotateTransform Angle="180"/></StackPanel.RenderTransform>
+          <md:PackIcon Kind="TicketPercent" Width="22" Height="22" Foreground="#A78BFA" HorizontalAlignment="Center"/>
+          <TextBlock Text="Giảm 20%" FontSize="10.5" FontWeight="Bold" Foreground="#A78BFA" HorizontalAlignment="Center"/>
+         </StackPanel>
+         <!-- 225 deg: Bottom-Left -->
+         <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="40,0,0,46" RenderTransformOrigin="0.5,0.5">
+          <StackPanel.RenderTransform><RotateTransform Angle="225"/></StackPanel.RenderTransform>
+          <md:PackIcon Kind="StarShooting" Width="22" Height="22" Foreground="#38BDF8" HorizontalAlignment="Center"/>
+          <TextBlock Text="x2 EXP" FontSize="10.5" FontWeight="Bold" Foreground="#38BDF8" HorizontalAlignment="Center"/>
+         </StackPanel>
+         <!-- 270 deg: Left -->
+         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Margin="16,0,0,0" RenderTransformOrigin="0.5,0.5">
+          <StackPanel.RenderTransform><RotateTransform Angle="270"/></StackPanel.RenderTransform>
+          <md:PackIcon Kind="GiftOutline" Width="22" Height="22" Foreground="#4ADE80" HorizontalAlignment="Center"/>
+          <TextBlock Text="+1 Giờ" FontSize="10.5" FontWeight="Bold" Foreground="#4ADE80" HorizontalAlignment="Center"/>
+         </StackPanel>
+         <!-- 315 deg: Top-Left -->
+         <StackPanel VerticalAlignment="Top" HorizontalAlignment="Left" Margin="40,46,0,0" RenderTransformOrigin="0.5,0.5">
+          <StackPanel.RenderTransform><RotateTransform Angle="315"/></StackPanel.RenderTransform>
+          <md:PackIcon Kind="ShieldCrown" Width="22" Height="22" Foreground="#F43F5E" HorizontalAlignment="Center"/>
+          <TextBlock Text="Cyber Pro" FontSize="10.5" FontWeight="Bold" Foreground="#F43F5E" HorizontalAlignment="Center"/>
+         </StackPanel>
+        </Grid>
+       </Border>
+
+       <!-- Center Glowing Hub -->
+       <Border Width="58" Height="58" CornerRadius="29" Background="#112242" BorderBrush="#FFD700" BorderThickness="2.5"
+               HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Border.Effect>
+         <DropShadowEffect Color="#FFD700" BlurRadius="12" ShadowDepth="0" Opacity="0.8"/>
+        </Border.Effect>
+        <md:PackIcon Kind="Creation" Width="28" Height="28" Foreground="#FFD700" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+       </Border>
+
+       <!-- Top Pointer Arrow (Points down to winning sector) -->
+       <Polygon Points="132,0 148,0 140,20" Fill="#FFD700" Stroke="#FFA000" StrokeThickness="1.5"
+                HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-4,0,0">
+        <Polygon.Effect>
+         <DropShadowEffect Color="#FFD700" BlurRadius="10" ShadowDepth="0" Opacity="0.9"/>
+        </Polygon.Effect>
+       </Polygon>
+      </Grid>
+
+      <!-- Prize Announcement Banner (shown when won) -->
+      <Border Visibility="{Binding HasWonPrize, Converter={StaticResource BoolVisible}}"
+              Background="#122A40" BorderBrush="#FFD700" BorderThickness="1.5" CornerRadius="12"
+              Padding="18,10" Margin="0,0,0,14" HorizontalAlignment="Stretch">
+       <Border.Effect>
+        <DropShadowEffect Color="#FFD700" BlurRadius="16" ShadowDepth="0" Opacity="0.7"/>
+       </Border.Effect>
+       <StackPanel HorizontalAlignment="Center">
+        <TextBlock Text="🎉 XIN CHÚC MỪNG QUÝ KHÁCH ĐÃ TRÚNG!" Foreground="#FFD700" FontWeight="Bold" FontSize="12.5" HorizontalAlignment="Center"/>
+        <TextBlock Text="{Binding WonPrizeName}" Foreground="#55F2A3" FontWeight="Bold" FontSize="15" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+       </StackPanel>
+      </Border>
+
+      <!-- Action Controls -->
+      <TextBlock Text="{Binding LuckySpins, StringFormat='🎁 Còn lại: {0} lượt quay may mắn hôm nay'}"
+                 Foreground="#A0B8DE" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+       <Button Content="🚀 BẮT ĐẦU QUAY" Command="{Binding SpinWheelCommand}"
+               IsEnabled="{Binding IsSpinning, Converter={StaticResource BoolVisible}, ConverterParameter=Inverse}"
+               Style="{StaticResource CyberButton}" MinWidth="160" Height="42" Margin="0,0,10,0"/>
+       <Button Content="Đóng" Command="{Binding CloseLuckyWheelCommand}"
+               IsEnabled="{Binding IsSpinning, Converter={StaticResource BoolVisible}, ConverterParameter=Inverse}"
+               Style="{StaticResource Secondary}" MinWidth="90" Height="42"/>
+      </StackPanel>
+     </StackPanel>
+    </Border>
+   </Border>
+  </Grid>
+ </Window>

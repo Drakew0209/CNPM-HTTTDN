@@ -1,0 +1,3321 @@
+{
+  "info": {
+    "_postman_id": "7d8f9e0a-1b2c-4d3e-8f5a-6b7c8d9e0f1a",
+    "name": "InternetCafe Management System API - Test Suite",
+    "description": "Bộ Test Suite tự động hoá toàn diện cho hệ sinh thái quản lý phòng net Cyber Cafe (Internet Cafe). Bao gồm 100% Endpoints: Xác thực phân quyền 5 Roles, Danh mục Master Data, Ví & Nạp/Rút tiền, Chuỗi nghiệp vụ mở máy/heartbeat/chuyển máy/order F&B/kết thúc phiên, Định mức NVL (MRP), Nhân sự & Chấm công (HRM), Báo cáo doanh thu & Hoá đơn.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:5055/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "adminUsername",
+      "value": "admin",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "Demo@123",
+      "type": "string"
+    },
+    {
+      "key": "managerUsername",
+      "value": "manager",
+      "type": "string"
+    },
+    {
+      "key": "managerPassword",
+      "value": "Demo@123",
+      "type": "string"
+    },
+    {
+      "key": "cashierUsername",
+      "value": "cashier",
+      "type": "string"
+    },
+    {
+      "key": "cashierPassword",
+      "value": "Demo@123",
+      "type": "string"
+    },
+    {
+      "key": "staffUsername",
+      "value": "staff",
+      "type": "string"
+    },
+    {
+      "key": "staffPassword",
+      "value": "Demo@123",
+      "type": "string"
+    },
+    {
+      "key": "customerUsername",
+      "value": "gamer",
+      "type": "string"
+    },
+    {
+      "key": "customerPassword",
+      "value": "Demo@123",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "managerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cashierToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "staffToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tempCustomerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testCustomerId",
+      "value": "c-001",
+      "type": "string"
+    },
+    {
+      "key": "testComputerId",
+      "value": "pc-001",
+      "type": "string"
+    },
+    {
+      "key": "testTargetComputerId",
+      "value": "pc-002",
+      "type": "string"
+    },
+    {
+      "key": "testSessionId",
+      "value": "session-001",
+      "type": "string"
+    },
+    {
+      "key": "testProductId",
+      "value": "p-001",
+      "type": "string"
+    },
+    {
+      "key": "testOrderId",
+      "value": "order-001",
+      "type": "string"
+    },
+    {
+      "key": "testScheduleId",
+      "value": "schedule-001",
+      "type": "string"
+    },
+    {
+      "key": "testInvoiceId",
+      "value": "inv-001",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01_Authentication & Account Profile",
+      "description": "Đăng nhập 5 Roles, lưu token tự động, đăng ký mới, đổi mật khẩu, đăng xuất và kiểm thử thu hồi token.",
+      "item": [
+        {
+          "name": "01. Login as Admin (Auto-Save adminToken)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data) {",
+                  "    const token = json.data.accessToken || json.data.token;",
+                  "    if (token) {",
+                  "        pm.collectionVariables.set('adminToken', token);",
+                  "        pm.environment.set('adminToken', token);",
+                  "    }",
+                  "}",
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response has success data with accessToken and Admin role', function () {",
+                  "    const role = (json.data.user && json.data.user.role) || (json.data.account && json.data.account.role);",
+                  "    pm.expect(role).to.eql('Admin');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Đăng nhập tài khoản Quản trị tối cao (admin)."
+          }
+        },
+        {
+          "name": "02. Login as Manager (Auto-Save managerToken)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data) {",
+                  "    const token = json.data.accessToken || json.data.token;",
+                  "    if (token) {",
+                  "        pm.collectionVariables.set('managerToken', token);",
+                  "        pm.environment.set('managerToken', token);",
+                  "    }",
+                  "}",
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Verify role is Manager', function () {",
+                  "    const role = (json.data.user && json.data.user.role) || (json.data.account && json.data.account.role);",
+                  "    pm.expect(role).to.eql('Manager');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{managerUsername}}\",\n  \"password\": \"{{managerPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Đăng nhập tài khoản Quản lý cửa hàng (manager)."
+          }
+        },
+        {
+          "name": "03. Login as Cashier (Auto-Save cashierToken)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data) {",
+                  "    const token = json.data.accessToken || json.data.token;",
+                  "    if (token) {",
+                  "        pm.collectionVariables.set('cashierToken', token);",
+                  "        pm.environment.set('cashierToken', token);",
+                  "    }",
+                  "}",
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Verify role is Cashier', function () {",
+                  "    const role = (json.data.user && json.data.user.role) || (json.data.account && json.data.account.role);",
+                  "    pm.expect(role).to.eql('Cashier');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{cashierUsername}}\",\n  \"password\": \"{{cashierPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Đăng nhập tài khoản Thu ngân (cashier)."
+          }
+        },
+        {
+          "name": "04. Login as Staff (Auto-Save staffToken)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data) {",
+                  "    const token = json.data.accessToken || json.data.token;",
+                  "    if (token) {",
+                  "        pm.collectionVariables.set('staffToken', token);",
+                  "        pm.environment.set('staffToken', token);",
+                  "    }",
+                  "}",
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Verify role is Staff', function () {",
+                  "    const role = (json.data.user && json.data.user.role) || (json.data.account && json.data.account.role);",
+                  "    pm.expect(role).to.eql('Staff');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{staffUsername}}\",\n  \"password\": \"{{staffPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Đăng nhập tài khoản Nhân viên trực ca (staff)."
+          }
+        },
+        {
+          "name": "05. Login as Customer (Auto-Save customerToken)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data) {",
+                  "    const token = json.data.accessToken || json.data.token;",
+                  "    if (token) {",
+                  "        pm.collectionVariables.set('customerToken', token);",
+                  "        pm.environment.set('customerToken', token);",
+                  "    }",
+                  "    const custId = (json.data.user && json.data.user.id) || (json.data.account && json.data.account.id);",
+                  "    if (custId) {",
+                  "        pm.collectionVariables.set('testCustomerId', custId);",
+                  "        pm.environment.set('testCustomerId', custId);",
+                  "    }",
+                  "}",
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Verify role is Customer and has an ID', function () {",
+                  "    const role = (json.data.user && json.data.user.role) || (json.data.account && json.data.account.role);",
+                  "    pm.expect(role).to.eql('Customer');",
+                  "    const id = (json.data.user && json.data.user.id) || (json.data.account && json.data.account.id);",
+                  "    pm.expect(id).to.not.be.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{customerUsername}}\",\n  \"password\": \"{{customerPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Đăng nhập tài khoản Hội viên (gamer)."
+          }
+        },
+        {
+          "name": "06. Login Fail - Wrong Password (Negative Test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test('Response body contains INVALID_CREDENTIALS error code', function () {",
+                  "    const json = pm.response.json();",
+                  "    const errCode = (json.error && json.error.code) || json.code;",
+                  "    pm.expect(errCode).to.eql('INVALID_CREDENTIALS');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"WrongPassword@999\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Kiểm thử tiêu cực: Đăng nhập sai mật khẩu."
+          }
+        },
+        {
+          "name": "07. Register New Customer (Pre-request dynamic data)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const ts = Date.now();",
+                  "const rand = Math.floor(10000 + Math.random() * 90000);",
+                  "const user = 'test_gamer_' + rand;",
+                  "const phone = '09' + Math.floor(10000000 + Math.random() * 90000000);",
+                  "pm.variables.set('newCustomerUser', user);",
+                  "pm.variables.set('newCustomerPhone', phone);",
+                  "pm.collectionVariables.set('newCustomerUser', user);",
+                  "pm.environment.set('newCustomerUser', user);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('New customer profile created with matching username', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data.username).to.eql(pm.variables.get('newCustomerUser'));",
+                  "    pm.expect(json.data.fullName).to.eql('Khách Hàng Kiểm Thử Postman');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{newCustomerUser}}\",\n  \"password\": \"GamerPass@2026\",\n  \"fullName\": \"Khách Hàng Kiểm Thử Postman\",\n  \"phone\": \"{{newCustomerPhone}}\",\n  \"email\": \"{{newCustomerUser}}@internetcafe.local\",\n  \"dateOfBirth\": \"2000-01-15\",\n  \"hobbies\": \"Dota 2, CS2\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Đăng ký tài khoản hội viên mới với dữ liệu ngẫu nhiên sinh tự động."
+          }
+        },
+        {
+          "name": "08. Login Disposable Customer (Get tempCustomerToken)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data) {",
+                  "    const token = json.data.accessToken || json.data.token;",
+                  "    if (token) {",
+                  "        pm.collectionVariables.set('tempCustomerToken', token);",
+                  "        pm.environment.set('tempCustomerToken', token);",
+                  "    }",
+                  "}",
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Verify disposable customer login', function () {",
+                  "    pm.expect(json.data.accessToken).to.not.be.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{newCustomerUser}}\",\n  \"password\": \"GamerPass@2026\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Đăng nhập tài khoản dùng một lần để thực hiện đổi mật khẩu và đăng xuất mà không ảnh hưởng tới token chính."
+          }
+        },
+        {
+          "name": "09. Change Disposable Customer Password (/me/password)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Change password status is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Password changed confirmation', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data.changed).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tempCustomerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"GamerPass@2026\",\n  \"newPassword\": \"GamerPass@2026_Updated\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/me/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "password"
+              ]
+            },
+            "description": "Đổi mật khẩu tài khoản dùng một lần. Backend sẽ tự động thu hồi token hiện hành."
+          }
+        },
+        {
+          "name": "10. Relogin Disposable Customer with New Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data) {",
+                  "    const token = json.data.accessToken || json.data.token;",
+                  "    if (token) {",
+                  "        pm.collectionVariables.set('tempCustomerToken', token);",
+                  "        pm.environment.set('tempCustomerToken', token);",
+                  "    }",
+                  "}",
+                  "pm.test('Status code is 200 OK with new password', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{newCustomerUser}}\",\n  \"password\": \"GamerPass@2026_Updated\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Đăng nhập lại bằng mật khẩu mới để xác nhận đổi mật khẩu thành công."
+          }
+        },
+        {
+          "name": "11. Logout Disposable Customer (/auth/logout)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Logged out successfully', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data.loggedOut).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tempCustomerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Đăng xuất tài khoản dùng một lần và thu hồi token."
+          }
+        },
+        {
+          "name": "12. Verify Token Revoked - Negative Test (/me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized after logout', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tempCustomerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ]
+            },
+            "description": "Kiểm thử bảo mật: Token đã logout không được phép truy cập /me."
+          }
+        },
+        {
+          "name": "13. Get Current Profile (/me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Profile matches authenticated user', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('object');",
+                  "    pm.expect(json.data.username).to.eql('admin');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ]
+            },
+            "description": "Lấy thông tin tài khoản hiện hành từ Bearer Token."
+          }
+        },
+        {
+          "name": "14. Update Profile Information (PATCH /me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Updated profile returned successfully', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('object');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Nguyễn Văn An (VIP Gamer)\",\n  \"hobbies\": \"Valorant, CS2\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ]
+            },
+            "description": "Khách hàng cập nhật thông tin cá nhân (họ tên, sở thích)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02_System Health & Master Catalog",
+      "description": "Tình trạng máy chủ, SQL Server, mô hình dữ liệu phạm vi (Workspace) và các danh mục Master Data.",
+      "item": [
+        {
+          "name": "01. Health Check (SQL Server & Tables count)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('SQL Server connection is healthy and tables exist', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data.status).to.eql('ok');",
+                  "    pm.expect(json.data.source).to.eql('sql-server');",
+                  "    pm.expect(json.data.tables).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://127.0.0.1:5055/health",
+              "protocol": "http",
+              "host": [
+                "127",
+                "0",
+                "0",
+                "1"
+              ],
+              "port": "5055",
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Kiểm tra tình trạng sống của Backend và kết nối CSDL SQL Server."
+          }
+        },
+        {
+          "name": "02. Get Scoped Workspace (/workspace)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Workspace contains core collections', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('computers');",
+                  "    pm.expect(json.data).to.have.property('categories');",
+                  "    pm.expect(json.data).to.have.property('products');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/workspace",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspace"
+              ]
+            },
+            "description": "Tải mô hình dữ liệu phạm vi tổng hợp cho ứng dụng."
+          }
+        },
+        {
+          "name": "03. List System Accounts (Admin Only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Accounts list returned', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array').and.not.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts"
+              ]
+            },
+            "description": "Lấy danh sách tài khoản hệ thống (yêu cầu quyền Admin)."
+          }
+        },
+        {
+          "name": "04. List Product Categories",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Categories array returned', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{cashierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            },
+            "description": "Danh mục phân loại F&B (Đồ uống, Đồ ăn nhanh, Thẻ nạp...)."
+          }
+        },
+        {
+          "name": "05. List Promotion Combos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Combos array returned', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{cashierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/combos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "combos"
+              ]
+            },
+            "description": "Danh sách gói combo khuyến mãi giờ chơi + món ăn."
+          }
+        },
+        {
+          "name": "06. List Gaming Library (/games)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Games catalog returned', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/games",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "games"
+              ]
+            },
+            "description": "Danh mục kho tựa game cài đặt sẵn trên máy trạm."
+          }
+        }
+      ]
+    },
+    {
+      "name": "03_Billing, Wallets & Financial Ledger",
+      "description": "Nghiệp vụ tài chính hội viên: Nạp tiền ví, hoàn tiền, kiểm tra sổ cái giao dịch và bắt lỗi nạp âm.",
+      "item": [
+        {
+          "name": "01. List All Customers (Capture testCustomerId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && Array.isArray(json.data) && json.data.length > 0) {",
+                  "    const gamer = json.data.find(c => c.username === 'gamer' || c.id === 'c-001') || json.data[0];",
+                  "    pm.collectionVariables.set('testCustomerId', gamer.id);",
+                  "    pm.environment.set('testCustomerId', gamer.id);",
+                  "}",
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response contains customer list', function () {",
+                  "    pm.expect(json.data).to.be.an('array').and.not.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{cashierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers"
+              ]
+            },
+            "description": "Lấy danh sách khách hàng và tự động lưu ID của khách hàng gamer vào biến testCustomerId."
+          }
+        },
+        {
+          "name": "02. Cashier Topup Customer Balance (Valid Amount)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Topup transaction created with matching amount (50,000 VND)', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "    pm.expect(json.data.type).to.be.oneOf(['TopUp', 'Deposit']);",
+                  "    pm.expect(json.data.amount).to.eql(50000);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{cashierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 50000,\n  \"note\": \"Nạp tiền tự động qua Postman Test Suite\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{testCustomerId}}/topup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                "{{testCustomerId}}",
+                "topup"
+              ]
+            },
+            "description": "Thu ngân nạp 50.000đ vào tài khoản hội viên {{testCustomerId}}."
+          }
+        },
+        {
+          "name": "03. Topup Validation - Negative Amount (Negative Test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400 or 422 for invalid negative amount', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 422]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{cashierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": -10000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{testCustomerId}}/topup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                "{{testCustomerId}}",
+                "topup"
+              ]
+            },
+            "description": "Kiểm thử tiêu cực: Nạp số âm (-10.000đ)."
+          }
+        },
+        {
+          "name": "04. Refund Balance to Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Refund transaction created with matching amount (10,000 VND)', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "    pm.expect(json.data.type).to.eql('Withdraw');",
+                  "    pm.expect(json.data.amount).to.eql(10000);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{cashierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 10000,\n  \"note\": \"Hoàn tiền kiểm thử qua Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{testCustomerId}}/refund",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                "{{testCustomerId}}",
+                "refund"
+              ]
+            },
+            "description": "Thu ngân hoàn trả 10.000đ tiền mặt cho khách hàng."
+          }
+        },
+        {
+          "name": "05. List Financial Transactions Ledger",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Transactions array returned', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{cashierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/transactions?pageSize=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Kiểm tra sổ cái lịch sử giao dịch nạp/rút tiền."
+          }
+        }
+      ]
+    },
+    {
+      "name": "04_Computers & Gaming Sessions",
+      "description": "Chuỗi nghiệp vụ máy trạm: Danh sách máy, mở máy chơi, gửi heartbeat, chuyển máy và lệnh điều khiển từ xa.",
+      "item": [
+        {
+          "name": "01. List All Computers (Capture Available Computer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && Array.isArray(json.data) && json.data.length > 0) {",
+                  "    const availComputer = json.data.find(c => c.status === 'Available') || json.data[0];",
+                  "    pm.collectionVariables.set('testComputerId', availComputer.id);",
+                  "    pm.environment.set('testComputerId', availComputer.id);",
+                  "    const targetComputer = json.data.find(c => c.id !== availComputer.id) || json.data[json.data.length - 1];",
+                  "    pm.collectionVariables.set('testTargetComputerId', targetComputer.id);",
+                  "    pm.environment.set('testTargetComputerId', targetComputer.id);",
+                  "}",
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Find at least one computer in system', function () {",
+                  "    pm.expect(json.data).to.be.an('array').and.not.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/computers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "computers"
+              ]
+            },
+            "description": "Lấy danh sách máy trạm. Tự động lưu ID của máy trống vào biến {{testComputerId}}."
+          }
+        },
+        {
+          "name": "02. Customer Start Session on Computer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && json.data.id) {",
+                  "    pm.collectionVariables.set('testSessionId', json.data.id);",
+                  "    pm.environment.set('testSessionId', json.data.id);",
+                  "}",
+                  "pm.test('Status code is 200 OK or 409 (if session active)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 409]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"computerId\": \"{{testComputerId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sessions/start",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sessions",
+                "start"
+              ]
+            },
+            "description": "Khách hàng mở máy trên {{testComputerId}}. Phiên vẫn được giữ mở để thực hiện đặt món F&B ở Folder 05."
+          }
+        },
+        {
+          "name": "03. Send Machine Heartbeat (Duy trì phiên)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/machines/{{testComputerId}}/heartbeat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "machines",
+                "{{testComputerId}}",
+                "heartbeat"
+              ]
+            },
+            "description": "Client máy trạm gửi tín hiệu Heartbeat định kỳ lên Backend."
+          }
+        },
+        {
+          "name": "04. Remote Control Computer (Maintenance Command)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Command execution status is 200 OK or 409', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 409]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{cashierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"command\": \"Maintenance\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/computers/{{testTargetComputerId}}/command",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "computers",
+                "{{testTargetComputerId}}",
+                "command"
+              ]
+            },
+            "description": "Thu ngân phát lệnh đưa máy phụ vào chế độ bảo trì."
+          }
+        },
+        {
+          "name": "05. Restore Computer to Available",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK or 409', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 409]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{cashierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"command\": \"Available\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/computers/{{testTargetComputerId}}/command",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "computers",
+                "{{testTargetComputerId}}",
+                "command"
+              ]
+            },
+            "description": "Thu ngân hoàn tất bảo trì, mở khoá máy sẵn sàng cho khách mới."
+          }
+        }
+      ]
+    },
+    {
+      "name": "05_F&B Menu, Orders & Inventory (MRP)",
+      "description": "Thực đơn F&B, đặt món trong khi đang có phiên chơi, duyệt đơn, định lượng NVL (BOM) và kết thúc phiên chơi.",
+      "item": [
+        {
+          "name": "01. List Menu Products (Capture Product ID)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && Array.isArray(json.data) && json.data.length > 0) {",
+                  "    const item = json.data.find(p => p.price <= 25000 && p.status === 'Active') || json.data[0];",
+                  "    pm.collectionVariables.set('testProductId', item.id);",
+                  "    pm.environment.set('testProductId', item.id);",
+                  "}",
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Products list returned', function () {",
+                  "    pm.expect(json.data).to.be.an('array').and.not.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ]
+            },
+            "description": "Xem menu món ăn, nước uống."
+          }
+        },
+        {
+          "name": "02. Customer Create F&B Order (While Session Active)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && json.data.id) {",
+                  "    pm.collectionVariables.set('testOrderId', json.data.id);",
+                  "    pm.environment.set('testOrderId', json.data.id);",
+                  "}",
+                  "pm.test('Status code is 200 OK or 201 Created', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "pm.test('Order created with Pending status', function () {",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "    pm.expect(json.data.status).to.eql('Pending');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"computerId\": \"{{testComputerId}}\",\n  \"items\": [\n    {\n      \"productId\": \"{{testProductId}}\",\n      \"quantity\": 1,\n      \"note\": \"Ít đường đá, mang lên bàn máy\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ]
+            },
+            "description": "Khách hàng order món ăn từ máy trạm đang hoạt động phiên chơi."
+          }
+        },
+        {
+          "name": "03. Cashier Transition Order to Preparing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Order status changed to Preparing', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data.status).to.eql('Preparing');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{cashierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Preparing\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/{{testOrderId}}/transition",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders",
+                "{{testOrderId}}",
+                "transition"
+              ]
+            },
+            "description": "Thu ngân nhận đơn và chuyển trạng thái đơn hàng sang Đang chuẩn bị."
+          }
+        },
+        {
+          "name": "04. List Bill of Materials (BOM - Công thức định lượng)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('BOM array returned', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{managerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/bom",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bom"
+              ]
+            },
+            "description": "Xem định mức nguyên vật liệu sản xuất món ăn/pha chế."
+          }
+        },
+        {
+          "name": "05. List Material Suppliers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Suppliers list returned', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{managerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/suppliers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "suppliers"
+              ]
+            },
+            "description": "Danh sách các nhà cung ứng nguyên vật liệu & thiết bị."
+          }
+        },
+        {
+          "name": "06. List Material Inventory (Kho NVL)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Materials list returned', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/materials",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materials"
+              ]
+            },
+            "description": "Kiểm tra tồn kho nguyên vật liệu."
+          }
+        },
+        {
+          "name": "07. Create New Material (Thêm mới NVL)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK or 201 Created', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "pm.test('Material created with valid ID', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('id');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{managerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cà Phê Arabica Đặc Biệt\",\n  \"unit\": \"Gói 500g\",\n  \"currentStock\": 30,\n  \"minStock\": 5,\n  \"costPrice\": 95000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/materials",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "materials"
+              ]
+            },
+            "description": "Quản lý tạo mới một mặt hàng nguyên vật liệu trong kho."
+          }
+        },
+        {
+          "name": "08. Customer End Session (Chốt phiên chơi sau khi ăn uống)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('End session status is 200 OK or 409', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 409]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sessions/{{testSessionId}}/end",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sessions",
+                "{{testSessionId}}",
+                "end"
+              ]
+            },
+            "description": "Khách hàng chơi xong và đăng xuất phiên chơi. Tính toán giờ chơi và tiền cước."
+          }
+        }
+      ]
+    },
+    {
+      "name": "06_HRM & Shift Attendance (Nhân sự & Chấm công)",
+      "description": "Quản lý nhân viên, danh mục ca, bảng phân lịch trực ca, chấm công nhân viên và nhật ký chấm công.",
+      "item": [
+        {
+          "name": "01. List Employees (Danh sách nhân viên)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Employees array returned', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array').and.not.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{managerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/employees",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "employees"
+              ]
+            },
+            "description": "Xem hồ sơ danh sách toàn bộ nhân viên."
+          }
+        },
+        {
+          "name": "02. List Work Shifts (Danh mục ca làm việc)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Work shifts array returned', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array').and.not.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{managerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/shifts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "shifts"
+              ]
+            },
+            "description": "Danh mục các ca trực (Ca Sáng, Ca Chiều, Ca Đêm)."
+          }
+        },
+        {
+          "name": "03. List Work Schedules (Lịch phân ca)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && Array.isArray(json.data) && json.data.length > 0) {",
+                  "    pm.collectionVariables.set('testScheduleId', json.data[0].id);",
+                  "    pm.environment.set('testScheduleId', json.data[0].id);",
+                  "}",
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Schedules list returned', function () {",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/schedules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "schedules"
+              ]
+            },
+            "description": "Xem lịch phân ca làm việc của nhân sự."
+          }
+        },
+        {
+          "name": "04. Employee Check-in Shift (Chấm công vào ca)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Check-in response status is valid (200, 403, 404, or 409)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 403, 404, 409]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scheduleId\": \"{{testScheduleId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/attendance/check-in",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "check-in"
+              ]
+            },
+            "description": "Nhân viên thực hiện chấm công vào ca."
+          }
+        },
+        {
+          "name": "05. List Attendance Records (Lịch sử chấm công)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Attendance records returned', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{managerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/attendance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance"
+              ]
+            },
+            "description": "Quản lý xem bảng chấm công và giờ vào/ra của nhân viên."
+          }
+        }
+      ]
+    },
+    {
+      "name": "07_Financial Reports & Invoices",
+      "description": "Báo cáo doanh thu tài chính tổng hợp, phân tích chi tiết và tra cứu hoá đơn.",
+      "item": [
+        {
+          "name": "01. Summary Revenue Report (Cashier / Manager Role)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Report data contains financial breakdown', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.have.property('netRevenue');",
+                  "    pm.expect(json.data).to.have.property('rentalRevenue');",
+                  "    pm.expect(json.data).to.have.property('foodRevenue');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{cashierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/summary?from=2026-10-01&to=2026-10-31",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-10-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-31"
+                }
+              ]
+            },
+            "description": "Báo cáo doanh thu tổng hợp (yêu cầu quyền Cashier, Manager hoặc Owner)."
+          }
+        },
+        {
+          "name": "02. Deep Analytics Report (Manager / Owner Role)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Analytics report returned', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('object');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{managerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/analytics?from=2026-10-01&to=2026-10-31",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "analytics"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-10-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-31"
+                }
+              ]
+            },
+            "description": "Báo cáo phân tích chuyên sâu cho Quản lý / Chủ tiệm net."
+          }
+        },
+        {
+          "name": "03. List Invoices",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && Array.isArray(json.data) && json.data.length > 0) {",
+                  "    pm.collectionVariables.set('testInvoiceId', json.data[0].id);",
+                  "    pm.environment.set('testInvoiceId', json.data[0].id);",
+                  "}",
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Invoices array returned', function () {",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{cashierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invoices"
+              ]
+            },
+            "description": "Tra cứu danh sách hoá đơn thanh toán dịch vụ & F&B."
+          }
+        },
+        {
+          "name": "04. Get Invoice Detail by ID (/invoices/{id})",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Invoice detail status is 200 or 404', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{cashierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/invoices/{{testInvoiceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invoices",
+                "{{testInvoiceId}}"
+              ]
+            },
+            "description": "Lấy chi tiết hoá đơn bao gồm cước giờ chơi và danh sách món F&B."
+          }
+        }
+      ]
+    },
+    {
+      "name": "08_Bug_Hunting_Scenarios",
+      "description": "Bộ kiểm thử bảo mật & săn lỗi tự động (Security Testing & QA Bug Hunting): Tấn công SQL Injection (SQLi), Cross-Site Scripting (XSS), Gian lận cước & số dư âm, Leo thang đặc quyền (Privilege Escalation), và Lỗ hổng kiểm soát truy cập trực tiếp đối tượng (IDOR).",
+      "item": [
+        {
+          "name": "01. SQLi - Login Authentication Bypass Attempt",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test('System safely rejects SQL injection payload without leaking data', function () {",
+                  "    const json = pm.response.json();",
+                  "    const errCode = (json.error && json.error.code) || json.code;",
+                  "    pm.expect(errCode).to.eql('INVALID_CREDENTIALS');",
+                  "});",
+                  "pm.test('Server did not crash (No 500 Internal Server Error)', function () {",
+                  "    pm.expect(pm.response.code).to.not.eql(500);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"' OR 1=1 --\",\n  \"password\": \"' OR 1=1 --\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Kiểm thử SQL Injection dạng Tautology trên form đăng nhập nhằm vượt qua xác thực."
+          }
+        },
+        {
+          "name": "02. SQLi - Parameter Tampering on Computer Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK (Sanitized) or 400 Bad Request', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 400]);",
+                  "});",
+                  "pm.test('Parameterized query handled safely without SQL syntax error', function () {",
+                  "    pm.expect(pm.response.code).to.not.eql(500);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/computers?status=%27%20OR%201=1%20--",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "computers"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "' OR 1=1 --"
+                }
+              ]
+            },
+            "description": "Kiểm thử chèn mã độc SQLi vào Query String để tìm kiếm máy trạm."
+          }
+        },
+        {
+          "name": "03. SQLi - Destructive Stacked Query in Search Parameter",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK (Safe literal search)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Server is protected against stacked destructive queries', function () {",
+                  "    pm.expect(pm.response.code).to.not.eql(500);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{cashierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customers?search=admin%27;%20DROP%20TABLE%20Computers;%20--",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "admin'; DROP TABLE Computers; --"
+                }
+              ]
+            },
+            "description": "Kiểm thử tấn công phá hoại cấu trúc bảng bằng Stacked Queries trong ô tìm kiếm khách hàng."
+          }
+        },
+        {
+          "name": "04. XSS - Stored Script Injection in Customer Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Security Header X-Content-Type-Options is nosniff', function () {",
+                  "    pm.response.to.have.header('X-Content-Type-Options', 'nosniff');",
+                  "});",
+                  "pm.test('Security Header X-Frame-Options is DENY', function () {",
+                  "    pm.response.to.have.header('X-Frame-Options', 'DENY');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Gamer <script>alert('XSS_ATTACK')</script>\",\n  \"hobbies\": \"<img src=x onerror=alert(1)>\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ]
+            },
+            "description": "Kiểm thử lưu trữ mã độc Javascript (Stored XSS) vào trường Họ tên và Sở thích."
+          }
+        },
+        {
+          "name": "05. XSS - Polyglot Payload in Order Special Note",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Server handles XSS note safely (200, 201 or 409)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 409]);",
+                  "});",
+                  "pm.test('Server does not crash with 500 error', function () {",
+                  "    pm.expect(pm.response.code).to.not.eql(500);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"computerId\": \"{{testComputerId}}\",\n  \"items\": [\n    {\n      \"productId\": \"{{testProductId}}\",\n      \"quantity\": 1,\n      \"note\": \"\\\"><svg/onload=alert('XSS')>\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ]
+            },
+            "description": "Kiểm thử chèn mã độc HTML/SVG XSS vào ghi chú món ăn gửi tới màn hình thu ngân/bếp."
+          }
+        },
+        {
+          "name": "06. Bypass - Topup with Negative Amount (Balance Exploitation)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 422 Unprocessable Entity', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "pm.test('Business rule rejects negative topup with VALIDATION_ERROR', function () {",
+                  "    const json = pm.response.json();",
+                  "    const errCode = (json.error && json.error.code) || json.code;",
+                  "    pm.expect(errCode).to.eql('VALIDATION_ERROR');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{cashierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": -50000,\n  \"note\": \"Cố tình nạp số âm để hack tiền\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{testCustomerId}}/topup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                "{{testCustomerId}}",
+                "topup"
+              ]
+            },
+            "description": "Kiểm thử gian lận: Cố tình nạp số tiền âm (-50.000đ) nhằm trừ lén tiền tài khoản hội viên."
+          }
+        },
+        {
+          "name": "07. Bypass - Refund Exceeding System Allowed Limit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 422 Unprocessable Entity', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "pm.test('Rejects refund exceeding maximum allowable limit (10,000,000 VND)', function () {",
+                  "    const json = pm.response.json();",
+                  "    const errCode = (json.error && json.error.code) || json.code;",
+                  "    pm.expect(errCode).to.eql('VALIDATION_ERROR');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{cashierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 999999999,\n  \"note\": \"Rút số tiền vượt trần tối đa\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{testCustomerId}}/refund",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                "{{testCustomerId}}",
+                "refund"
+              ]
+            },
+            "description": "Kiểm thử rút số tiền cực lớn (999.999.999đ) vượt trần quy định của tiệm net."
+          }
+        },
+        {
+          "name": "08. Bypass - Refund Exceeding Available Balance",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 409 Conflict', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "pm.test('Rejects refund with INSUFFICIENT_BALANCE error code', function () {",
+                  "    const json = pm.response.json();",
+                  "    const errCode = (json.error && json.error.code) || json.code;",
+                  "    pm.expect(errCode).to.eql('INSUFFICIENT_BALANCE');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{cashierToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 9000000,\n  \"note\": \"Rút tiền vượt quá số dư trong ví\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{testCustomerId}}/refund",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                "{{testCustomerId}}",
+                "refund"
+              ]
+            },
+            "description": "Kiểm thử rút 9.000.000đ khi ví khách hàng không đủ số dư."
+          }
+        },
+        {
+          "name": "09. Bypass - Order with Negative Item Quantity (Cart Tampering)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 422 Unprocessable Entity', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "pm.test('Cart validation rejects negative quantity with VALIDATION_ERROR', function () {",
+                  "    const json = pm.response.json();",
+                  "    const errCode = (json.error && json.error.code) || json.code;",
+                  "    pm.expect(errCode).to.eql('VALIDATION_ERROR');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"computerId\": \"{{testComputerId}}\",\n  \"items\": [\n    {\n      \"productId\": \"{{testProductId}}\",\n      \"quantity\": -5\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ]
+            },
+            "description": "Kiểm thử thao túng giỏ hàng: Đặt món với số lượng âm (-5) nhằm giảm tổng tiền hoá đơn hoặc tạo hoá đơn âm."
+          }
+        },
+        {
+          "name": "10. Bypass - Order with Zero Quantity",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 422 Unprocessable Entity', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "pm.test('Cart validation rejects zero quantity with VALIDATION_ERROR', function () {",
+                  "    const json = pm.response.json();",
+                  "    const errCode = (json.error && json.error.code) || json.code;",
+                  "    pm.expect(errCode).to.eql('VALIDATION_ERROR');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"computerId\": \"{{testComputerId}}\",\n  \"items\": [\n    {\n      \"productId\": \"{{testProductId}}\",\n      \"quantity\": 0\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ]
+            },
+            "description": "Kiểm thử gửi đơn hàng với số lượng bằng 0."
+          }
+        },
+        {
+          "name": "11. BAC / Privilege Escalation - Customer accesses Admin Accounts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403 Forbidden', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "pm.test('Customer role is strictly blocked from Admin resources', function () {",
+                  "    pm.expect(pm.response.code).to.eql(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts"
+              ]
+            },
+            "description": "Kiểm thử leo thang đặc quyền: Tài khoản Hội viên gọi API xem danh sách tài khoản quản trị hệ thống."
+          }
+        },
+        {
+          "name": "12. BAC / Privilege Escalation - Customer accesses Manager Analytics Report",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403 Forbidden', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/analytics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "analytics"
+              ]
+            },
+            "description": "Kiểm thử leo thang đặc quyền: Tài khoản Hội viên truy cập báo cáo tài chính doanh thu mật."
+          }
+        },
+        {
+          "name": "13. BAC / Privilege Escalation - Customer attempts Direct Self-Topup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403 Forbidden', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 50000,\n  \"note\": \"Tự nạp tiền bằng quyền hội viên\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{testCustomerId}}/topup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                "{{testCustomerId}}",
+                "topup"
+              ]
+            },
+            "description": "Kiểm thử leo thang đặc quyền: Hội viên tự gọi API nạp tiền của Thu ngân để tự cộng số dư."
+          }
+        },
+        {
+          "name": "14. BAC / Privilege Escalation - Staff accesses Admin Accounts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403 Forbidden', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts"
+              ]
+            },
+            "description": "Kiểm thử phân quyền nhân sự: Nhân viên trực ca không được phép truy cập danh sách tài khoản Admin."
+          }
+        },
+        {
+          "name": "15. IDOR - Customer queries another Customer private record",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404 Not Found (Row-level security mask)', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('Error message prevents IDOR and object enumeration', function () {",
+                  "    const json = pm.response.json();",
+                  "    const errCode = (json.error && json.error.code) || json.code;",
+                  "    pm.expect(errCode).to.eql('NOT_FOUND');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customers/c-002",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers",
+                "c-002"
+              ]
+            },
+            "description": "Kiểm thử IDOR: Khách hàng đoán mã ID của khách khác (c-002) để trộm thông tin riêng tư."
+          }
+        },
+        {
+          "name": "16. BAC - Customer attempts to view Invoices list",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403 Forbidden', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invoices"
+              ]
+            },
+            "description": "Kiểm thử kiểm soát truy cập: Khách hàng không được xem danh sách hoá đơn tài chính."
+          }
+        },
+        {
+          "name": "17. Authentication Bypass - Unauthenticated access to Protected Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ]
+            },
+            "description": "Kiểm thử bảo mật: Gọi API cần xác thực mà không kèm Bearer Token trong Header."
+          }
+        }
+      ]
+    }
+  ]
+}
