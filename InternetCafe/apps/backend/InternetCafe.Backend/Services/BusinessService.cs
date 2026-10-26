@@ -57,6 +57,7 @@ public sealed class BusinessService(SqlConnectionFactory connections, IHubContex
             await created.CloseAsync();
             await transaction.CommitAsync(ct);
             await NotifyAsync("SessionStarted", session.Id, new { sessionId = session.Id, computerId = session.ComputerId }, ct);
+            await NotifyAsync("ComputerChanged", session.ComputerId, new { computerId = session.ComputerId, status = "InUse", online = true }, ct);
             return OperationResult<object>.Ok(session);
         }
         catch (SqlException exception) when (exception.Number is 2601 or 2627)
@@ -115,6 +116,7 @@ public sealed class BusinessService(SqlConnectionFactory connections, IHubContex
         await transaction.CommitAsync(ct);
         var result = new SessionDto(id, CafeRepository.Id("c", customerId), CafeRepository.Id("pc", computerId), start, endTime, startBalance, amount, "Completed", rate);
         await NotifyAsync("SessionEnded", id, new { sessionId = id, computerId = result.ComputerId, amount }, ct);
+        await NotifyAsync("ComputerChanged", result.ComputerId, new { computerId = result.ComputerId, status = "Available", online = true }, ct);
         await NotifyAsync("BalanceChanged", result.CustomerId, new { customerId = result.CustomerId }, ct);
         return OperationResult<object>.Ok(result);
     }
@@ -542,9 +544,7 @@ public sealed class BusinessService(SqlConnectionFactory connections, IHubContex
             }
 
             // Save pending command for heartbeat polling backup
-            PendingCommands[id] = request.Command;
-            PendingCommands[$"pc-{computerId.Value:D3}"] = request.Command;
-            PendingCommands[$"pc-{computerId.Value}"] = request.Command;
+            PendingCommands[GetCommandKey(computerId.Value)] = request.Command;
 
             // Broadcast via SignalR real-time event
             await NotifyAsync("RemoteCommand", id, new { computerId = id, command = request.Command }, ct);
@@ -576,12 +576,10 @@ public sealed class BusinessService(SqlConnectionFactory connections, IHubContex
             MERGE dbo.Machine_Heartbeats AS target USING (SELECT @id AS Computer_ID) AS source ON target.Computer_ID = source.Computer_ID
             WHEN MATCHED THEN UPDATE SET Last_Seen_At = SYSUTCDATETIME(), Last_Account_ID = @accountId
             WHEN NOT MATCHED THEN INSERT (Computer_ID, Last_Seen_At, Last_Account_ID) VALUES (@id, SYSUTCDATETIME(), @accountId);
-            """, connection); command.Parameters.AddWithValue("@id", computerId.Value); command.Parameters.AddWithValue("@accountId", identity.AccountId); await command.ExecuteNonQueryAsync(ct);
+            """, connection); command.Parameters.AddWithValue("@id", computerId.Value); command.Parameters.AddWithValue("@accountId", identity.AccountId > 0 ? identity.AccountId : (object)DBNull.Value); await command.ExecuteNonQueryAsync(ct);
 
         string? pendingCommand = null;
-        if (PendingCommands.TryRemove(id, out var cmd1)) pendingCommand = cmd1;
-        else if (PendingCommands.TryRemove($"pc-{computerId.Value:D3}", out var cmd2)) pendingCommand = cmd2;
-        else if (PendingCommands.TryRemove($"pc-{computerId.Value}", out var cmd3)) pendingCommand = cmd3;
+        if (PendingCommands.TryRemove(GetCommandKey(computerId.Value), out var cmd)) pendingCommand = cmd;
 
         return OperationResult<object>.Ok(new { id, online = true, command = pendingCommand });
     }
@@ -612,6 +610,17 @@ public sealed class BusinessService(SqlConnectionFactory connections, IHubContex
     }
 
     private Task NotifyAsync(string type, string entityId, object data, CancellationToken ct) => hub.Clients.All.SendAsync(type, new { eventId = Guid.NewGuid(), type, entityId, occurredAt = DateTime.UtcNow, data }, ct);
-    private static int? TryId(string value, string prefix) => value.StartsWith(prefix + "-", StringComparison.OrdinalIgnoreCase) && int.TryParse(value[(prefix.Length + 1)..], out var id) ? id : null;
+    private static string GetCommandKey(int computerId) => $"pc-{computerId:D3}";
+    private static int? TryId(string value, string prefix)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        value = value.Trim();
+        if (int.TryParse(value, out var rawId)) return rawId;
+        if (value.StartsWith(prefix + "-", StringComparison.OrdinalIgnoreCase) && int.TryParse(value[(prefix.Length + 1)..], out var idWithHyphen))
+            return idWithHyphen;
+        if (value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) && int.TryParse(value[prefix.Length..], out var idWithoutHyphen))
+            return idWithoutHyphen;
+        return null;
+    }
     private static async Task<OperationResult<object>> Rollback(DbTransaction transaction, OperationResult<object> result, CancellationToken ct) { await transaction.RollbackAsync(ct); return result; }
 }

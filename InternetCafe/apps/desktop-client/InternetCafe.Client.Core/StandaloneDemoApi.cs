@@ -207,7 +207,7 @@ public sealed class StandaloneDemoApi : ICafeApi
                     DateOfBirth = dob,
                     Hobbies = hobbies,
                     Tier = "Member",
-                    Balance = 100000m,
+                    Balance = 0m,
                     Status = "Active"
                 };
                 workspace.Customers.Add(newCustomer);

@@ -50,15 +50,16 @@ public partial class MainWindow : Window
     private bool emergencyPromptPending;
     private bool closing;
     private bool smokeMode;
-    private string? lastPopupMessage;
-    private DateTimeOffset lastPopupAt;
-    public MainWindow(MainViewModel viewModel, IRealtimeUpdates realtime, IConfiguration config)
+    private readonly INotificationService _notifications;
+    private readonly Action<string> _connectionChangedHandler;
+    public MainWindow(MainViewModel viewModel, IRealtimeUpdates realtime, INotificationService notifications, IConfiguration config)
     {
         InitializeComponent();
-        this.viewModel = viewModel; this.realtime = realtime; DataContext = viewModel;
+        this.viewModel = viewModel; this.realtime = realtime; _notifications = notifications; DataContext = viewModel;
         emergencyPassword = config["Kiosk:EmergencyPassword"] ?? "";
         keyboardProc = KeyboardHookCallback;
-        viewModel.ConfirmAsync = message => Task.FromResult(MessageBox.Show(this, message, "Xác nhận thao tác", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes);
+        _connectionChangedHandler = msg => Dispatcher.BeginInvoke(async () => { if (!closing) await _notifications.ShowInfo("Kết nối", msg); });
+        viewModel.ConfirmAsync = async message => await _notifications.ShowConfirmAsync("Xác nhận", message, "Xác nhận", "Hủy", NotificationType.Confirm).ContinueWith(t => t.Result.Confirmed);
         viewModel.OnGameLaunched = () => Dispatcher.BeginInvoke(() => OpenCompact(this, new RoutedEventArgs()));
         viewModel.OnPlaySound = sound => AudioService.Play(sound);
         viewModel.OnSoundMuteChanged = muted => AudioService.IsMuted = muted;
@@ -118,7 +119,8 @@ public partial class MainWindow : Window
         bannerTimer.Tick += OnBannerTimerTick;
         idleTimer.Tick += OnIdleTimerTick;
         viewModel.PropertyChanged += OnViewModelChanged;
-        realtime.Changed += OnRealtimeChanged; realtime.ConnectionChanged += OnRealtimeConnectionChanged;
+        realtime.Changed += OnRealtimeChanged; 
+        realtime.ConnectionChanged += _connectionChangedHandler;
         PreviewKeyDown += OnPreviewKeyDown;
         MainTabs.SelectionChanged += (s, e) => { if (e.Source == MainTabs && viewModel.IsAuthenticated && !closing && !smokeMode) AudioService.Play("click"); };
         Loaded += async (_, _) =>
@@ -134,7 +136,6 @@ public partial class MainWindow : Window
     private async void OnPoll(object? sender, EventArgs e) { if (!closing) await viewModel.PollAsync(); }
     private void OnTick(object? sender, EventArgs e) => viewModel.UpdateClock();
     private void OnRealtimeChanged() => Dispatcher.BeginInvoke(async () => { if (!closing) await viewModel.PollAsync(); });
-    private void OnRealtimeConnectionChanged(string message) => Dispatcher.BeginInvoke(() => { if (!closing) viewModel.Notice = message; });
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(MainViewModel.IsAuthenticated) && !viewModel.IsAuthenticated) emergencyBypassed = false;
@@ -164,8 +165,6 @@ public partial class MainWindow : Window
         if (e.PropertyName == nameof(MainViewModel.IsTemporaryLocked) && viewModel.IsTemporaryLocked) { compact?.Hide(); Show(); WindowState = WindowState.Normal; Activate(); }
         if (e.PropertyName is nameof(MainViewModel.IsAuthenticated) or nameof(MainViewModel.IsAppLocked) or nameof(MainViewModel.IsTemporaryLocked) or nameof(MainViewModel.HasActiveSession)) UpdateKioskMode();
         if (e.PropertyName is nameof(MainViewModel.Password) or nameof(MainViewModel.PasswordConfirmation) or nameof(MainViewModel.CurrentPassword) or nameof(MainViewModel.NewPassword) or nameof(MainViewModel.NewPasswordConfirmation)) ClearEmptyPasswords(this, e.PropertyName);
-        if (e.PropertyName == nameof(MainViewModel.Notice)) ShowOperationPopup(viewModel.Notice, "Hoàn tất", MessageBoxImage.Information);
-        if (e.PropertyName == nameof(MainViewModel.Error)) ShowOperationPopup(viewModel.Error, "Không thể thao tác", MessageBoxImage.Warning);
     }
     private void ExecuteRemoteCommand(string cmd)
     {
@@ -174,7 +173,7 @@ public partial class MainWindow : Window
         if (!isShutdown && !isRestart) return;
 
         var actionName = isShutdown ? "TẮT MÁY (Shutdown)" : "KHỞI ĐỘNG LẠI (Restart)";
-        viewModel.Notice = $"🚨 LỆNH TỪ MÁY CHỦ: Đang thực thi {actionName}...";
+        _ = _notifications.ShowWarning("Lệnh từ máy chủ", $"🚨 LỆNH TỪ MÁY CHỦ: Đang thực thi {actionName}...");
         AudioService.Play("error");
 
         if (smokeMode)
@@ -194,28 +193,20 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            viewModel.Error = $"Không thể thực thi lệnh {actionName}: {ex.Message}";
+            _ = _notifications.ShowError("Lỗi thực thi lệnh", $"Không thể thực thi lệnh {actionName}: {ex.Message}");
         }
     }
-    private void ShowOperationPopup(string message, string title, MessageBoxImage icon)
-    {
-        if (closing || smokeMode || string.IsNullOrWhiteSpace(message)) return;
-        var now = DateTimeOffset.UtcNow;
-        if (message == lastPopupMessage && now - lastPopupAt < TimeSpan.FromSeconds(10)) return;
-        lastPopupMessage = message; lastPopupAt = now;
-        Dispatcher.BeginInvoke(() =>
-        {
-        if (!closing) MessageBox.Show(this, message, title, MessageBoxButton.OK, icon);
-        }, DispatcherPriority.Background);
-    }
+    public bool WindowedMode { get; set; }
     private void UpdateKioskMode()
     {
         if (smokeMode || closing) return;
-        if (emergencyBypassed)
+        if (emergencyBypassed || WindowedMode)
         {
             WindowStyle = WindowStyle.SingleBorderWindow; Topmost = false; ResizeMode = ResizeMode.CanResize;
-            WindowState = WindowState.Normal; Width = 1280; Height = 850;
+            if (WindowState == WindowState.Maximized) WindowState = WindowState.Normal;
+            if (Width > 1200 || Height > 800) { Width = 1040; Height = 700; }
             SetKioskProtection(false);
+            Title = $"[MÁY {viewModel.MachineName}] Cyber Matrix Gaming - InternetCafe Client";
             return;
         }
         var isLocked = !viewModel.IsAuthenticated || viewModel.IsAppLocked || viewModel.IsTemporaryLocked;
@@ -233,21 +224,34 @@ public partial class MainWindow : Window
             Show();
             Activate();
             Focus();
+            SetKioskProtection(true);
         }
         else
         {
+            SetKioskProtection(false);
+            if (compact != null && compact.IsVisible)
+            {
+                WindowState = WindowState.Minimized;
+                return;
+            }
             WindowStyle = WindowStyle.SingleBorderWindow;
             Topmost = false;
             ResizeMode = ResizeMode.CanResize;
-            WindowState = WindowState.Normal;
-            Width = 1280;
-            Height = 850;
+            if (WindowState == WindowState.Minimized)
+            {
+                WindowState = WindowState.Normal;
+            }
         }
-        SetKioskProtection(isLocked || viewModel.HasActiveSession);
     }
     private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         if (smokeMode) return;
+        if (e.Key == System.Windows.Input.Key.F2)
+        {
+            ShowDemoSettingsDialog();
+            e.Handled = true;
+            return;
+        }
         if (kioskProtectionEnabled && e.Key == System.Windows.Input.Key.System && e.SystemKey == System.Windows.Input.Key.F4) e.Handled = true;
 
         if (!viewModel.IsAuthenticated)
@@ -373,14 +377,127 @@ public partial class MainWindow : Window
                     emergencyBypassed = true;
                     SetKioskProtection(false);
                     UpdateKioskMode();
-                    NoticeEmergencyBypass();
+                    _ = _notifications.ShowInfo("Bảo vệ Kiosk", "Đã tạm dừng bảo vệ Kiosk. Hãy đăng nhập lại để bật lại chế độ bảo vệ.");
                 }
                 else MessageBox.Show(this, "Mật khẩu quản trị không chính xác.", "Không thể mở khóa", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
         finally { emergencyPromptPending = false; }
     }
-    private void NoticeEmergencyBypass() => viewModel.Notice = "Đã tạm dừng bảo vệ Kiosk. Hãy đăng nhập lại để bật lại chế độ bảo vệ.";
+    private void OpenDemoSettings_Click(object sender, RoutedEventArgs e) => ShowDemoSettingsDialog();
+    private void ShowDemoSettingsDialog()
+    {
+        if (smokeMode || closing) return;
+        var dialog = new Window
+        {
+            Title = "⚙️ Cấu hình Máy trạm Demo",
+            Owner = this,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Width = 480,
+            SizeToContent = SizeToContent.Height,
+            ResizeMode = ResizeMode.NoResize,
+            WindowStyle = WindowStyle.ToolWindow,
+            Topmost = true,
+            Background = new SolidColorBrush(Color.FromRgb(15, 23, 42)),
+            Foreground = Brushes.White
+        };
+
+        var root = new StackPanel { Margin = new Thickness(24) };
+
+        root.Children.Add(new TextBlock
+        {
+            Text = "CẤU HÌNH MÁY TRẠM & KẾT NỐI (DEMO)",
+            FontSize = 16,
+            FontWeight = FontWeights.Bold,
+            Foreground = new SolidColorBrush(Color.FromRgb(0, 242, 254)),
+            Margin = new Thickness(0, 0, 0, 16)
+        });
+
+        root.Children.Add(new TextBlock { Text = "Mã máy trạm (Machine Station):", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 6) });
+        var machineCombo = new ComboBox
+        {
+            Margin = new Thickness(0, 0, 0, 14),
+            IsEditable = true,
+            Height = 32,
+            Padding = new Thickness(6, 4, 6, 4)
+        };
+        foreach (var m in new[] { "PC01", "PC02", "PC03", "PC04", "PC05", "PC06", "PC07" })
+            machineCombo.Items.Add(m);
+        machineCombo.Text = viewModel.MachineName;
+        if (string.IsNullOrEmpty(machineCombo.Text)) machineCombo.Text = "PC01";
+        root.Children.Add(machineCombo);
+
+        root.Children.Add(new TextBlock { Text = "Địa chỉ máy chủ (Backend Server API):", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 6) });
+        var serverBox = new TextBox
+        {
+            Margin = new Thickness(0, 0, 0, 4),
+            Height = 32,
+            Padding = new Thickness(6, 4, 6, 4),
+            Text = GetCurrentServerUrl()
+        };
+        root.Children.Add(serverBox);
+        root.Children.Add(new TextBlock
+        {
+            Text = "💡 Demo trên 1 máy: http://127.0.0.1:5055\n💡 Demo 2 máy cùng Wi-Fi: nhập IP máy chủ (VD: http://192.168.1.55:5055)",
+            FontSize = 11,
+            Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184)),
+            Margin = new Thickness(0, 0, 0, 16)
+        });
+
+        var windowedCheck = new CheckBox
+        {
+            Content = "Chế độ Cửa sổ (Windowed Mode - Cho phép chia màn hình demo)",
+            IsChecked = WindowedMode,
+            Foreground = Brushes.White,
+            Margin = new Thickness(0, 0, 0, 20)
+        };
+        root.Children.Add(windowedCheck);
+
+        var btnPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+        var cancelBtn = new Button { Content = "Hủy", MinWidth = 80, Margin = new Thickness(0, 0, 10, 0), IsCancel = true };
+        var applyBtn = new Button
+        {
+            Content = "Áp dụng ngay",
+            MinWidth = 120,
+            IsDefault = true,
+            Background = new SolidColorBrush(Color.FromRgb(0, 242, 254)),
+            Foreground = new SolidColorBrush(Color.FromRgb(4, 9, 20)),
+            FontWeight = FontWeights.Bold
+        };
+        applyBtn.Click += (_, _) => dialog.DialogResult = true;
+        btnPanel.Children.Add(cancelBtn);
+        btnPanel.Children.Add(applyBtn);
+        root.Children.Add(btnPanel);
+
+        dialog.Content = root;
+        if (dialog.ShowDialog() == true)
+        {
+            ApplyDemoSettings(machineCombo.Text.Trim(), serverBox.Text.Trim(), windowedCheck.IsChecked == true);
+        }
+    }
+    private string GetCurrentServerUrl()
+    {
+        if (viewModel.Api is SmartCafeApi smartApi && !string.IsNullOrWhiteSpace(smartApi.CustomBaseUrl))
+            return smartApi.CustomBaseUrl;
+        return "http://127.0.0.1:5055";
+    }
+    private async void ApplyDemoSettings(string machine, string serverUrl, bool windowed)
+    {
+        if (!string.IsNullOrWhiteSpace(machine))
+        {
+            viewModel.MachineId = machine;
+        }
+
+        if (!string.IsNullOrWhiteSpace(serverUrl))
+        {
+            await viewModel.UpdateServerEndpointAsync(serverUrl);
+        }
+
+        WindowedMode = windowed;
+        UpdateKioskMode();
+        Title = $"[MÁY {viewModel.MachineName}] Cyber Matrix Gaming - InternetCafe Client";
+        await _notifications.ShowSuccess("Đã cập nhật cấu hình", $"Đang kết nối: {viewModel.MachineName} · Máy chủ: {serverUrl}");
+    }
     private void ClearEmptyPasswords(DependencyObject parent, string property)
     {
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
@@ -471,7 +588,7 @@ public partial class MainWindow : Window
         if (!smokeMode && viewModel.HasActiveSession && MessageBox.Show(this, "Phiên vẫn đang được máy chủ tính phí. Đóng ứng dụng không kết thúc phiên. Nên quay lại và chọn Kết thúc phiên. Vẫn đóng ứng dụng?", "Phiên đang hoạt động", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) { e.Cancel = true; return; }
         closing = true; SetKioskProtection(false); taskManagerGuard.Tick -= OnTaskManagerGuardTick; syncTimer.Stop(); clockTimer.Stop(); bannerTimer.Stop(); idleTimer.Stop();
         syncTimer.Tick -= OnPoll; clockTimer.Tick -= OnTick; bannerTimer.Tick -= OnBannerTimerTick; idleTimer.Tick -= OnIdleTimerTick; viewModel.PropertyChanged -= OnViewModelChanged;
-        realtime.Changed -= OnRealtimeChanged; realtime.ConnectionChanged -= OnRealtimeConnectionChanged;
+        realtime.Changed -= OnRealtimeChanged; realtime.ConnectionChanged -= _connectionChangedHandler;
         if (compact is not null) { compact.AllowClose = true; compact.Close(); }
         await viewModel.ShutdownAsync();
     }
@@ -493,7 +610,7 @@ public partial class MainWindow : Window
             viewModel.OpenLoginModalCommand.Execute(null);
             await CaptureAsync(this, Path.Combine(outputDirectory, "01-login.png"));
             viewModel.Username = "gamer"; viewModel.Password = "Demo@123"; await viewModel.LoginCommand.ExecuteAsync(null);
-            if (!viewModel.IsAuthenticated || !viewModel.IsConnected) throw new InvalidOperationException("HTTP login/snapshot failed: " + viewModel.Error);
+            if (!viewModel.IsAuthenticated || !viewModel.IsConnected) throw new InvalidOperationException("HTTP login/snapshot failed");
             for (var index = 0; index < 8; index++) { viewModel.SelectedTab = index; await CaptureAsync(this, Path.Combine(outputDirectory, $"{index + 2:00}-tab-{index}.png")); }
             compact = new CompactWindow(viewModel, this); compact.Show(); await CaptureAsync(compact, Path.Combine(outputDirectory, "09-compact.png")); compact.AllowClose = true; compact.Close(); compact = null;
             viewModel.IsAppLocked = true; await CaptureAsync(this, Path.Combine(outputDirectory, "10-lock.png")); viewModel.IsAppLocked = false;

@@ -39,7 +39,25 @@ builder.Services.AddRateLimiter(options =>
             }));
 });
 builder.Services.AddCors(options => options.AddPolicy("local", policy => policy
-    .WithOrigins("http://127.0.0.1:5173", "http://localhost:5173", "http://127.0.0.1:4173", "http://localhost:4173")
+    .SetIsOriginAllowed(origin =>
+    {
+        if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)) return false;
+        if (uri.Port is not (5173 or 4173 or 5055)) return false;
+        if (uri.Host is "localhost" or "127.0.0.1") return true;
+        if (System.Net.IPAddress.TryParse(uri.Host, out var ip))
+        {
+            if (System.Net.IPAddress.IsLoopback(ip)) return true;
+            var bytes = ip.GetAddressBytes();
+            if (bytes.Length == 4)
+            {
+                // RFC 1918 Private LAN: 10.x.x.x, 172.16-31.x.x, 192.168.x.x
+                if (bytes[0] == 10) return true;
+                if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) return true;
+                if (bytes[0] == 192 && bytes[1] == 168) return true;
+            }
+        }
+        return false;
+    })
     .AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 
 var app = builder.Build();
@@ -198,10 +216,15 @@ api.MapPost("/customers/{id}/topup", [Authorize(Roles = Roles.Owner + "," + Role
     (await service.AdminTopupAsync(context.User.IdentityContext(), id, request, ct)).ToResult());
 api.MapPost("/customers/{id}/refund", [Authorize(Roles = Roles.Owner + "," + Roles.Manager + "," + Roles.Cashier)] async (HttpContext context, string id, RefundRequest request, BusinessService service, CancellationToken ct) =>
     (await service.RefundCustomerBalanceAsync(context.User.IdentityContext(), id, request, ct)).ToResult());
-api.MapPost("/computers/{id}/command", [Authorize] async (HttpContext context, string id, ComputerCommandRequest request, BusinessService service, CancellationToken ct) =>
+api.MapPost("/computers/{id}/command", [Authorize(Roles = Roles.Owner + "," + Roles.Manager + "," + Roles.Cashier + "," + Roles.Staff)] async (HttpContext context, string id, ComputerCommandRequest request, BusinessService service, CancellationToken ct) =>
     (await service.CommandComputerAsync(context.User.IdentityContext(), id, request, ct)).ToResult());
-api.MapPost("/machines/{id}/heartbeat", [Authorize] async (HttpContext context, string id, BusinessService service, CancellationToken ct) =>
-    (await service.HeartbeatAsync(context.User.IdentityContext(), id, ct)).ToResult());
+api.MapPost("/machines/{id}/heartbeat", async (HttpContext context, string id, BusinessService service, CancellationToken ct) =>
+{
+    var identity = context.User.Identity?.IsAuthenticated == true
+        ? context.User.IdentityContext()
+        : new IdentityContext(0, Roles.Customer, null, null, "anonymous");
+    return (await service.HeartbeatAsync(identity, id, ct)).ToResult();
+});
 api.MapGet("/reports/summary", [Authorize(Roles = Roles.Owner + "," + Roles.Manager + "," + Roles.Cashier)] async (DateOnly? from, DateOnly? to, CafeRepository repository, CancellationToken ct) =>
     Results.Ok(Api.Data(await repository.ReportAsync(from, to, ct))));
 api.MapGet("/reports/analytics", [Authorize(Roles = Roles.Owner + "," + Roles.Manager)] async (DateOnly? from, DateOnly? to, CafeRepository repository, CancellationToken ct) =>

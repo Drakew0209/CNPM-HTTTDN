@@ -22,11 +22,24 @@ public sealed class CafeApi(HttpClient client) : ICafeApi
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     public string? AccessToken { get; set; }
     public DateTimeOffset? ServerTime { get; private set; }
+    public string? CustomBaseUrl { get; set; }
     public Task<T> GetAsync<T>(string path, CancellationToken cancellationToken = default) => Request<T>(HttpMethod.Get, path, null, cancellationToken);
     public Task<T> SendAsync<T>(HttpMethod method, string path, object body, CancellationToken cancellationToken = default) => Request<T>(method, path, body, cancellationToken);
     private async Task<T> Request<T>(HttpMethod method, string path, object? body, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(method, path);
+        Uri requestUri;
+        if (!string.IsNullOrWhiteSpace(CustomBaseUrl))
+        {
+            var cleanBase = CustomBaseUrl.TrimEnd('/');
+            if (!cleanBase.EndsWith("/api/v1", StringComparison.OrdinalIgnoreCase)) cleanBase += "/api/v1";
+            var baseUri = new Uri(cleanBase + "/");
+            requestUri = new Uri(baseUri, path.TrimStart('/'));
+        }
+        else
+        {
+            requestUri = new Uri(path, UriKind.Relative);
+        }
+        using var request = new HttpRequestMessage(method, requestUri);
         if (AccessToken is { Length: > 0 }) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
         if (body is not null) request.Content = JsonContent.Create(body, options: Json);
         using var response = await client.SendAsync(request, cancellationToken);

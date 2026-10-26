@@ -38,9 +38,14 @@ CNPM-HTTTDN/
 │   ├── DoiChieuYeuCau.md                 # Bảng đối chiếu yêu cầu & nhật ký khắc phục kiểm thử đồ án
 │   └── 📂 client/                        # Trang Web & Tệp ClickOnce Deploy qua GitHub Pages
 │
-├── 🚀 chay-web-admin.bat                 # [1-Click] Khởi chạy Web Admin trên máy cục bộ
-├── 🚀 chay-backend.bat                   # [1-Click] Khởi chạy Backend API
-├── 🚀 chay-desktop-client.bat            # [1-Click] Khởi chạy Máy trạm WPF Client
+├── 🚀 chay-toan-bo.bat                   # [1-Click] Khởi chạy toàn bộ hệ thống (DB + Backend + Web + Client)
+├── 🚀 chay-demo-2-may.bat                # [1-Click] Khởi chạy kịch bản Demo 2 máy trạm (PC01 + PC02) song song trên 1 Laptop
+├── 🧪 chay-playwright-tests.bat          # [1-Click] Khởi chạy toàn bộ 34 Test Cases E2E tự động (Web Admin + App)
+├── 🧪 chay-postman-tests.bat             # [1-Click] Khởi chạy toàn bộ 115 Test Cases API Newman / Postman
+├── 🛑 dung-toan-bo.bat                   # [1-Click] Đóng và giải phóng toàn bộ tiến trình hệ thống
+├── 🚀 chay-web-admin.bat                 # [1-Click] Khởi chạy riêng Web Admin
+├── 🚀 chay-backend.bat                   # [1-Click] Khởi chạy riêng Backend API
+├── 🚀 chay-desktop-client.bat            # [1-Click] Khởi chạy riêng Máy trạm WPF Client
 ├── 📦 dong-goi-portable.bat              # [1-Click] Đóng gói Client thành file ZIP di động (chạy mọi máy)
 ├── 🔄 dong-goi-clickonce.bat             # [1-Click] Xuất bản bản cập nhật Client ClickOnce tự động
 └── 📄 README.md                          # Tài liệu hướng dẫn sử dụng tổng quan
@@ -98,12 +103,15 @@ CNPM-HTTTDN/
 
 ### Cách 1: Khởi chạy bằng kịch bản 1-Click (Khuyên dùng)
 Bạn chỉ cần nhấp đúp trực tiếp vào các file `.bat` tại thư mục gốc:
-* **`chay-toan-bo.bat`**: **[Khuyên dùng nhất]** Tự động bật SQL Server LocalDB, Backend API, Web Admin và Desktop Client chỉ với 1 click!
+* **`chay-toan-bo.bat`**: **[Khuyên dùng]** Tự động bật SQL Server LocalDB, Backend API, Web Admin và 1 Desktop Client chỉ với 1 click!
+* **`chay-demo-2-may.bat`**: **[Dành riêng cho Báo cáo / Thuyết trình]** Tự động mở Web Admin bên trái và 2 máy trạm độc lập (PC01 + PC02) ở chế độ cửa sổ bên phải để demo tương tác 2 chiều thời gian thực trên cùng 1 laptop!
+* **`chay-playwright-tests.bat`**: **[Kiểm thử E2E Giao diện]** Tự động chạy toàn bộ **34 Test Cases E2E Playwright** bao phủ toàn bộ Web Admin + App máy trạm, sinh báo cáo HTML trực quan.
+* **`chay-postman-tests.bat`**: **[Kiểm thử API]** Tự động chạy toàn bộ **115 Test Cases API Postman / Newman** kiểm tra xác thực, nghiệp vụ ví, F&B, MRP và bảo mật.
 * **`dung-toan-bo.bat`**: Đóng và giải phóng toàn bộ các cổng/tiến trình hệ thống khi kết thúc buổi làm việc.
 * Hoặc khởi chạy riêng lẻ từng ứng dụng:
-  * **`chay-backend.bat`**: Bật API Backend tại `http://127.0.0.1:5055/api/v1` (tự động khởi tạo DB LocalDB)
+  * **`chay-backend.bat`**: Bật API Backend tại `http://0.0.0.0:5055/api/v1` (hỗ trợ kết nối LAN Wi-Fi trường)
   * **`chay-web-admin.bat`**: Mở Web Quản trị tại `http://127.0.0.1:5173`
-  * **`chay-desktop-client.bat`**: Mở ứng dụng Máy trạm Desktop Client
+  * **`chay-desktop-client.bat`**: Mở ứng dụng Máy trạm (hỗ trợ truyền mã máy, ví dụ: `chay-desktop-client.bat PC02 --windowed`)
 
 ### Cách 2: Khởi chạy bằng dòng lệnh (Terminal)
 
@@ -157,3 +165,90 @@ Hệ thống hỗ trợ 2 cơ chế phân phối phần mềm máy trạm:
 * Người dùng chỉ cần tải file cài đặt nhẹ (~500KB) từ trang GitHub Pages:
   👉 **`https://drakew0209.github.io/CNPM-HTTTDN/client/`**
 * **Ưu điểm**: Khi bạn cập nhật code và chạy lại `dong-goi-clickonce.bat`, tất cả các máy trạm của khách hàng khi mở lên sẽ tự động tải và cập nhật phiên bản mới nhất mà không cần cài lại thủ công.
+
+---
+
+## 🎬 Kịch Bản Demo Trình Diễn Báo Cáo (Presentation & Demo Guide)
+
+> Phần hướng dẫn này được thiết kế tối ưu cho sinh viên khi thuyết trình đồ án trước Hội đồng / Giảng viên hướng dẫn, giải quyết triệt để vấn đề **chỉ có 1 chiếc laptop** hoặc **kết nối mạng Wi-Fi trường học**.
+
+### 1. Kiến trúc Thực tế vs. Cơ chế Mô phỏng Demo
+
+* **Trong quán Net thực tế**: Máy chủ đặt tại quầy thu ngân (IP tĩnh LAN). Các máy trạm PC01..PCxx dùng BootROM, tự định danh theo tên máy tính Windows (`ComputerName`) và gửi nhịp tim về máy chủ.
+* **Khi thuyết trình (1 Laptop)**: Hệ thống cung cấp cơ chế **Multi-Station Windowed Simulation** cho phép mở đồng thời nhiều máy trạm độc lập ngay trên cùng một màn hình mà không bị chiếm dụng toàn màn hình hay xung đột dữ liệu.
+
+---
+
+### 2. Kịch Bản 1: Trình diễn 2 Máy trạm song song trên 1 Laptop (Khuyên dùng)
+
+Chỉ với 1 chiếc laptop, bạn có thể cho giảng viên thấy khả năng quản trị đa máy trạm thời gian thực (Realtime SignalR):
+
+```powershell
+# 1-Click khởi chạy toàn bộ môi trường demo:
+chay-demo-2-may.bat
+```
+
+#### 📐 Bố cục màn hình đề xuất (Split Screen)
+* **Nửa màn hình bên trái**: Trình duyệt mở **Web Admin** (`http://127.0.0.1:5173`) tại trang **Phòng máy** (đăng nhập `admin` hoặc `cashier`).
+* **Nửa màn hình bên phải**: Xếp 2 cửa sổ máy trạm Client:
+  * Cửa sổ trên: Máy **PC01** (Khu Tiêu chuẩn - 8.000 ₫/h).
+  * Cửa sổ dưới: Máy **PC02** (Khu VIP - 15.000 ₫/h).
+
+#### 📋 Các bước biểu diễn thuyết trình mẫu (10 Bước ghi điểm trọn vẹn):
+
+| Bước | Thao tác thực hiện | Hiện tượng quan sát được (Điểm cộng thuyết trình) |
+| :---: | :--- | :--- |
+| **B1** | Quan sát Web Admin ban đầu | Cả 2 ô **PC01** và **PC02** đều sáng đèn xanh **Online** (Sẵn sàng phục vụ), phản hồi nhịp tim heartbeat tự động. |
+| **B2** | Đăng nhập tại máy **PC01** với tài khoản `gamer` (Mật khẩu: `Demo@123`) | Client PC01 tự động bắt đầu tính giờ chơi. **Ngay lập tức**, ô PC01 trên Web Admin chuyển sang màu xanh dương **Đang sử dụng (InUse)**, hiển thị tên khách *Nguyễn Văn An* và đồng hồ tính cước nhảy theo từng giây qua SignalR. |
+| **B3** | Đăng nhập tại máy **PC02** với tài khoản `user02` (Mật khẩu: `Demo@123`) | Cả 2 máy cùng hoạt động song song độc lập. PC02 tự động áp dụng mức cước phòng VIP (15.000 ₫/h) cao hơn PC01. |
+| **B4** | Bấm **"Cửa sổ gọn"** trên máy PC01 | Client PC01 tự động thu nhỏ về thanh widget nổi góc trên bên phải màn hình để người chơi chơi game/lướt web, không che màn hình. |
+| **B5** | Nạp tiền ví bằng **VietQR động** | Tại Client, khách bấm **"Nạp tiền"** -> Nhập số tiền -> Hệ thống sinh mã VietQR động kèm cú pháp chuyển khoản. Trên Web Admin, Thu ngân nhận thông báo nạp tiền tức thời và duyệt tiền vào tài khoản. |
+| **B6** | Đặt món F&B từ máy trạm | Trên PC02, khách vào Menu chọn nước ngọt / mì trứng -> bấm Đặt món. Trên Web Admin của thu ngân lập tức hiện chuông báo đơn món mới cần chuẩn bị (`Pending → Preparing → Served`). |
+| **B7** | Thu ngân thực hiện **Chuyển máy** từ Web | Trên Web Admin, bấm vào ô PC01 -> Chọn **"Chuyển máy cho khách"** -> Chọn chuyển sang **PC03**. Máy PC01 tự động khóa lại và thông báo chuyển máy, máy PC03 sáng đèn tiếp tục phiên chơi mà không mất số dư. |
+| **B8** | Khảo sát ý kiến (CRM Survey) & Phản hồi | Khách làm khảo sát ý kiến tại máy trạm hoặc gửi phản hồi góp ý. Web Admin phân hệ CRM cập nhật biểu đồ thống kê kết quả bình chọn theo thời gian thực. |
+| **B9** | Quản lý kho MRP & Xuất kho NVL | Vào phân hệ **Kho & MRP** trên Web Admin, quản lý xem định mức BOM các món ăn, phê duyệt lệnh xuất kho nguyên vật liệu (trừ tự động theo công thức). |
+| **B10** | Lệnh điều khiển từ xa (**Remote Command**) | Trên Web Admin, chọn máy -> Gửi lệnh **"Khóa máy"** hoặc **"Khởi động lại (Restart)"** -> Client lập tức nhận lệnh từ xa và khóa màn hình theo thời gian thực. |
+
+---
+
+### 3. Kịch Bản 2: Trình diễn Đa máy qua Mạng LAN / Wi-Fi Trường học
+
+Khi có thêm một laptop khác (của bạn bè hoặc máy chấm thi) kết nối vào cùng mạng Wi-Fi trường:
+
+1. **Trên Laptop chủ (Server)**:
+   * Mở CMD chạy lệnh `ipconfig` để lấy địa chỉ IPv4 (ví dụ: `192.168.1.88`).
+   * Chạy file `chay-toan-bo.bat` (Backend tự động lắng nghe trên mọi card mạng `0.0.0.0:5055` và cấu hình CORS LAN cho phép kết nối an toàn).
+2. **Trên Laptop máy trạm (Client)**:
+   * Mở app Desktop Client.
+   * Nhấn phím **`F2`** (hoặc nhấp nút **`CẤU HÌNH (F2)`** trên màn hình khóa):
+     * **Mã máy trạm**: Chọn `PC02` (hoặc PC03..).
+     * **Địa chỉ máy chủ**: Nhập `http://192.168.1.88:5055` (IP của laptop chủ).
+     * Bấm **Áp dụng ngay**.
+   * Máy trạm sẽ lập tức kết nối về máy chủ của bạn và hoạt động 100% như phòng net thực thụ.
+
+---
+
+### 4. Bảng Phím Tắt & Tiện Ích Hỗ Trợ Trình Diễn (Hotkeys)
+
+| Phím tắt / Lệnh | Vị trí áp dụng | Chức năng hỗ trợ thuyết trình |
+| :--- | :--- | :--- |
+| **`F2`** | Màn hình khóa Client | Mở nhanh menu **Cấu hình Demo** (Đổi mã máy trạm, đổi IP máy chủ, bật/tắt Windowed mode mà không cần sửa code). |
+| **`--windowed` / `-w`** | Dòng lệnh khởi động | Mở Client dạng cửa sổ thông thường (cho phép co giãn và chia màn hình dễ dàng). |
+| **`Esc`** | Màn hình khóa Client | Đóng/mở nhanh hộp đăng nhập hoặc thoát nhanh ứng dụng máy trạm. |
+| **`Ctrl + Shift + F12`** | Toàn hệ thống Client | **Thoát khẩn cấp (Emergency Bypass)**: Nhập mật khẩu quản trị (`Admin@123`) để tạm gỡ chế độ khóa Kiosk trong trường hợp cần thao tác hệ điều hành. |
+
+---
+
+### 5. 💡 Câu Hỏi Phản Biện Thường Gặp Của Hội Đồng & Cách Trả Lời Thuyết Phục
+
+> [!TIP]
+> Nắm vững các câu trả lời dưới đây sẽ giúp bạn bảo vệ đồ án đạt điểm tối đa trước các câu hỏi kỹ thuật hóc búa của Giảng viên:
+
+* **Câu 1: "Tại sao phần mềm trên máy trạm biết nó đang là máy nào (PC01 hay PC02)?"**
+  * *Trả lời*: Trong môi trường phòng net thực tế, các máy trạm sử dụng hệ thống BootROM. Tên máy tính Windows (`ComputerName`) được cấu hình cố định theo vị trí bàn ngồi (ví dụ: PC-01, PC-02...). Khi phần mềm khởi động, Client tự động đọc `Environment.MachineName` để gửi định danh lên Server. Trong buổi thuyết trình, nhóm xây dựng thêm tham số `--machine PCxx` và phím tắt `F2` để giả lập linh hoạt nhiều máy trạm khác nhau trên cùng một laptop.
+* **Câu 2: "Tiền giờ được tính toán ở đâu? Khách hàng có thể can thiệp sửa thời gian hoặc số tiền trên máy trạm không?"**
+  * *Trả lời*: Toàn bộ logic nghiệp vụ tính cước, trừ tiền và đóng phiên được thực hiện hoàn toàn ở **phía máy chủ (Backend API & SQL Server)** theo nguyên tắc *Server-side Authority*. Client chỉ gửi định kỳ tín hiệu nhịp tim (Heartbeat) và nhận dữ liệu cước hiển thị về qua SignalR. Dù khách hàng có tắt Client hay đổi giờ hệ thống trên máy trạm thì khi mở lại hoặc kết thúc phiên, máy chủ vẫn đối chiếu mốc `Start_Time` trên CSDL để trừ tiền chính xác.
+* **Câu 3: "Khi khách gọi món F&B, hệ thống quản lý nguyên vật liệu như thế nào?"**
+  * *Trả lời*: Hệ thống tích hợp phân hệ **Hoạch định Nhu cầu Nguyên vật liệu (MRP & BOM)**. Mỗi món ăn/thức uống bán ra (ví dụ: Cà phê sữa, Mì trứng) đều được gắn một bảng định mức công thức (`Bill_Of_Materials`). Khi đơn hàng hoàn tất hoặc khi quản lý duyệt lệnh sản xuất/xuất kho, hệ thống tự động kiểm tra tồn kho an toàn và khấu trừ chính xác từng gram cà phê, mililit sữa đặc hoặc gói mì trong kho nguyên vật liệu.
+* **Câu 4: "Tại sao khi chạy demo lại dùng chế độ cửa sổ (`--windowed`) thay vì khóa Kiosk toàn màn hình?"**
+  * *Trả lời*: Ứng dụng Client được tích hợp cơ chế bảo mật Kiosk toàn màn hình (chặn WinKey, Alt+Tab, Task Manager). Tuy nhiên, vì điều kiện phòng bảo vệ chỉ có 1 màn hình laptop, nhóm đã thiết kế cờ `--windowed` để có thể xếp song song cả Web Admin thu ngân và 2 máy trạm cùng lúc, giúp Hội đồng nhìn thấy rõ ràng tương tác 2 chiều thời gian thực khi khách đăng nhập hay nạp tiền. Khi triển khai thực tế tại quán, phần mềm sẽ tự động bật 100% Kiosk toàn màn hình.

@@ -25,7 +25,7 @@ public sealed class AuthService(SqlConnectionFactory connections)
         if (account.Status != "Active" || passwords.VerifyHashedPassword(new object(), account.PasswordHash, request.Password) == PasswordVerificationResult.Failed) return null;
         await reader.CloseAsync();
         var rawToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
-        await using var token = new SqlCommand("INSERT INTO dbo.App_Tokens (Account_ID, Token_Hash, Expires_At) VALUES (@accountId, @hash, DATEADD(hour, 8, SYSUTCDATETIME()))", connection);
+        await using var token = new SqlCommand("INSERT INTO dbo.App_Tokens (Account_ID, Token_Hash, Expires_At) VALUES (@accountId, @hash, DATEADD(hour, 24, SYSUTCDATETIME()))", connection);
         token.Parameters.AddWithValue("@accountId", account.AccountId);
         token.Parameters.AddWithValue("@hash", TokenHash(rawToken));
         await token.ExecuteNonQueryAsync(ct);
@@ -57,6 +57,7 @@ public sealed class AuthService(SqlConnectionFactory connections)
             await existsReader.CloseAsync();
             if (taken) { await transaction.RollbackAsync(ct); return OperationResult<object>.Fail("USERNAME_EXISTS", "Tên đăng nhập đã được sử dụng.", StatusCodes.Status409Conflict); }
 
+            var passwordHash = passwords.HashPassword(new object(), request.Password);
             await using var customer = new SqlCommand("""
                 INSERT INTO dbo.Customers (Username, Password_Hash, Full_Name, Phone_Number, Email, Date_Of_Birth, Hobbies, Citizen_ID, Tier_ID, Status)
                 OUTPUT inserted.Customer_ID
@@ -64,7 +65,7 @@ public sealed class AuthService(SqlConnectionFactory connections)
                     COALESCE((SELECT TOP 1 Tier_ID FROM dbo.Membership_Tier WHERE Tier_Name = 'Member'), 1), 'Active')
                 """, connection, (SqlTransaction)transaction);
             customer.Parameters.AddWithValue("@username", username);
-            customer.Parameters.AddWithValue("@passwordHash", passwords.HashPassword(new object(), request.Password));
+            customer.Parameters.AddWithValue("@passwordHash", passwordHash);
             customer.Parameters.AddWithValue("@fullName", request.FullName.Trim());
             customer.Parameters.AddWithValue("@phone", request.Phone.Trim());
             customer.Parameters.AddWithValue("@email", (object?)request.Email?.Trim() ?? DBNull.Value);
@@ -77,7 +78,7 @@ public sealed class AuthService(SqlConnectionFactory connections)
                 VALUES (@username, @passwordHash, 'Customer', @customerId, @fullName, 'Active')
                 """, connection, (SqlTransaction)transaction);
             account.Parameters.AddWithValue("@username", username);
-            account.Parameters.AddWithValue("@passwordHash", passwords.HashPassword(new object(), request.Password));
+            account.Parameters.AddWithValue("@passwordHash", passwordHash);
             account.Parameters.AddWithValue("@customerId", customerId);
             account.Parameters.AddWithValue("@fullName", request.FullName.Trim());
             await account.ExecuteNonQueryAsync(ct);

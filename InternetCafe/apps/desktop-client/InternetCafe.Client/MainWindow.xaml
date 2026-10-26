@@ -95,6 +95,25 @@
         <TextBlock Text="{Binding HourlyRateLabel, StringFormat='GIÁ: {0}'}" Foreground="#34D399" FontWeight="Bold" FontSize="13" VerticalAlignment="Center"/>
        </StackPanel>
       </Border>
+
+      <!-- Quick Demo Settings Button -->
+      <Button Click="OpenDemoSettings_Click"
+              ToolTip="Cấu hình Demo / Chọn máy / Đổi Server (F2)"
+              Background="#16233B"
+              BorderBrush="#00F2FE"
+              BorderThickness="1.2"
+              Foreground="#00F2FE"
+              Padding="12,6"
+              Margin="10,0,0,0"
+              Cursor="Hand">
+       <Button.Resources>
+        <Style TargetType="Border"><Setter Property="CornerRadius" Value="10"/></Style>
+       </Button.Resources>
+       <StackPanel Orientation="Horizontal">
+        <md:PackIcon Kind="Cog" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+        <TextBlock Text="CẤU HÌNH (F2)" FontWeight="Bold" FontSize="12.5" VerticalAlignment="Center"/>
+       </StackPanel>
+      </Button>
      </StackPanel>
     </Grid>
 
@@ -210,23 +229,38 @@
      </StackPanel>
     </Grid>
 
-    <!-- Bottom Right: Quick Exit (Screensaver Mode) -->
-    <Button Click="OnExitClick"
-            VerticalAlignment="Bottom"
-            HorizontalAlignment="Right"
-            Margin="0,0,24,20"
-            Background="Transparent"
-            BorderBrush="#354968"
-            BorderThickness="1"
-            Foreground="#8FAACD"
-            Padding="12,6"
-            Cursor="Hand"
-            Visibility="{Binding IsLoginModalOpen, Converter={StaticResource BoolVisible}, ConverterParameter=Inverse}">
-     <StackPanel Orientation="Horizontal">
-      <md:PackIcon Kind="Power" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
-      <TextBlock Text="Thoát (Esc)" FontSize="12" VerticalAlignment="Center"/>
-     </StackPanel>
-    </Button>
+    <!-- Bottom Right: Quick Settings & Exit (Screensaver Mode) -->
+    <StackPanel Orientation="Horizontal"
+                VerticalAlignment="Bottom"
+                HorizontalAlignment="Right"
+                Margin="0,0,24,20"
+                Visibility="{Binding IsLoginModalOpen, Converter={StaticResource BoolVisible}, ConverterParameter=Inverse}">
+     <Button Click="OpenDemoSettings_Click"
+             Background="#142136"
+             BorderBrush="#38D9FF"
+             BorderThickness="1"
+             Foreground="#38D9FF"
+             Padding="12,6"
+             Margin="0,0,10,0"
+             Cursor="Hand">
+      <StackPanel Orientation="Horizontal">
+       <md:PackIcon Kind="Cog" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+       <TextBlock Text="Cấu hình Demo (F2)" FontSize="12" VerticalAlignment="Center"/>
+      </StackPanel>
+     </Button>
+     <Button Click="OnExitClick"
+             Background="Transparent"
+             BorderBrush="#354968"
+             BorderThickness="1"
+             Foreground="#8FAACD"
+             Padding="12,6"
+             Cursor="Hand">
+      <StackPanel Orientation="Horizontal">
+       <md:PackIcon Kind="Power" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+       <TextBlock Text="Thoát (Esc)" FontSize="12" VerticalAlignment="Center"/>
+      </StackPanel>
+     </Button>
+    </StackPanel>
 
    </Grid>
 

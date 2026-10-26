@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 title Chạy Postman API Test Suite (Newman)
 chcp 65001 >nul
 cd /d "%~dp0"

@@ -39,14 +39,30 @@ public sealed class ApiTokenAuthenticationHandler(IOptionsMonitor<Authentication
         command.Parameters.AddWithValue("@hash", AuthService.TokenHash(rawToken));
         await using var reader = await command.ExecuteReaderAsync(Context.RequestAborted);
         if (!await reader.ReadAsync(Context.RequestAborted)) return AuthenticateResult.Fail("Expired or revoked bearer token.");
+        var accountId = reader.GetInt32(0);
+        var username = reader.GetString(1);
+        var role = reader.GetString(2);
+        int? customerId = reader.IsDBNull(3) ? null : reader.GetInt32(3);
+        int? employeeId = reader.IsDBNull(4) ? null : reader.GetInt32(4);
+        await reader.CloseAsync();
+
+        // Sliding expiration: keep active session alive by sliding Expires_At
+        try
+        {
+            await using var extendCmd = new SqlCommand("UPDATE dbo.App_Tokens SET Expires_At = DATEADD(hour, 24, SYSUTCDATETIME()) WHERE Token_Hash = @hash AND DATEDIFF(hour, SYSUTCDATETIME(), Expires_At) < 12", connection);
+            extendCmd.Parameters.AddWithValue("@hash", AuthService.TokenHash(rawToken));
+            await extendCmd.ExecuteNonQueryAsync(Context.RequestAborted);
+        }
+        catch { }
+
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, reader.GetInt32(0).ToString()),
-            new(ClaimTypes.Name, reader.GetString(1)),
-            new(ClaimTypes.Role, reader.GetString(2))
+            new(ClaimTypes.NameIdentifier, accountId.ToString()),
+            new(ClaimTypes.Name, username),
+            new(ClaimTypes.Role, role)
         };
-        if (!reader.IsDBNull(3)) claims.Add(new Claim("customer_id", reader.GetInt32(3).ToString()));
-        if (!reader.IsDBNull(4)) claims.Add(new Claim("employee_id", reader.GetInt32(4).ToString()));
+        if (customerId.HasValue) claims.Add(new Claim("customer_id", customerId.Value.ToString()));
+        if (employeeId.HasValue) claims.Add(new Claim("employee_id", employeeId.Value.ToString()));
         var identity = new ClaimsIdentity(claims, SchemeName);
         return AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName));
     }

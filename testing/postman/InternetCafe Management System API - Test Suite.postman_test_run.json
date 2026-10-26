@@ -1,1699 +1,275 @@
 {
-	"id": "4dcde56a-7fe8-4e31-baf2-5e45534163c0",
+	"id": "1c6c1991-8603-49b1-b6ee-db783b59dc9c",
 	"name": "InternetCafe Management System API - Test Suite",
-	"timestamp": "2026-10-18T15:35:19.145Z",
-	"collection_id": "58473007-71cece5e-f4db-496e-8162-87632b6ad7be",
+	"timestamp": "2026-10-21T07:44:13.583Z",
+	"collection_id": "58473007-27a7aea0-985c-4a16-9393-78237b1d5f22",
 	"folder_id": 0,
 	"environment_id": "0",
-	"totalPass": 80,
+	"totalPass": 4,
 	"delay": 0,
 	"persist": true,
-	"status": "finished",
-	"startedAt": "2026-10-18T15:35:13.440Z",
-	"totalFail": 4,
-	"results": [
-		{
-			"id": "321ac450-d0d7-4533-bc37-68adf9fe1fbe",
-			"name": "01. Login as Admin (Auto-Save adminToken)",
-			"url": "http://127.0.0.1:5055/api/v1/auth/login",
-			"time": 88,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Response has success data with accessToken and Admin role": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Response has success data with accessToken and Admin role": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				88
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Response has success data with accessToken and Admin role": true
-				}
-			]
-		},
-		{
-			"id": "de7d30ae-33c1-4a69-815a-0b663cd432ed",
-			"name": "02. Login as Manager (Auto-Save managerToken)",
-			"url": "http://127.0.0.1:5055/api/v1/auth/login",
-			"time": 89,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Verify role is Manager": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Verify role is Manager": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				89
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Verify role is Manager": true
-				}
-			]
-		},
-		{
-			"id": "a5d02ca4-8513-45b8-ae59-40a645c05177",
-			"name": "03. Login as Cashier (Auto-Save cashierToken)",
-			"url": "http://127.0.0.1:5055/api/v1/auth/login",
-			"time": 95,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Verify role is Cashier": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Verify role is Cashier": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				95
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Verify role is Cashier": true
-				}
-			]
-		},
-		{
-			"id": "5ee90007-8402-43a7-adce-3853a84498a5",
-			"name": "04. Login as Staff (Auto-Save staffToken)",
-			"url": "http://127.0.0.1:5055/api/v1/auth/login",
-			"time": 92,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Verify role is Staff": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Verify role is Staff": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				92
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Verify role is Staff": true
-				}
-			]
-		},
-		{
-			"id": "4070c301-97f9-43eb-8627-f6445bbef75e",
-			"name": "05. Login as Customer (Auto-Save customerToken)",
-			"url": "http://127.0.0.1:5055/api/v1/auth/login",
-			"time": 93,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Verify role is Customer and has an ID": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Verify role is Customer and has an ID": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				93
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Verify role is Customer and has an ID": true
-				}
-			]
-		},
-		{
-			"id": "a5c22340-d52c-4d54-9118-247589e9fffa",
-			"name": "06. Login Fail - Wrong Password (Negative Test)",
-			"url": "http://127.0.0.1:5055/api/v1/auth/login",
-			"time": 85,
-			"responseCode": {
-				"code": 401,
-				"name": "Unauthorized"
-			},
-			"tests": {
-				"Status code is 401 Unauthorized": true,
-				"Response body contains INVALID_CREDENTIALS error code": true
-			},
-			"testPassFailCounts": {
-				"Status code is 401 Unauthorized": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Response body contains INVALID_CREDENTIALS error code": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				85
-			],
-			"allTests": [
-				{
-					"Status code is 401 Unauthorized": true,
-					"Response body contains INVALID_CREDENTIALS error code": true
-				}
-			]
-		},
-		{
-			"id": "bedd9e6d-7caa-4754-945f-26b6cfbea7b6",
-			"name": "07. Register New Customer (Pre-request dynamic data)",
-			"url": "http://127.0.0.1:5055/api/v1/auth/register",
-			"time": 193,
-			"responseCode": {
-				"code": 201,
-				"name": "Created"
-			},
-			"tests": {
-				"Status code is 201 Created": true,
-				"New customer profile created with matching username": true
-			},
-			"testPassFailCounts": {
-				"Status code is 201 Created": {
-					"pass": 1,
-					"fail": 0
-				},
-				"New customer profile created with matching username": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				193
-			],
-			"allTests": [
-				{
-					"Status code is 201 Created": true,
-					"New customer profile created with matching username": true
-				}
-			]
-		},
-		{
-			"id": "9c450fd2-9914-4081-84fc-45836a95cb7a",
-			"name": "08. Login Disposable Customer (Get tempCustomerToken)",
-			"url": "http://127.0.0.1:5055/api/v1/auth/login",
-			"time": 94,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Verify disposable customer login": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Verify disposable customer login": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				94
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Verify disposable customer login": true
-				}
-			]
-		},
-		{
-			"id": "73fe340d-2d1e-4be2-a009-86a8f2cbb168",
-			"name": "09. Change Disposable Customer Password (/me/password)",
-			"url": "http://127.0.0.1:5055/api/v1/me/password",
-			"time": 174,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Change password status is 200 OK": true,
-				"Password changed confirmation": true
-			},
-			"testPassFailCounts": {
-				"Change password status is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Password changed confirmation": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				174
-			],
-			"allTests": [
-				{
-					"Change password status is 200 OK": true,
-					"Password changed confirmation": true
-				}
-			]
-		},
-		{
-			"id": "ec60e373-a394-43de-9fcb-bfb48ce0b170",
-			"name": "10. Relogin Disposable Customer with New Password",
-			"url": "http://127.0.0.1:5055/api/v1/auth/login",
-			"time": 87,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK with new password": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK with new password": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				87
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK with new password": true
-				}
-			]
-		},
-		{
-			"id": "15232493-6484-44a0-aba9-723cfd0c9eff",
-			"name": "11. Logout Disposable Customer (/auth/logout)",
-			"url": "http://127.0.0.1:5055/api/v1/auth/logout",
-			"time": 5,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Logged out successfully": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Logged out successfully": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				5
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Logged out successfully": true
-				}
-			]
-		},
-		{
-			"id": "746561cc-846c-4130-8018-1c3f9ebef39f",
-			"name": "12. Verify Token Revoked - Negative Test (/me)",
-			"url": "http://127.0.0.1:5055/api/v1/me",
-			"time": 2,
-			"responseCode": {
-				"code": 401,
-				"name": "Unauthorized"
-			},
-			"tests": {
-				"Status code is 401 Unauthorized after logout": true
-			},
-			"testPassFailCounts": {
-				"Status code is 401 Unauthorized after logout": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				2
-			],
-			"allTests": [
-				{
-					"Status code is 401 Unauthorized after logout": true
-				}
-			]
-		},
-		{
-			"id": "9529aab1-e9ea-458c-ad71-bef65160ea78",
-			"name": "13. Get Current Profile (/me)",
-			"url": "http://127.0.0.1:5055/api/v1/me",
-			"time": 2,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Profile matches authenticated user": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Profile matches authenticated user": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				2
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Profile matches authenticated user": true
-				}
-			]
-		},
-		{
-			"id": "066bad08-0c1c-4f70-b0ad-d911f4029b32",
-			"name": "14. Update Profile Information (PATCH /me)",
-			"url": "http://127.0.0.1:5055/api/v1/me",
-			"time": 8,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Updated profile returned successfully": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Updated profile returned successfully": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				8
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Updated profile returned successfully": true
-				}
-			]
-		},
-		{
-			"id": "62f92e4b-190a-48b0-9b30-37216bcf9732",
-			"name": "01. Health Check (SQL Server & Tables count)",
-			"url": "http://127.0.0.1:5055/health",
-			"time": 38,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"SQL Server connection is healthy and tables exist": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"SQL Server connection is healthy and tables exist": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				38
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"SQL Server connection is healthy and tables exist": true
-				}
-			]
-		},
-		{
-			"id": "f2b06530-7c06-4412-98b2-a0fc9b176ead",
-			"name": "02. Get Scoped Workspace (/workspace)",
-			"url": "http://127.0.0.1:5055/api/v1/workspace",
-			"time": 60,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Workspace contains core collections": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Workspace contains core collections": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				60
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Workspace contains core collections": true
-				}
-			]
-		},
-		{
-			"id": "ac66993a-c452-495f-9286-70f75700007e",
-			"name": "03. List System Accounts (Admin Only)",
-			"url": "http://127.0.0.1:5055/api/v1/accounts",
-			"time": 3,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Accounts list returned": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Accounts list returned": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				3
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Accounts list returned": true
-				}
-			]
-		},
-		{
-			"id": "cb12434b-d3c8-4c52-8521-b6e46382466a",
-			"name": "04. List Product Categories",
-			"url": "http://127.0.0.1:5055/api/v1/categories",
-			"time": 2,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Categories array returned": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Categories array returned": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				2
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Categories array returned": true
-				}
-			]
-		},
-		{
-			"id": "c6678568-b1b3-4560-a681-15a7de85db49",
-			"name": "05. List Promotion Combos",
-			"url": "http://127.0.0.1:5055/api/v1/combos",
-			"time": 3,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Combos array returned": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Combos array returned": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				3
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Combos array returned": true
-				}
-			]
-		},
-		{
-			"id": "04f012f8-88b9-475b-90c5-0b7890432efd",
-			"name": "06. List Gaming Library (/games)",
-			"url": "http://127.0.0.1:5055/api/v1/games",
-			"time": 3,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Games catalog returned": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Games catalog returned": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				3
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Games catalog returned": true
-				}
-			]
-		},
-		{
-			"id": "07c72649-918f-4858-a5ef-892632d7e82c",
-			"name": "01. List All Customers (Capture testCustomerId)",
-			"url": "http://127.0.0.1:5055/api/v1/customers",
-			"time": 4,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Response contains customer list": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Response contains customer list": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				4
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Response contains customer list": true
-				}
-			]
-		},
-		{
-			"id": "0e03b184-0a9e-4981-8d6e-c1c93306f084",
-			"name": "02. Cashier Topup Customer Balance (Valid Amount)",
-			"url": "http://127.0.0.1:5055/api/v1/customers/c-1003/topup",
-			"time": 35,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Topup transaction created with matching amount (20,000 VND)": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Topup transaction created with matching amount (20,000 VND)": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				35
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Topup transaction created with matching amount (20,000 VND)": true
-				}
-			]
-		},
-		{
-			"id": "e4917f8b-2886-408f-8b99-3dd91d31c5c7",
-			"name": "03. Topup Validation - Negative Amount (Negative Test)",
-			"url": "http://127.0.0.1:5055/api/v1/customers/c-1003/topup",
-			"time": 3,
-			"responseCode": {
-				"code": 422,
-				"name": "Unprocessable Entity"
-			},
-			"tests": {
-				"Status code is 400 or 422 for invalid negative amount": true
-			},
-			"testPassFailCounts": {
-				"Status code is 400 or 422 for invalid negative amount": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				3
-			],
-			"allTests": [
-				{
-					"Status code is 400 or 422 for invalid negative amount": true
-				}
-			]
-		},
-		{
-			"id": "08903f30-c803-4899-bff4-91f4657c313b",
-			"name": "04. Refund Balance to Customer",
-			"url": "http://127.0.0.1:5055/api/v1/customers/c-1003/refund",
-			"time": 12,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Refund transaction created with matching amount (10,000 VND)": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Refund transaction created with matching amount (10,000 VND)": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				12
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Refund transaction created with matching amount (10,000 VND)": true
-				}
-			]
-		},
-		{
-			"id": "e1f0ad1b-2028-4690-9f27-00a5c7491de4",
-			"name": "05. List Financial Transactions Ledger",
-			"url": "http://127.0.0.1:5055/api/v1/transactions?pageSize=20",
-			"time": 3,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Transactions array returned": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Transactions array returned": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				3
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Transactions array returned": true
-				}
-			]
-		},
-		{
-			"id": "3018f159-6f81-4a10-8806-4e0c54732106",
-			"name": "01. List All Computers (Capture Available Computer)",
-			"url": "http://127.0.0.1:5055/api/v1/computers",
-			"time": 3,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Find at least one computer in system": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Find at least one computer in system": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				3
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Find at least one computer in system": true
-				}
-			]
-		},
-		{
-			"id": "31cdd7fa-6920-426f-8bc8-e4980d38d1fb",
-			"name": "02. Customer Start Session on Computer",
-			"url": "http://127.0.0.1:5055/api/v1/sessions/start",
-			"time": 45,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK or 409 (if session active)": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK or 409 (if session active)": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				45
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK or 409 (if session active)": true
-				}
-			]
-		},
-		{
-			"id": "80e22e5e-59fc-4e22-933f-4d9036c25926",
-			"name": "03. Send Machine Heartbeat (Duy trì phiên)",
-			"url": "http://127.0.0.1:5055/api/v1/machines/pc-001/heartbeat",
-			"time": 9,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				9
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true
-				}
-			]
-		},
-		{
-			"id": "3368ba9d-c6d0-40b0-9442-20181d5be3de",
-			"name": "04. Remote Control Computer (Maintenance Command)",
-			"url": "http://127.0.0.1:5055/api/v1/computers/pc-002/command",
-			"time": 5,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Command execution status is 200 OK or 409": true
-			},
-			"testPassFailCounts": {
-				"Command execution status is 200 OK or 409": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				5
-			],
-			"allTests": [
-				{
-					"Command execution status is 200 OK or 409": true
-				}
-			]
-		},
-		{
-			"id": "4013ebdc-a146-4893-bfa0-02dc8480fb67",
-			"name": "05. Restore Computer to Available",
-			"url": "http://127.0.0.1:5055/api/v1/computers/pc-002/command",
-			"time": 4,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK or 409": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK or 409": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				4
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK or 409": true
-				}
-			]
-		},
-		{
-			"id": "198cca16-b3f8-4580-b9d1-d43cec675e65",
-			"name": "01. List Menu Products (Capture Product ID)",
-			"url": "http://127.0.0.1:5055/api/v1/products",
-			"time": 3,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Products list returned": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Products list returned": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				3
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Products list returned": true
-				}
-			]
-		},
-		{
-			"id": "a370b9ab-e278-4e46-aedd-15c2a8316743",
-			"name": "02. Customer Create F&B Order (While Session Active)",
-			"url": "http://127.0.0.1:5055/api/v1/orders",
-			"time": 9,
-			"responseCode": {
-				"code": 409,
-				"name": "Conflict"
-			},
-			"tests": {
-				"Status code is 200 OK or 201 Created": false,
-				"Order created with Pending status": false
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK or 201 Created": {
-					"pass": 0,
-					"fail": 1
-				},
-				"Order created with Pending status": {
-					"pass": 0,
-					"fail": 1
-				}
-			},
-			"times": [
-				9
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK or 201 Created": false,
-					"Order created with Pending status": false
-				}
-			]
-		},
-		{
-			"id": "bf3c2c7b-fa0f-42b6-a0f1-354f973e1f98",
-			"name": "03. Cashier Transition Order to Preparing",
-			"url": "http://127.0.0.1:5055/api/v1/orders/order-001/transition",
-			"time": 4,
-			"responseCode": {
-				"code": 409,
-				"name": "Conflict"
-			},
-			"tests": {
-				"Status code is 200 OK": false,
-				"Order status changed to Preparing": false
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 0,
-					"fail": 1
-				},
-				"Order status changed to Preparing": {
-					"pass": 0,
-					"fail": 1
-				}
-			},
-			"times": [
-				4
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": false,
-					"Order status changed to Preparing": false
-				}
-			]
-		},
-		{
-			"id": "4321ae41-7c1d-4738-afb4-0cf8155090de",
-			"name": "04. List Bill of Materials (BOM - Công thức định lượng)",
-			"url": "http://127.0.0.1:5055/api/v1/bom",
-			"time": 3,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"BOM array returned": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"BOM array returned": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				3
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"BOM array returned": true
-				}
-			]
-		},
-		{
-			"id": "e492cea2-bfed-44c2-a1c4-89cd415bd020",
-			"name": "05. List Material Suppliers",
-			"url": "http://127.0.0.1:5055/api/v1/suppliers",
-			"time": 3,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Suppliers list returned": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Suppliers list returned": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				3
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Suppliers list returned": true
-				}
-			]
-		},
-		{
-			"id": "af422df1-6a5f-43cb-add9-c3bccc5c9d9a",
-			"name": "06. List Material Inventory (Kho NVL)",
-			"url": "http://127.0.0.1:5055/api/v1/materials",
-			"time": 3,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Materials list returned": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Materials list returned": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				3
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Materials list returned": true
-				}
-			]
-		},
-		{
-			"id": "0d13a1d0-6701-4451-a03f-dfbbf5f22ae0",
-			"name": "07. Create New Material (Thêm mới NVL)",
-			"url": "http://127.0.0.1:5055/api/v1/materials",
-			"time": 6,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK or 201 Created": true,
-				"Material created with valid ID": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK or 201 Created": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Material created with valid ID": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				6
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK or 201 Created": true,
-					"Material created with valid ID": true
-				}
-			]
-		},
-		{
-			"id": "2e78eadc-d0db-40b6-9a30-86a777ca948b",
-			"name": "08. Customer End Session (Chốt phiên chơi sau khi ăn uống)",
-			"url": "http://127.0.0.1:5055/api/v1/sessions/session-5011/end",
-			"time": 18,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"End session status is 200 OK or 409": true
-			},
-			"testPassFailCounts": {
-				"End session status is 200 OK or 409": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				18
-			],
-			"allTests": [
-				{
-					"End session status is 200 OK or 409": true
-				}
-			]
-		},
-		{
-			"id": "228340a5-86b2-414e-a1bf-40486b1f804a",
-			"name": "01. List Employees (Danh sách nhân viên)",
-			"url": "http://127.0.0.1:5055/api/v1/employees",
-			"time": 6,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Employees array returned": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Employees array returned": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				6
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Employees array returned": true
-				}
-			]
-		},
-		{
-			"id": "ad7978db-1a69-472b-9e61-f45d5378a913",
-			"name": "02. List Work Shifts (Danh mục ca làm việc)",
-			"url": "http://127.0.0.1:5055/api/v1/shifts",
-			"time": 3,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Work shifts array returned": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Work shifts array returned": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				3
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Work shifts array returned": true
-				}
-			]
-		},
-		{
-			"id": "77640df8-edcf-444a-9142-a9d1f153257a",
-			"name": "03. List Work Schedules (Lịch phân ca)",
-			"url": "http://127.0.0.1:5055/api/v1/schedules",
-			"time": 4,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Schedules list returned": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Schedules list returned": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				4
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Schedules list returned": true
-				}
-			]
-		},
-		{
-			"id": "d160a617-9479-4d43-a394-d54740d54932",
-			"name": "04. Employee Check-in Shift (Chấm công vào ca)",
-			"url": "http://127.0.0.1:5055/api/v1/attendance/check-in",
-			"time": 6,
-			"responseCode": {
-				"code": 409,
-				"name": "Conflict"
-			},
-			"tests": {
-				"Check-in response status is valid (200, 403, 404, or 409)": true
-			},
-			"testPassFailCounts": {
-				"Check-in response status is valid (200, 403, 404, or 409)": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				6
-			],
-			"allTests": [
-				{
-					"Check-in response status is valid (200, 403, 404, or 409)": true
-				}
-			]
-		},
-		{
-			"id": "9c842815-77da-4232-91d3-9b660526a5dc",
-			"name": "05. List Attendance Records (Lịch sử chấm công)",
-			"url": "http://127.0.0.1:5055/api/v1/attendance",
-			"time": 6,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Attendance records returned": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Attendance records returned": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				6
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Attendance records returned": true
-				}
-			]
-		},
-		{
-			"id": "27084ef2-92eb-4f67-884b-4b035ef312c0",
-			"name": "01. Summary Revenue Report (Cashier / Manager Role)",
-			"url": "http://127.0.0.1:5055/api/v1/reports/summary?from=2026-10-01&to=2026-10-31",
-			"time": 5,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Report data contains financial breakdown": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Report data contains financial breakdown": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				5
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Report data contains financial breakdown": true
-				}
-			]
-		},
-		{
-			"id": "d9d5401e-c57a-4341-8d0e-8ade75d1f570",
-			"name": "02. Deep Analytics Report (Manager / Owner Role)",
-			"url": "http://127.0.0.1:5055/api/v1/reports/analytics?from=2026-10-01&to=2026-10-31",
-			"time": 20,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Analytics report returned": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Analytics report returned": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				20
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Analytics report returned": true
-				}
-			]
-		},
-		{
-			"id": "e8dd2e3f-9f0f-475f-9b30-4d7ddee09498",
-			"name": "03. List Invoices",
-			"url": "http://127.0.0.1:5055/api/v1/invoices",
-			"time": 24,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Status code is 200 OK": true,
-				"Invoices array returned": true
-			},
-			"testPassFailCounts": {
-				"Status code is 200 OK": {
-					"pass": 1,
-					"fail": 0
-				},
-				"Invoices array returned": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				24
-			],
-			"allTests": [
-				{
-					"Status code is 200 OK": true,
-					"Invoices array returned": true
-				}
-			]
-		},
-		{
-			"id": "687a177e-28ce-48bf-a43d-cd98e3a0df3c",
-			"name": "04. Get Invoice Detail by ID (/invoices/{id})",
-			"url": "http://127.0.0.1:5055/api/v1/invoices/invoice-session-5011",
-			"time": 4,
-			"responseCode": {
-				"code": 200,
-				"name": "OK"
-			},
-			"tests": {
-				"Invoice detail status is 200 or 404": true
-			},
-			"testPassFailCounts": {
-				"Invoice detail status is 200 or 404": {
-					"pass": 1,
-					"fail": 0
-				}
-			},
-			"times": [
-				4
-			],
-			"allTests": [
-				{
-					"Invoice detail status is 200 or 404": true
-				}
-			]
-		}
-	],
+	"status": "error",
+	"startedAt": "2026-10-21T07:44:07.114Z",
+	"totalFail": 85,
+	"results": [],
 	"count": 1,
-	"totalTime": 1466,
+	"totalTime": 0,
 	"collection": {
 		"requests": [
 			{
-				"id": "321ac450-d0d7-4533-bc37-68adf9fe1fbe",
+				"id": "ccc040c6-e091-4e63-b4a6-0d153a1c29a8",
 				"method": "POST"
 			},
 			{
-				"id": "de7d30ae-33c1-4a69-815a-0b663cd432ed",
+				"id": "94a2582a-1830-4c3b-b877-fee318900f27",
 				"method": "POST"
 			},
 			{
-				"id": "a5d02ca4-8513-45b8-ae59-40a645c05177",
+				"id": "a783a9e2-8410-4e16-b0d0-fa68909efeb5",
 				"method": "POST"
 			},
 			{
-				"id": "5ee90007-8402-43a7-adce-3853a84498a5",
+				"id": "e0b325b0-9b10-4e88-b195-173fa81eeb04",
 				"method": "POST"
 			},
 			{
-				"id": "4070c301-97f9-43eb-8627-f6445bbef75e",
+				"id": "1a88c5b8-6322-4920-b77f-560afd848302",
 				"method": "POST"
 			},
 			{
-				"id": "a5c22340-d52c-4d54-9118-247589e9fffa",
+				"id": "051efe39-2c8e-4483-951b-4ef859cd9df6",
 				"method": "POST"
 			},
 			{
-				"id": "bedd9e6d-7caa-4754-945f-26b6cfbea7b6",
+				"id": "e3d65e41-3b1f-4f8b-9e07-583d5263055b",
 				"method": "POST"
 			},
 			{
-				"id": "9c450fd2-9914-4081-84fc-45836a95cb7a",
+				"id": "97d8b4b4-df9d-499c-abee-4f48ed84e39b",
 				"method": "POST"
 			},
 			{
-				"id": "73fe340d-2d1e-4be2-a009-86a8f2cbb168",
+				"id": "f0e7dd2a-4b2f-4aae-9b80-4c904b431497",
 				"method": "POST"
 			},
 			{
-				"id": "ec60e373-a394-43de-9fcb-bfb48ce0b170",
+				"id": "f924319f-a0f1-4025-ae49-e679e437f2ac",
 				"method": "POST"
 			},
 			{
-				"id": "15232493-6484-44a0-aba9-723cfd0c9eff",
+				"id": "018ba759-9aed-40bf-8c0c-b631ff484b97",
 				"method": "POST"
 			},
 			{
-				"id": "746561cc-846c-4130-8018-1c3f9ebef39f",
+				"id": "46aeb104-715e-4abb-9a54-294edf0ff3fd",
 				"method": "GET"
 			},
 			{
-				"id": "9529aab1-e9ea-458c-ad71-bef65160ea78",
+				"id": "26fe9215-5e2f-4b8e-9250-d42e0647cfcf",
 				"method": "GET"
 			},
 			{
-				"id": "066bad08-0c1c-4f70-b0ad-d911f4029b32",
+				"id": "ace6d3cb-0243-4bc6-b53d-862f87a3e23b",
 				"method": "PATCH"
 			},
 			{
-				"id": "62f92e4b-190a-48b0-9b30-37216bcf9732",
+				"id": "2d00fd20-d17d-4000-ab24-4cecf4eb94e8",
 				"method": "GET"
 			},
 			{
-				"id": "f2b06530-7c06-4412-98b2-a0fc9b176ead",
+				"id": "54d5a56d-534a-4df5-bf4d-b8b7d3739709",
 				"method": "GET"
 			},
 			{
-				"id": "ac66993a-c452-495f-9286-70f75700007e",
+				"id": "6495acb0-5148-41bc-b482-5d7919af2546",
 				"method": "GET"
 			},
 			{
-				"id": "cb12434b-d3c8-4c52-8521-b6e46382466a",
+				"id": "260985da-b2d4-443d-9c29-e99c05cd3fef",
 				"method": "GET"
 			},
 			{
-				"id": "c6678568-b1b3-4560-a681-15a7de85db49",
+				"id": "16da455c-8fec-412f-bb80-9189406638d2",
 				"method": "GET"
 			},
 			{
-				"id": "04f012f8-88b9-475b-90c5-0b7890432efd",
+				"id": "6f84598c-497c-44a7-934b-36b2a0793e4d",
 				"method": "GET"
 			},
 			{
-				"id": "07c72649-918f-4858-a5ef-892632d7e82c",
+				"id": "2134b355-73bf-4eda-8634-7a7c30815fb0",
 				"method": "GET"
 			},
 			{
-				"id": "0e03b184-0a9e-4981-8d6e-c1c93306f084",
+				"id": "c693a277-847f-44eb-a617-046aaa0ae626",
 				"method": "POST"
 			},
 			{
-				"id": "e4917f8b-2886-408f-8b99-3dd91d31c5c7",
+				"id": "d9a8850a-a385-4df1-af6c-101d17dd3196",
 				"method": "POST"
 			},
 			{
-				"id": "08903f30-c803-4899-bff4-91f4657c313b",
+				"id": "f3d7e9c1-245b-4b3a-88a9-a6947c04d132",
 				"method": "POST"
 			},
 			{
-				"id": "e1f0ad1b-2028-4690-9f27-00a5c7491de4",
+				"id": "54b4f223-c2ab-4f0d-822d-2f0e51cc450b",
 				"method": "GET"
 			},
 			{
-				"id": "3018f159-6f81-4a10-8806-4e0c54732106",
+				"id": "6397c847-4aa9-4d36-bd73-89551cf60939",
 				"method": "GET"
 			},
 			{
-				"id": "31cdd7fa-6920-426f-8bc8-e4980d38d1fb",
+				"id": "1479833c-7405-46dc-ab2e-f6d05263d117",
 				"method": "POST"
 			},
 			{
-				"id": "80e22e5e-59fc-4e22-933f-4d9036c25926",
+				"id": "f8cee699-f2c8-45cd-b121-1c814f63dff2",
 				"method": "POST"
 			},
 			{
-				"id": "3368ba9d-c6d0-40b0-9442-20181d5be3de",
+				"id": "c162cc56-c32c-4b9c-8e9f-63d9355e9e10",
 				"method": "POST"
 			},
 			{
-				"id": "4013ebdc-a146-4893-bfa0-02dc8480fb67",
+				"id": "ff00377c-02ea-488f-abc4-ff03d7d64760",
 				"method": "POST"
 			},
 			{
-				"id": "198cca16-b3f8-4580-b9d1-d43cec675e65",
+				"id": "3d883b5d-35a9-4f95-bd92-3555bb25d958",
 				"method": "GET"
 			},
 			{
-				"id": "a370b9ab-e278-4e46-aedd-15c2a8316743",
+				"id": "44f73705-b767-4e77-9103-47605f713f14",
 				"method": "POST"
 			},
 			{
-				"id": "bf3c2c7b-fa0f-42b6-a0f1-354f973e1f98",
+				"id": "b1884e2d-d82b-4a5e-aa3a-978ca242309f",
 				"method": "POST"
 			},
 			{
-				"id": "4321ae41-7c1d-4738-afb4-0cf8155090de",
+				"id": "83270236-9634-4c00-bebc-3c9b57ef099f",
 				"method": "GET"
 			},
 			{
-				"id": "e492cea2-bfed-44c2-a1c4-89cd415bd020",
+				"id": "dbce0cab-1ce2-40b5-94a5-a2a39005d16c",
 				"method": "GET"
 			},
 			{
-				"id": "af422df1-6a5f-43cb-add9-c3bccc5c9d9a",
+				"id": "a68eea85-08d1-434d-b324-2dcadbe5ebae",
 				"method": "GET"
 			},
 			{
-				"id": "0d13a1d0-6701-4451-a03f-dfbbf5f22ae0",
+				"id": "fc3e6405-ec9d-4900-9cbc-9b53b5450a5e",
 				"method": "POST"
 			},
 			{
-				"id": "2e78eadc-d0db-40b6-9a30-86a777ca948b",
+				"id": "1a5d2320-22e5-4a92-af98-1b60f3ea2e95",
 				"method": "POST"
 			},
 			{
-				"id": "228340a5-86b2-414e-a1bf-40486b1f804a",
+				"id": "7d2aca84-f894-4a4e-b8bb-183377f4c731",
 				"method": "GET"
 			},
 			{
-				"id": "ad7978db-1a69-472b-9e61-f45d5378a913",
+				"id": "4e89e931-8004-4179-b338-ca3232d4b810",
 				"method": "GET"
 			},
 			{
-				"id": "77640df8-edcf-444a-9142-a9d1f153257a",
+				"id": "15be89b7-3234-4b0e-8452-62bb1ead40d9",
 				"method": "GET"
 			},
 			{
-				"id": "d160a617-9479-4d43-a394-d54740d54932",
+				"id": "feae79d1-74a5-43f1-baef-be69923dbeac",
 				"method": "POST"
 			},
 			{
-				"id": "9c842815-77da-4232-91d3-9b660526a5dc",
+				"id": "44860b5c-e4cd-443b-af55-26610f346523",
 				"method": "GET"
 			},
 			{
-				"id": "27084ef2-92eb-4f67-884b-4b035ef312c0",
+				"id": "b6b55ec0-5d27-45c6-ad23-bc975ebb4eb1",
 				"method": "GET"
 			},
 			{
-				"id": "d9d5401e-c57a-4341-8d0e-8ade75d1f570",
+				"id": "fefb0baf-a278-4727-8210-b6c9a514e7d0",
 				"method": "GET"
 			},
 			{
-				"id": "e8dd2e3f-9f0f-475f-9b30-4d7ddee09498",
+				"id": "885593fe-62db-4802-a249-9bb3ad0d7018",
 				"method": "GET"
 			},
 			{
-				"id": "687a177e-28ce-48bf-a43d-cd98e3a0df3c",
+				"id": "6f1fe589-8aa5-448f-a65e-4a1657694df4",
+				"method": "GET"
+			},
+			{
+				"id": "d6c25f35-a0b7-4242-8c52-863593dd98ab",
+				"method": "POST"
+			},
+			{
+				"id": "dcf52972-28b4-49e3-8829-8735a8408132",
+				"method": "GET"
+			},
+			{
+				"id": "df2fed57-5c5a-4229-bf6f-3c5ce8b6e135",
+				"method": "GET"
+			},
+			{
+				"id": "1762b977-f522-4203-abc2-1b49e1fa824a",
+				"method": "PATCH"
+			},
+			{
+				"id": "f873fcab-ea64-4966-ac9a-338b9b647493",
+				"method": "POST"
+			},
+			{
+				"id": "fdc746cd-55e3-4042-a9e9-74704bb4d093",
+				"method": "POST"
+			},
+			{
+				"id": "c6c2f7af-290b-44e7-aaa6-30828244218d",
+				"method": "POST"
+			},
+			{
+				"id": "bf0b3e4e-2a17-4694-a880-55507e6e4f45",
+				"method": "POST"
+			},
+			{
+				"id": "c1049765-b895-40e7-9831-3728268b4bcb",
+				"method": "POST"
+			},
+			{
+				"id": "434d9123-0dd8-4bc2-8565-8a78e4c7b11a",
+				"method": "POST"
+			},
+			{
+				"id": "a696be97-e3f9-4454-adbd-b2f80a25517a",
+				"method": "GET"
+			},
+			{
+				"id": "7abdf176-6c19-47b4-a4e8-715350bbcff1",
+				"method": "GET"
+			},
+			{
+				"id": "a412041e-f61e-4c74-84af-0156a39fef86",
+				"method": "POST"
+			},
+			{
+				"id": "d97c5d41-e426-4852-bb0d-8db2a777bd50",
+				"method": "GET"
+			},
+			{
+				"id": "d63fdb63-deaf-461b-96cf-01b90f33b6f9",
+				"method": "GET"
+			},
+			{
+				"id": "8cb72dec-54e3-4470-a140-a98c9bab2212",
+				"method": "GET"
+			},
+			{
+				"id": "435a5978-3b7b-44a6-9c3e-6593544efe54",
 				"method": "GET"
 			}
 		]

@@ -14,13 +14,14 @@ public interface IRealtimeUpdates : IAsyncDisposable
 public sealed class SignalRUpdates(string url) : IRealtimeUpdates
 {
     private HubConnection? connection;
+    public string Url { get; set; } = url;
     public event Action? Changed;
     public event Action<string>? ConnectionChanged;
     public event Action<string, string>? RemoteCommandReceived;
     public async Task StartAsync(Func<Task<string?>> token)
     {
         await StopAsync();
-        connection = new HubConnectionBuilder().WithUrl(url, options => options.AccessTokenProvider = token).WithAutomaticReconnect().Build();
+        connection = new HubConnectionBuilder().WithUrl(Url, options => options.AccessTokenProvider = token).WithAutomaticReconnect().Build();
         foreach (var name in new[] { "ComputerChanged", "SessionStarted", "SessionEnded", "SessionChanged", "BalanceChanged", "TopupRequested", "TopupDecided", "OrderCreated", "OrderChanged" })
             connection.On<object>(name, _ => Changed?.Invoke());
 

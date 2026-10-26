@@ -1,12 +1,14 @@
 @echo off
-title Chạy Desktop Client (WPF)
 chcp 65001 >nul
+title InternetCafe - Desktop Client
 cd /d "%~dp0InternetCafe\apps\desktop-client"
 echo ============================================================
-echo   KHỞI CHẠY CLIENT DESKTOP (WPF .NET 9.0)
-echo   * Tự động kết nối Backend API nếu đang mở
-echo   * Tự động chuyển sang Standalone Offline Demo nếu chưa mở API
+echo   KHOI CHAY CLIENT DESKTOP (WPF .NET 10.0)
+echo   * Tu dong ket noi Backend API neu dang mo
+echo   * Tu dong chuyen sang Standalone Offline Demo neu chua mo API
 echo ============================================================
 echo.
-dotnet run --project InternetCafe.Client/InternetCafe.Client.csproj
+echo Dang khoi dong giao dien may tram, vui long doi giay lat...
+echo.
+dotnet run --project InternetCafe.Client/InternetCafe.Client.csproj -- %*
 pause
